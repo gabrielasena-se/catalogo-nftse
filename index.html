@@ -262,7 +262,8 @@ a{color:var(--ouro)}
 .admin-painel label{display:block;font-size:11px;color:var(--mudo);margin-top:8px}
 .admin-painel label input{width:100%;margin-top:4px}
 
-.opcoes-itens{display:flex;gap:8px;flex-wrap:wrap}
+.opcoes-itens{display:grid;grid-template-columns:repeat(auto-fill,104px);gap:8px;justify-content:end}
+@media(max-width:520px){.opcoes-itens{grid-template-columns:repeat(auto-fill,80px)}}
 .item-mini{
   width:104px;height:104px;padding:4px;border-radius:8px;flex-shrink:0;position:relative;
   border:2px solid var(--linha);cursor:pointer;
