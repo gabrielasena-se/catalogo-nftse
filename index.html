@@ -122,6 +122,10 @@ a{color:var(--ouro)}
 .card-txt{padding:10px 11px 12px}
 .card-pt{display:block;font-weight:800;font-size:14px;line-height:1.25}
 .card-en{display:block;font-size:12px;color:var(--mudo);margin-top:2px}
+.card-en-linha{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:2px}
+.card-en-linha .card-en{margin-top:0}
+.card-faixa{font-family:var(--pixel);font-size:11px;letter-spacing:1px;color:var(--ouro);flex:none}
+.cifra-apagada{opacity:.25}
 
 /* ---------- item ---------- */
 .voltar{
@@ -262,7 +266,7 @@ a{color:var(--ouro)}
 .admin-painel label{display:block;font-size:11px;color:var(--mudo);margin-top:8px}
 .admin-painel label input{width:100%;margin-top:4px}
 
-.opcoes-itens{display:grid;grid-template-columns:repeat(auto-fill,104px);gap:8px;justify-content:end}
+.opcoes-itens{display:grid;grid-template-columns:repeat(auto-fill,104px);gap:8px;justify-content:center}
 @media(max-width:520px){.opcoes-itens{grid-template-columns:repeat(auto-fill,80px)}}
 .item-mini{
   width:104px;height:104px;padding:4px;border-radius:8px;flex-shrink:0;position:relative;
@@ -332,7 +336,7 @@ const HOTEL = "https://www.habbo.com.br";
 
 // Endereço do intermediário que busca o visual pelo nick.
 // Deixe vazio para tentar direto no Habbo; se der erro, veja o arquivo buscar-visual.js.
-const PROXY = "";
+const PROXY = "/api/habbo?nick=";
 
 // Visual base do manequim. Cada peça é trocada pelos botões do provador.
 const BASE = { hd:"hd-180-1", hr:"hr-828-45", ch:"ch-210-66", lg:"lg-280-110", sh:"sh-305-62" };
@@ -3230,6 +3234,14 @@ function coracaoHTML(slug, grande){
 
 /* ------------------------------ telas ---------------------------------- */
 
+function faixaHTML(faixa){
+  const n = Math.max(0, Math.min(4, parseInt(faixa, 10) || 0));
+  if (!n) return "";
+  let out = "";
+  for (let i = 1; i <= 4; i++) out += `<span class="${i <= n ? "" : "cifra-apagada"}">$</span>`;
+  return `<span class="card-faixa" title="Faixa de preço">${out}</span>`;
+}
+
 function cardsHTML(lista, msgVazio){
   if (!lista.length) return `<p style="color:var(--mudo)">${msgVazio}</p>`;
   return lista.map(it => `
@@ -3240,7 +3252,10 @@ function cardsHTML(lista, msgVazio){
           <span class="card-pt">${esc(it.pt)}</span>
           ${coracaoHTML(it.slug)}
         </span>
-        <span class="card-en">${esc(it.en)}</span>
+        <span class="card-en-linha">
+          <span class="card-en">${esc(it.en)}</span>
+          ${faixaHTML(it.faixa)}
+        </span>
       </span>
     </div>`).join("");
 }
@@ -3408,7 +3423,7 @@ function telaEditor(){
     const paleta = FIGUREDATA_COMPLETO.palettes[info.paletteid] || [];
 
     grade = `
-      <p class="contador-itens" style="text-align:right;margin:0 0 8px">${esc(info.rotulo)}: ${todos.length} ${todos.length === 1 ? "item" : "itens"}</p>
+      <p class="contador-itens" style="text-align:center;margin:0 0 8px">${esc(info.rotulo)}: ${todos.length} ${todos.length === 1 ? "item" : "itens"}</p>
       <div class="opcoes-itens" id="gradeEditor">
         ${semNenhum ? "" : `
           <button type="button" class="item-mini" data-remover="${editorTipoAtivo}"
@@ -3551,8 +3566,8 @@ function telaEditor(){
     telaEditor();
   });
 
-  document.getElementById("girarEsqEditor").onclick = () => { prov.dir = (prov.dir + 7) % 8; atualizarEditor(); };
-  document.getElementById("girarDirEditor").onclick = () => { prov.dir = (prov.dir + 1) % 8; atualizarEditor(); };
+  document.getElementById("girarEsqEditor").onclick = () => { prov.dir = (prov.dir + 1) % 8; atualizarEditor(); };
+  document.getElementById("girarDirEditor").onclick = () => { prov.dir = (prov.dir + 7) % 8; atualizarEditor(); };
   document.getElementById("copiarCodigoEditor").onclick = async () => {
     const codigo = figuraMultipla();
     const msg = document.getElementById("copiarCodigoMsg");
@@ -3883,6 +3898,46 @@ function fazerLogout(){
 
 function montarPainelAdmin(){
   if (new URLSearchParams(location.search).get("admin") !== "1") return;
+
+  if (sessionStorage.getItem("nftse_admin_ok") === "1") {
+    montarPainelAdminCompleto();
+    return;
+  }
+
+  const divLogin = document.createElement("div");
+  divLogin.className = "admin-painel";
+  divLogin.innerHTML = `
+    <h3>Painel de administração</h3>
+    <label>Senha de admin<input id="adminSenhaEntrar" type="password" class="figura"></label>
+    <button type="button" class="cta" id="adminEntrarBtn" style="margin-top:10px">Entrar</button>
+    <p class="dica" id="adminLoginMsg"></p>`;
+  document.body.appendChild(divLogin);
+
+  const entrarAdmin = async () => {
+    const adminSecret = document.getElementById("adminSenhaEntrar").value;
+    const msg = document.getElementById("adminLoginMsg");
+    if (!adminSecret) { msg.textContent = "Digite a senha."; return; }
+    msg.textContent = "Verificando...";
+    try {
+      const r = await fetch(API_BASE + "/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "verificar", adminSecret })
+      });
+      if (!r.ok) { msg.textContent = "Senha incorreta."; return; }
+      sessionStorage.setItem("nftse_admin_ok", "1");
+      sessionStorage.setItem("nftse_admin_secret", adminSecret);
+      divLogin.remove();
+      montarPainelAdminCompleto();
+    } catch (e) {
+      msg.textContent = "Não consegui verificar agora.";
+    }
+  };
+  document.getElementById("adminEntrarBtn").onclick = entrarAdmin;
+  document.getElementById("adminSenhaEntrar").addEventListener("keydown", e => { if (e.key === "Enter") entrarAdmin(); });
+}
+
+function montarPainelAdminCompleto(){
   const div = document.createElement("div");
   div.className = "admin-painel";
   div.innerHTML = `
@@ -3922,6 +3977,15 @@ function montarPainelAdmin(){
       </label>
     </div>
     <label>Descrição (opcional)<input id="itemDesc" class="figura"></label>
+    <label>Faixa de preço (opcional)
+      <select id="itemFaixa" class="figura">
+        <option value="">Não marcar</option>
+        <option value="1">$ (mais barato)</option>
+        <option value="2">$$</option>
+        <option value="3">$$$</option>
+        <option value="4">$$$$ (mais caro)</option>
+      </select>
+    </label>
     <details style="margin-top:4px">
       <summary class="dica" style="cursor:pointer">Código (slug) manual — opcional</summary>
       <input id="itemSlug" class="figura" style="margin-top:8px" placeholder="Deixe em branco pra gerar sozinho a partir do nome">
@@ -4007,7 +4071,8 @@ function montarPainelAdmin(){
       en: document.getElementById("itemEn").value.trim(),
       img: document.getElementById("itemImg").value.trim(),
       desc: document.getElementById("itemDesc").value.trim(),
-      slug: document.getElementById("itemSlug").value.trim()
+      slug: document.getElementById("itemSlug").value.trim(),
+      faixa: document.getElementById("itemFaixa").value
     };
     if (campoTipo.value === "roupa") {
       item.peca = document.getElementById("itemPeca").value.trim();
@@ -4025,6 +4090,7 @@ function montarPainelAdmin(){
       const dados = await r.json();
       if (!r.ok) { msg.textContent = dados.erro || "Erro ao adicionar o item."; return; }
       msg.textContent = `Item "${dados.item.pt}" adicionado! Código: ${dados.item.slug}`;
+      document.getElementById("itemFaixa").value = "";
       ["itemPt","itemEn","itemImg","itemPeca","itemDesc","itemSlug"].forEach(id => {
         const campo = document.getElementById(id);
         if (campo) campo.value = "";
