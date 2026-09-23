@@ -3335,14 +3335,26 @@ function pecaParaFigura(tipo, sel){
   return tipo + "-" + sel.id + "-" + cor1 + cor2;
 }
 
+// Peças padrão do corpo base, uma versão pra cada gênero
+// (o toggle Masculino/Feminino não só muda a pose — troca essas peças também).
+const BASE_POR_GENERO = {
+  M: { hd: "hd-180", hr: "hr-828", ch: "ch-210-66", lg: "lg-280-82", sh: "sh-305-80" },
+  F: { hd: "hd-600", hr: "hr-540", ch: "ch-690-66", lg: "lg-716-82", sh: "sh-907-80" }
+};
+
 function figuraMultipla(){
   let lista;
   if (prov.figLivre.trim()) {
     lista = prov.figLivre.trim().split(".").filter(Boolean);
   } else {
-    const partes = { ...BASE };
-    partes.hd = "hd-180-" + prov.pele;
-    partes.hr = "hr-" + prov.cabelo + "-" + prov.corCabelo;
+    const base = BASE_POR_GENERO[prov.genero] || BASE_POR_GENERO.M;
+    const partes = {
+      hd: base.hd + "-" + prov.pele,
+      hr: base.hr + "-" + prov.corCabelo,
+      ch: base.ch,
+      lg: base.lg,
+      sh: base.sh
+    };
     lista = Object.values(partes);
   }
   Object.entries(editorSelecionados).forEach(([tipo, sel]) => {
@@ -3438,8 +3450,8 @@ function telaEditor(){
       <button class="voltar" id="voltarEditor">&lt; Voltar ao catálogo</button>
       <h1 style="margin:0 0 6px">Editor de Visuais</h1>
       <p class="dica" style="margin:0 0 16px">
-        Monta o visual do seu jeito com qualquer item que já existiu no jogo.
-        Assim que a gente descobrir os códigos exatos dos itens NFT, eles vão ficar marcados aqui.
+        Carregue seu avatar do Habbo, experimente diferentes peças e veja como os NFTs combinam com o seu visual.
+        Misture os itens com as peças que você já usa e monte diferentes combinações antes de decidir qual combina mais com você.
       </p>
       <section class="secao">
         <div class="provador provador-editor">
@@ -3452,7 +3464,7 @@ function telaEditor(){
           </div>
           <div class="controles">
             <div class="campo">
-              <label for="nickEditor">Seu nick no Habbo</label>
+              <label for="nickEditor">Insira seu nick do Habbo</label>
               <div class="linha-nick">
                 <input class="figura" id="nickEditor" placeholder="Seu nick no Habbo" value="${esc(prov.nick)}">
                 <button class="opt" id="buscarNickEditor">Carregar</button>
