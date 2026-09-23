@@ -34,6 +34,14 @@ export default async function handler(req, res) {
 
   const { acao, nick, senha, adminSecret, novaSenha } = req.body || {};
 
+  // Só confere se a senha de admin está certa (usado pra liberar o painel na tela)
+  if (acao === "verificar") {
+    if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
+      return res.status(403).json({ erro: "Senha incorreta." });
+    }
+    return res.status(200).json({ ok: true });
+  }
+
   if (!nick) {
     return res.status(400).json({ erro: "Informe o nick." });
   }
