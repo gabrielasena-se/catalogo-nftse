@@ -3315,6 +3315,7 @@ let editorQtdMostrada = {};        // tipo -> quantos itens já exibidos (carreg
 
 const TIPOS_MANDATORIOS_EDITOR = ["hd", "ch", "lg"];
 const TIPOS_CABECA_EDITOR = new Set(["hd", "hr", "ha", "he", "ea", "fa"]);
+const ORDEM_CATEGORIAS_EDITOR = ["hd", "hr", "ch", "cc", "lg", "sh", "ha", "he", "ea", "fa", "ca", "cp", "wa", "mc", "pt"];
 
 async function carregarFiguredataCompleto(){
   if (FIGUREDATA_COMPLETO || editorCarregando) return;
@@ -3345,8 +3346,8 @@ function pecaParaFigura(tipo, sel){
 // Peças padrão do corpo base, uma versão pra cada gênero
 // (o toggle Masculino/Feminino não só muda a pose — troca essas peças também).
 const BASE_POR_GENERO = {
-  M: { hd: "hd-180", hr: "hr-828", ch: "ch-210-66", lg: "lg-280-82", sh: "sh-305-80" },
-  F: { hd: "hd-600", hr: "hr-540", ch: "ch-690-66", lg: "lg-716-82", sh: "sh-907-80" }
+  M: { hd: "hd-3091-11", hr: "hr-828-1347", ch: "ch-6353-1", lg: "lg-270-92" },
+  F: { hd: "hd-600-11", hr: "hr-6434-1347", ch: "ch-665-92", lg: "lg-700-92" }
 };
 
 function figuraMultipla(){
@@ -3355,14 +3356,7 @@ function figuraMultipla(){
     lista = prov.figLivre.trim().split(".").filter(Boolean);
   } else {
     const base = BASE_POR_GENERO[prov.genero] || BASE_POR_GENERO.M;
-    const partes = {
-      hd: base.hd + "-" + prov.pele,
-      hr: base.hr + "-" + prov.corCabelo,
-      ch: base.ch,
-      lg: base.lg,
-      sh: base.sh
-    };
-    lista = Object.values(partes);
+    lista = [base.hd, base.hr, base.ch, base.lg];
   }
   Object.entries(editorSelecionados).forEach(([tipo, sel]) => {
     const codigo = pecaParaFigura(tipo, sel);
@@ -3392,7 +3386,9 @@ function urlMiniaturaEditor(tipo, set){
 function telaEditor(){
   if (!FIGUREDATA_COMPLETO && !editorCarregando && !editorErroCarregar) carregarFiguredataCompleto();
 
-  const tiposOrdem = FIGUREDATA_COMPLETO ? Object.keys(FIGUREDATA_COMPLETO.settypes) : [];
+  const disponiveisEditor = FIGUREDATA_COMPLETO ? Object.keys(FIGUREDATA_COMPLETO.settypes) : [];
+  const tiposOrdem = ORDEM_CATEGORIAS_EDITOR.filter(t => disponiveisEditor.includes(t))
+    .concat(disponiveisEditor.filter(t => !ORDEM_CATEGORIAS_EDITOR.includes(t)));
   if (FIGUREDATA_COMPLETO && !editorTipoAtivo) editorTipoAtivo = tiposOrdem[0];
 
   const abasCategoria = tiposOrdem.map(tipo => `
