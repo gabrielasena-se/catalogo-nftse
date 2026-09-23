@@ -17,6 +17,10 @@
 // O resultado fica em cache por 1 hora (o Habbo quase nunca muda isso).
 
 const HOTEL = "https://www.habbo.com.br";
+const CABECALHOS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+};
 
 // Nomes em português de cada categoria de peça, pra exibir no editor.
 const CATEGORIAS = {
@@ -27,11 +31,11 @@ const CATEGORIAS = {
 };
 
 async function acharUrlBaseGraficos() {
-  const r = await fetch(`${HOTEL}/gamedata/external_variables/1`);
-  if (!r.ok) throw new Error("nao consegui ler external_variables");
+  const r = await fetch(`${HOTEL}/gamedata/external_variables/1`, { headers: CABECALHOS });
+  if (!r.ok) throw new Error("nao consegui ler external_variables (status " + r.status + ")");
   const texto = await r.text();
   const m = texto.match(/flash\.client\.url=(\S+)/);
-  if (!m) throw new Error("nao achei flash.client.url");
+  if (!m) throw new Error("nao achei flash.client.url no external_variables");
   return m[1].trim();
 }
 
@@ -70,8 +74,8 @@ function extrairSettypes(xml) {
 export default async function handler(req, res) {
   try {
     const baseGraficos = await acharUrlBaseGraficos();
-    const rFig = await fetch(baseGraficos + "figuredata.xml");
-    if (!rFig.ok) throw new Error("nao consegui buscar figuredata.xml");
+    const rFig = await fetch(baseGraficos + "figuredata.xml", { headers: CABECALHOS });
+    if (!rFig.ok) throw new Error("nao consegui buscar figuredata.xml (status " + rFig.status + ")");
     const xml = await rFig.text();
 
     const resultado = {
@@ -82,6 +86,9 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
     res.status(200).json(resultado);
   } catch (erro) {
-    res.status(502).json({ erro: "Não consegui buscar os dados do Habbo agora. Tenta de novo em alguns minutos." });
+    res.status(502).json({
+      erro: "Não consegui buscar os dados do Habbo agora. Tenta de novo em alguns minutos.",
+      detalhe: String(erro && erro.message || erro)
+    });
   }
 }
