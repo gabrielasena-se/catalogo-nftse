@@ -17,6 +17,7 @@
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const CHAVE_REDIS = "catalogo:extra";
+const CHAVE_FAIXAS = "catalogo:faixas";
 
 async function redis(...args) {
   const caminho = args.map(encodeURIComponent).join("/");
@@ -38,6 +39,21 @@ async function lerExtras() {
   }
 }
 
+async function lerFaixas() {
+  const bruto = await redis("GET", CHAVE_FAIXAS);
+  if (!bruto) return {};
+  try {
+    const obj = JSON.parse(bruto);
+    return obj && typeof obj === "object" ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+async function salvarFaixas(obj) {
+  await redis("SET", CHAVE_FAIXAS, JSON.stringify(obj));
+}
+
 async function salvarExtras(lista) {
   await redis("SET", CHAVE_REDIS, JSON.stringify(lista));
 }
@@ -55,14 +71,15 @@ export default async function handler(req, res) {
   // Qualquer visitante pode VER a lista (é o que o site usa pra montar o catálogo)
   if (req.method === "GET") {
     const itens = await lerExtras();
-    return res.status(200).json({ itens });
+    const faixas = await lerFaixas();
+    return res.status(200).json({ itens, faixas });
   }
 
   if (req.method !== "POST") {
     return res.status(405).json({ erro: "Método não permitido." });
   }
 
-  const { acao, adminSecret, item, slug } = req.body || {};
+  const { acao, adminSecret, item, slug, faixa } = req.body || {};
 
   if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
     return res.status(403).json({ erro: "Senha de administrador incorreta." });
@@ -120,6 +137,20 @@ export default async function handler(req, res) {
     }
     await salvarExtras(restantes);
     return res.status(200).json({ ok: true });
+  }
+
+  // Marcar (ou tirar) a faixa de preço de QUALQUER item, mesmo os que já vêm prontos no arquivo
+  if (acao === "definirFaixa") {
+    if (!slug) return res.status(400).json({ erro: "Informe o item." });
+    const faixas = await lerFaixas();
+    const faixaNum = parseInt(faixa, 10);
+    if (faixaNum >= 1 && faixaNum <= 4) {
+      faixas[slug] = faixaNum;
+    } else {
+      delete faixas[slug];
+    }
+    await salvarFaixas(faixas);
+    return res.status(200).json({ ok: true, faixas });
   }
 
   return res.status(400).json({ erro: "Ação inválida." });
