@@ -3407,6 +3407,7 @@ function telaEditor(){
     const paleta = FIGUREDATA_COMPLETO.palettes[info.paletteid] || [];
 
     grade = `
+      <p class="contador-itens" style="text-align:right;margin:0 0 8px">${esc(info.rotulo)}: ${todos.length} ${todos.length === 1 ? "item" : "itens"}</p>
       <div class="opcoes-itens" id="gradeEditor">
         ${semNenhum ? "" : `
           <button type="button" class="item-mini" data-remover="${editorTipoAtivo}"
@@ -3453,8 +3454,9 @@ function telaEditor(){
       <button class="voltar" id="voltarEditor">&lt; Voltar ao catálogo</button>
       <h1 style="margin:0 0 6px">Editor de Visuais</h1>
       <p class="dica" style="margin:0 0 16px">
-        Carregue seu avatar do Habbo, experimente diferentes peças e veja como os NFTs combinam com o seu visual.
-        Misture os itens com as peças que você já usa e monte diferentes combinações antes de decidir qual combina mais com você.
+        Experimente antes de escolher seu NFT! Carregue seu avatar pelo nick do Habbo e use o editor para testar diferentes
+        cabelos, roupas, acessórios e outras peças diretamente no seu visual atual. Combine os NFTs com itens que você já usa,
+        crie novas composições e veja como cada peça ficaria no seu avatar antes de decidir pela compra.
       </p>
       <section class="secao">
         <div class="provador provador-editor">
