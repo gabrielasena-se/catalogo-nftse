@@ -1,8 +1,13 @@
 // FAVORITOS / CURTIDAS
 //
-// Coloque este arquivo na mesma pasta  api  onde está o auth.js.
-// Usa as mesmas variáveis de ambiente UPSTASH_REDIS_REST_URL e
-// UPSTASH_REDIS_REST_TOKEN que você já configurou pro auth.js.
+// Coloque este arquivo em  api/favoritos.js  (substitui o antigo).
+// Usa UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN (já configuradas)
+// e, pra confirmar quem está pedindo, fala com a API do bot através do
+// módulo lib/sessao.js — por isso TODA chamada que favorita/desfavorita
+// revalida a sessão de novo aqui no servidor, nunca confiando só no que o
+// navegador diz que é.
+
+import { validarSessao, ipDoPedido } from "../lib/sessao.js";
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -16,15 +21,10 @@ async function redis(...args) {
   return dados.result;
 }
 
-async function verificarLogin(nick, senha) {
-  if (!nick || !senha) return false;
-  const chave = nick.trim().toLowerCase();
-  const senhaSalva = await redis("HGET", "usuarios", chave);
-  return senhaSalva !== null && senhaSalva === senha;
-}
-
 export default async function handler(req, res) {
-  // Qualquer visitante pode VER as contagens (não precisa estar logado)
+  res.setHeader("Cache-Control", "no-store");
+
+  // Qualquer visitante pode VER as contagens gerais (não precisa de sessão)
   if (req.method === "GET") {
     const bruto = await redis("HGETALL", "contagens");
     const contagens = {};
@@ -34,27 +34,31 @@ export default async function handler(req, res) {
       }
     }
 
-    // Se veio nick+senha na URL, devolve também os favoritos desse usuário
-    const { nick, senha } = req.query;
+    // Se veio um token válido na URL, devolve também os favoritos dessa pessoa
+    const { token } = req.query;
     let meus = [];
-    if (await verificarLogin(nick, senha)) {
-      const chave = nick.trim().toLowerCase();
-      const lista = await redis("SMEMBERS", `favoritos:${chave}`);
-      meus = Array.isArray(lista) ? lista : [];
+    if (token) {
+      const sessaoValida = await validarSessao(token, ipDoPedido(req));
+      if (sessaoValida.ok) {
+        const lista = await redis("SMEMBERS", `favoritos:${sessaoValida.discordUserId}`);
+        meus = Array.isArray(lista) ? lista : [];
+      }
     }
 
     return res.status(200).json({ contagens, meus });
   }
 
-  // Só quem está logado pode favoritar/desfavoritar
+  // Só quem tem uma sessão válida pode favoritar/desfavoritar
   if (req.method === "POST") {
-    const { nick, senha, slug } = req.body || {};
+    const { token, slug } = req.body || {};
     if (!slug) return res.status(400).json({ erro: "Informe o item." });
-    if (!(await verificarLogin(nick, senha))) {
-      return res.status(401).json({ erro: "Faça login para favoritar." });
+
+    const sessaoValida = await validarSessao(token, ipDoPedido(req));
+    if (!sessaoValida.ok) {
+      return res.status(401).json({ erro: "Sessão expirada. Peça um novo acesso no Discord." });
     }
 
-    const chave = nick.trim().toLowerCase();
+    const chave = sessaoValida.discordUserId;
     const jaTinha = await redis("SISMEMBER", `favoritos:${chave}`, slug);
 
     let novaContagem;
