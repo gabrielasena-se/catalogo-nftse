@@ -27,7 +27,7 @@ const CATEGORIAS = {
   hr: "Cabelo", hd: "Pele/Rosto", ch: "Camisa", cc: "Casaco/Jaqueta",
   lg: "Calça", sh: "Sapato", ha: "Chapéu", he: "Acessório de Cabeça",
   ea: "Óculos", fa: "Acessório de Rosto", ca: "Acessório de Peito",
-  cp: "Estampa do Peito", wa: "Cintura", mc: "Item de Mão", pt: "Adesivo"
+  cp: "Estampa do Peito", wa: "Cintura", mc: "Item de Mão", pt: "Mascote"
 };
 
 function extrairPaletas(xml) {
