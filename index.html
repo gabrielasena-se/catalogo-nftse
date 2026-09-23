@@ -264,13 +264,20 @@ a{color:var(--ouro)}
 
 .opcoes-itens{display:flex;gap:8px;flex-wrap:wrap}
 .item-mini{
-  width:104px;height:104px;padding:4px;border-radius:8px;flex-shrink:0;
+  width:104px;height:104px;padding:4px;border-radius:8px;flex-shrink:0;position:relative;
   border:2px solid var(--linha);cursor:pointer;
   background:repeating-conic-gradient(#200a3c 0% 25%,#280d48 0% 50%) 0 0/10px 10px;
   display:flex;align-items:center;justify-content:center;
 }
 .item-mini[aria-pressed="true"]{border-color:var(--ouro)}
 .item-mini img{max-width:100%;max-height:100%}
+.item-mini::after{
+  content:attr(data-codigo);position:absolute;top:-26px;left:50%;transform:translateX(-50%);
+  background:#0c0016;color:var(--texto);font-size:11px;padding:3px 7px;border-radius:4px;
+  white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .1s;z-index:5;
+  border:1px solid var(--linha);
+}
+.item-mini:hover::after,.item-mini:focus::after{opacity:1}
 @media(max-width:520px){.item-mini{width:80px;height:80px}}
 .item-mini[aria-pressed="true"]{border-color:var(--ouro);box-shadow:0 0 0 2px var(--ouro)}
 </style>
@@ -3410,8 +3417,8 @@ function telaEditor(){
             aria-pressed="${!selAtual}" title="Nenhum">Nenhum</button>`}
         ${visiveis.map(s => `
           <button type="button" class="item-mini" data-tipo="${editorTipoAtivo}" data-id="${s.id}" data-cor="${s.maxCor}"
-            aria-pressed="${!!(selAtual && selAtual.id === s.id)}" title="#${s.id}">
-            <img src="${esc(urlMiniaturaEditor(editorTipoAtivo, s))}" alt="#${s.id}" loading="lazy"
+            data-codigo="${editorTipoAtivo}-${s.id}" aria-pressed="${!!(selAtual && selAtual.id === s.id)}">
+            <img src="${esc(urlMiniaturaEditor(editorTipoAtivo, s))}" alt="${editorTipoAtivo}-${s.id}" loading="lazy"
               onerror="this.closest('button').style.display='none'">
           </button>`).join("")}
       </div>
