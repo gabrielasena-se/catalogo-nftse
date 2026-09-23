@@ -3313,7 +3313,7 @@ let editorErroCarregar = "";
 let editorTipoAtivo = null;        // categoria (tipo de duas letras) selecionada nas abas
 let editorQtdMostrada = {};        // tipo -> quantos itens já exibidos (carregar mais)
 
-const TIPOS_MANDATORIOS_EDITOR = ["hd", "hr", "ch", "lg", "sh"];
+const TIPOS_MANDATORIOS_EDITOR = ["hd", "ch", "lg"];
 const TIPOS_CABECA_EDITOR = new Set(["hd", "hr", "ha", "he", "ea", "fa"]);
 
 async function carregarFiguredataCompleto(){
@@ -3468,6 +3468,8 @@ function telaEditor(){
               <button class="mini" id="girarEsqEditor" aria-label="Girar para a esquerda">&#8592;</button>
               <button class="mini" id="girarDirEditor" aria-label="Girar para a direita">&#8594;</button>
             </div>
+            <button type="button" class="opt" id="copiarCodigoEditor" style="margin-top:6px">Copiar código</button>
+            <p class="dica" id="copiarCodigoMsg" style="margin:4px 0 0;min-height:14px"></p>
           </div>
           <div class="controles">
             <div class="campo">
@@ -3552,6 +3554,16 @@ function telaEditor(){
 
   document.getElementById("girarEsqEditor").onclick = () => { prov.dir = (prov.dir + 7) % 8; atualizarEditor(); };
   document.getElementById("girarDirEditor").onclick = () => { prov.dir = (prov.dir + 1) % 8; atualizarEditor(); };
+  document.getElementById("copiarCodigoEditor").onclick = async () => {
+    const codigo = figuraMultipla();
+    const msg = document.getElementById("copiarCodigoMsg");
+    try {
+      await navigator.clipboard.writeText(codigo);
+      msg.textContent = "Copiado!";
+    } catch (e) {
+      msg.textContent = codigo;
+    }
+  };
   document.getElementById("limparEditor").onclick = () => {
     editorSelecionados = {};
     telaEditor();
