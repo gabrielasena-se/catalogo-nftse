@@ -4179,14 +4179,11 @@ document.getElementById("busca").oninput = e => {
 window.addEventListener("hashchange", render);
 
 async function iniciar(){
-  // O painel admin tem senha própria (ADMIN_SECRET) e não depende do login
-  // de cliente pelo Discord — por isso é chamado sempre, mesmo sem sessão.
-  montarPainelAdmin();
-
   await validarSessaoAtual();
   if (!sessao) { telaSessaoExpirada(); return; }
   document.getElementById("topo").style.display = "";
   renderAuthArea();
+  montarPainelAdmin();
   await Promise.all([carregarCatalogoExtra(), carregarFavoritos()]);
   render();
 }
