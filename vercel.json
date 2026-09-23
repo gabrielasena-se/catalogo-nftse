@@ -1,0 +1,8 @@
+{
+  "outputDirectory": "public",
+  "functions": {
+    "api/app.js": {
+      "includeFiles": "privado/**"
+    }
+  }
+}

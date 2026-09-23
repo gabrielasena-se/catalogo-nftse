@@ -1,8 +1,13 @@
 // FAVORITOS / CURTIDAS
 //
-// Coloque este arquivo na mesma pasta  api  onde está o auth.js.
-// Usa as mesmas variáveis de ambiente UPSTASH_REDIS_REST_URL e
-// UPSTASH_REDIS_REST_TOKEN que você já configurou pro auth.js.
+// Coloque este arquivo na pasta  api . Usa as variáveis de ambiente
+// UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN (banco dos favoritos)
+// e a sessão do Discord (veja _sessao.js).
+//
+// Os favoritos de cada pessoa ficam guardados pelo ID do Discord dela
+// (favoritos:discord:<id>), que não muda mesmo se o nick do Habbo mudar.
+
+import { exigirSessao } from "./_sessao.js";
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -16,15 +21,12 @@ async function redis(...args) {
   return dados.result;
 }
 
-async function verificarLogin(nick, senha) {
-  if (!nick || !senha) return false;
-  const chave = nick.trim().toLowerCase();
-  const senhaSalva = await redis("HGET", "usuarios", chave);
-  return senhaSalva !== null && senhaSalva === senha;
-}
-
 export default async function handler(req, res) {
-  // Qualquer visitante pode VER as contagens (não precisa estar logado)
+  const sessao = await exigirSessao(req, res);
+  if (!sessao) return;
+  const chaveFavoritos = `favoritos:discord:${sessao.discordUserId}`;
+
+  // Contagens de todo mundo + os favoritos de quem está pedindo
   if (req.method === "GET") {
     const bruto = await redis("HGETALL", "contagens");
     const contagens = {};
@@ -34,35 +36,25 @@ export default async function handler(req, res) {
       }
     }
 
-    // Se veio nick+senha na URL, devolve também os favoritos desse usuário
-    const { nick, senha } = req.query;
-    let meus = [];
-    if (await verificarLogin(nick, senha)) {
-      const chave = nick.trim().toLowerCase();
-      const lista = await redis("SMEMBERS", `favoritos:${chave}`);
-      meus = Array.isArray(lista) ? lista : [];
-    }
+    const lista = await redis("SMEMBERS", chaveFavoritos);
+    const meus = Array.isArray(lista) ? lista : [];
 
     return res.status(200).json({ contagens, meus });
   }
 
-  // Só quem está logado pode favoritar/desfavoritar
+  // Favoritar/desfavoritar
   if (req.method === "POST") {
-    const { nick, senha, slug } = req.body || {};
+    const { slug } = req.body || {};
     if (!slug) return res.status(400).json({ erro: "Informe o item." });
-    if (!(await verificarLogin(nick, senha))) {
-      return res.status(401).json({ erro: "Faça login para favoritar." });
-    }
 
-    const chave = nick.trim().toLowerCase();
-    const jaTinha = await redis("SISMEMBER", `favoritos:${chave}`, slug);
+    const jaTinha = await redis("SISMEMBER", chaveFavoritos, slug);
 
     let novaContagem;
     if (jaTinha) {
-      await redis("SREM", `favoritos:${chave}`, slug);
+      await redis("SREM", chaveFavoritos, slug);
       novaContagem = await redis("HINCRBY", "contagens", slug, -1);
     } else {
-      await redis("SADD", `favoritos:${chave}`, slug);
+      await redis("SADD", chaveFavoritos, slug);
       novaContagem = await redis("HINCRBY", "contagens", slug, 1);
     }
 

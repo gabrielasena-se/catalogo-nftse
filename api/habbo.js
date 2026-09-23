@@ -7,8 +7,14 @@
 //        const PROXY = "/api/habbo?nick=";
 //
 // Pronto. Nada mais precisa ser alterado.
+// Só responde pra quem tem sessão ativa do Discord (veja _sessao.js).
+
+import { exigirSessao } from "./_sessao.js";
 
 export default async function handler(req, res) {
+  const sessao = await exigirSessao(req, res);
+  if (!sessao) return;
+
   const nick = (req.query.nick || "").trim();
 
   if (!nick) {
@@ -30,9 +36,6 @@ export default async function handler(req, res) {
     if (!dados.figureString) {
       return res.status(404).json({ erro: "Esse perfil está privado." });
     }
-
-    // Guarda o resultado por 10 minutos para não consultar o Habbo toda hora
-    res.setHeader("Cache-Control", "public, max-age=600");
 
     return res.status(200).json({
       name: dados.name,

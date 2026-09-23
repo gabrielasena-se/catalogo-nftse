@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="same-origin">
 <title>Catálogo NFT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -239,24 +240,6 @@ a{color:var(--ouro)}
 .coracao-grande{font-size:16px}
 .coracao-grande .coracao-icone{font-size:22px}
 
-.modal-fundo{
-  position:fixed;inset:0;background:rgba(10,0,20,.75);
-  display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;
-}
-.modal-fundo[hidden]{display:none}
-.modal{
-  background:var(--painel);border:1px solid var(--linha);border-radius:10px;
-  padding:24px;max-width:340px;width:100%;position:relative;
-}
-.modal h2{font-family:var(--pixel);font-size:15px;margin:0 0 6px}
-.modal label{display:block;font-size:12px;color:var(--mudo);margin-top:12px}
-.modal label input{width:100%;margin-top:6px}
-.modal-fechar{
-  position:absolute;top:10px;right:10px;background:none;border:none;
-  color:var(--mudo);font-size:20px;cursor:pointer;line-height:1;
-}
-.erro{color:#ff6b7a;font-size:12px;margin-top:10px;min-height:14px}
-
 .admin-painel{
   position:fixed;bottom:16px;right:16px;background:var(--painel);
   border:1px solid var(--linha);border-radius:10px;padding:16px;width:240px;
@@ -299,19 +282,6 @@ a{color:var(--ouro)}
   </div>
 </header>
 
-<div class="modal-fundo" id="modalLoginFundo" hidden>
-  <div class="modal">
-    <button class="modal-fechar" id="modalFechar" aria-label="Fechar">&times;</button>
-    <h2>Entrar</h2>
-    <p class="dica">Use o nick e a senha que o vendedor te passou no Discord.</p>
-    <label>Nick do Discord<input id="loginNick" class="figura" autocomplete="username"></label>
-    <label>Senha (código de 6 números)<input id="loginSenha" type="text" inputmode="numeric" pattern="\d{6}" maxlength="6"
-      placeholder="000000" class="figura" autocomplete="current-password"></label>
-    <button class="cta" id="loginEntrar" style="margin-top:12px">Entrar</button>
-    <p class="erro" id="loginErro"></p>
-  </div>
-</div>
-
 <main id="app"></main>
 
 <footer class="rodape">
@@ -327,7 +297,7 @@ a{color:var(--ouro)}
 const DISCORD = "https://discord.gg/A2DhpT2kh";
 const DISCORD_TICKET = "https://discord.com/channels/1551324519845855333/1551337178016125038";
 
-// Endereço da API de login/favoritos. Deixe vazio se hospedar tudo junto
+// Endereço da pasta /api (sessão, catálogo, favoritos). Deixe vazio se hospedar tudo junto
 // (o catalogo.html e a pasta /api no mesmo projeto da Vercel).
 const API_BASE = "";
 
@@ -3339,7 +3309,7 @@ async function carregarFiguredataCompleto(){
   editorErroCarregar = "";
   telaEditor();
   try {
-    const r = await fetch(API_BASE + "/api/figuredata");
+    const r = await apiFetch(API_BASE + "/api/figuredata");
     const dados = await r.json();
     if (!r.ok || dados.erro) throw new Error(dados.erro || "erro");
     FIGUREDATA_COMPLETO = dados;
@@ -3400,6 +3370,7 @@ function urlMiniaturaEditor(tipo, set){
 }
 
 function telaEditor(){
+  if (estadoSessao !== "ATIVA") return;
   if (!FIGUREDATA_COMPLETO && !editorCarregando && !editorErroCarregar) carregarFiguredataCompleto();
 
   const disponiveisEditor = FIGUREDATA_COMPLETO ? Object.keys(FIGUREDATA_COMPLETO.settypes) : [];
@@ -3596,7 +3567,7 @@ function telaEditor(){
       const url = PROXY
         ? PROXY + encodeURIComponent(nick)
         : HOTEL + "/api/public/users?name=" + encodeURIComponent(nick);
-      const r = await fetch(url);
+      const r = PROXY ? await apiFetch(url) : await fetch(url);
       if (!r.ok) throw new Error("nao encontrado");
       const dados = await r.json();
       if (!dados.figureString) throw new Error("sem visual");
@@ -3765,7 +3736,7 @@ function ligarProvador(it){
       const url = PROXY
         ? PROXY + encodeURIComponent(nick)
         : HOTEL + "/api/public/users?name=" + encodeURIComponent(nick);
-      const r = await fetch(url);
+      const r = PROXY ? await apiFetch(url) : await fetch(url);
       if (!r.ok) throw new Error("nao encontrado");
       const dados = await r.json();
       if (!dados.figureString) throw new Error("sem visual");
@@ -3785,15 +3756,64 @@ function ligarProvador(it){
   atualizar();
 }
 
-/* --------------------------- login e favoritos --------------------------- */
+/* ------------------------- sessão do Discord ---------------------------
+   Esta página só é entregue por /api/app, depois de o servidor conferir o
+   token e o IP com o bot do Discord. A pessoa logada vem preenchida abaixo.
+   Se alguma rota de /api recusar a sessão depois, o token é apagado e a
+   página volta para a entrada pública (public/index.html), que mostra a
+   tela de sessão expirada. */
 
-let sessao = JSON.parse(localStorage.getItem("nftse_sessao") || "null");
+const SESSAO_INICIAL = /*SESSAO*/null;   // preenchido por /api/app — não mexa nesta linha
+const CHAVE_TOKEN = "nftse_token";
+const CHAVE_MOTIVO = "nftse_motivo";
+let sessao = SESSAO_INICIAL;             // { habboName, discordUserId }
+let estadoSessao = sessao ? "ATIVA" : "EXPIRADA";
 let contagens = {};
 let meusFavoritos = new Set();
 
+function lerToken(){
+  try { return localStorage.getItem(CHAVE_TOKEN) || ""; } catch (e) { return ""; }
+}
+function apagarToken(){
+  try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
+}
+
+// Chamada às rotas de /api levando o token. Se o servidor recusar a sessão,
+// sai do catálogo e interrompe quem chamou.
+async function apiFetch(url, opcoes = {}){
+  const r = await fetch(url, {
+    ...opcoes,
+    cache: "no-store",
+    headers: { ...(opcoes.headers || {}), "x-sessao-token": lerToken() }
+  });
+  if (r.status === 401 || r.status === 503) {
+    const dados = await r.json().catch(() => ({}));
+    if (dados.estado) {
+      encerrarNaTela(dados.estado);
+      throw new Error("sessao recusada");
+    }
+  }
+  return r;
+}
+
+let saindo = false;
+function encerrarNaTela(estado){
+  if (saindo) return;
+  saindo = true;
+  estadoSessao = estado;
+  sessao = null;
+  meusFavoritos = new Set();
+  // Fora do ar não quer dizer que o token morreu: guarda pra tentar de novo.
+  if (estado !== "INDISPONIVEL") apagarToken();
+  try { sessionStorage.setItem(CHAVE_MOTIVO, estado); } catch (e) {}
+  document.querySelectorAll(".admin-painel").forEach(el => el.remove());
+  app.innerHTML = "";
+  location.replace(location.pathname + location.search);
+}
+
 async function carregarCatalogoExtra(){
   try {
-    const r = await fetch(API_BASE + "/api/catalogo");
+    const r = await apiFetch(API_BASE + "/api/catalogo");
     const dados = await r.json();
     const slugsExistentes = new Set(CATALOGO.map(it => it.slug));
     (dados.itens || []).forEach(it => {
@@ -3811,9 +3831,7 @@ async function carregarCatalogoExtra(){
 
 async function carregarFavoritos(){
   try {
-    let url = API_BASE + "/api/favoritos";
-    if (sessao) url += "?nick=" + encodeURIComponent(sessao.nick) + "&senha=" + encodeURIComponent(sessao.senha);
-    const r = await fetch(url);
+    const r = await apiFetch(API_BASE + "/api/favoritos");
     const dados = await r.json();
     contagens = dados.contagens || {};
     meusFavoritos = new Set(dados.meus || []);
@@ -3824,12 +3842,12 @@ async function carregarFavoritos(){
 }
 
 async function toggleFavorito(slug){
-  if (!sessao) { abrirLogin(); return; }
+  if (estadoSessao !== "ATIVA") return;
   try {
-    const r = await fetch(API_BASE + "/api/favoritos", {
+    const r = await apiFetch(API_BASE + "/api/favoritos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nick: sessao.nick, senha: sessao.senha, slug })
+      body: JSON.stringify({ slug })
     });
     const dados = await r.json();
     if (!r.ok) { alert(dados.erro || "Não consegui favoritar agora."); return; }
@@ -3837,68 +3855,37 @@ async function toggleFavorito(slug){
     if (dados.favoritado) meusFavoritos.add(slug); else meusFavoritos.delete(slug);
     render();
   } catch (e) {
-    alert("Não consegui falar com o servidor de favoritos agora.");
+    if (estadoSessao === "ATIVA") alert("Não consegui falar com o servidor de favoritos agora.");
   }
 }
 
 function renderAuthArea(){
   const el = document.getElementById("authArea");
-  if (sessao) {
-    el.innerHTML = `<a href="#favoritos" class="auth-entrar">♥ Meus favoritos</a>
-      <span class="auth-nick">${esc(sessao.nick)}</span>
-      <button type="button" class="auth-sair" id="sairBtn">sair</button>`;
-    document.getElementById("sairBtn").onclick = fazerLogout;
-  } else {
-    el.innerHTML = `<button type="button" class="auth-entrar" id="entrarBtn">Entrar</button>`;
-    document.getElementById("entrarBtn").onclick = abrirLogin;
-  }
+  if (!sessao) { el.innerHTML = ""; return; }
+  el.innerHTML = `<a href="#favoritos" class="auth-entrar">♥ Meus favoritos</a>
+    <span class="auth-nick">${esc(sessao.habboName)}</span>
+    <button type="button" class="auth-sair" id="sairBtn">sair</button>`;
+  document.getElementById("sairBtn").onclick = fazerLogout;
 }
 
-function abrirLogin(){
-  document.getElementById("loginErro").textContent = "";
-  document.getElementById("loginNick").value = "";
-  document.getElementById("loginSenha").value = "";
-  document.getElementById("modalLoginFundo").hidden = false;
-  document.getElementById("loginNick").focus();
-}
-function fecharLogin(){ document.getElementById("modalLoginFundo").hidden = true; }
-
-async function fazerLogin(){
-  const nick = document.getElementById("loginNick").value.trim();
-  const senha = document.getElementById("loginSenha").value;
-  const erroEl = document.getElementById("loginErro");
-  if (!nick || !senha) { erroEl.textContent = "Preencha nick e senha."; return; }
+async function fazerLogout(){
+  const token = lerToken();
+  apagarToken();
   try {
-    const r = await fetch(API_BASE + "/api/auth", {
+    await fetch(API_BASE + "/api/sessao/sair", {
       method: "POST",
+      cache: "no-store",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ acao: "login", nick, senha })
+      body: JSON.stringify({ token })
     });
-    const dados = await r.json();
-    if (!r.ok) { erroEl.textContent = dados.erro || "Não consegui entrar."; return; }
-    sessao = { nick: dados.nick, senha };
-    localStorage.setItem("nftse_sessao", JSON.stringify(sessao));
-    fecharLogin();
-    renderAuthArea();
-    await carregarFavoritos();
-    render();
-  } catch (e) {
-    erroEl.textContent = "Não consegui falar com o servidor agora.";
-  }
-}
-
-function fazerLogout(){
-  sessao = null;
-  localStorage.removeItem("nftse_sessao");
-  meusFavoritos = new Set();
-  renderAuthArea();
-  render();
+  } catch (e) {}
+  encerrarNaTela("SAIU");
 }
 
 /* --------------------------- painel de admin ------------------------------
    Só aparece se você abrir o site com ?admin=1 no final do endereço,
-   ex: catalogo.suasite.com/?admin=1
-   É onde você cria a conta de cada cliente (nick do Discord + senha). */
+   ex: catalogo.suasite.com/?admin=1 (com uma sessão do Discord ativa).
+   É onde você cadastra itens e marca faixas de preço. */
 
 function montarPainelAdmin(){
   if (new URLSearchParams(location.search).get("admin") !== "1") return;
@@ -3923,7 +3910,7 @@ function montarPainelAdmin(){
     if (!adminSecret) { msg.textContent = "Digite a senha."; return; }
     msg.textContent = "Verificando...";
     try {
-      const r = await fetch(API_BASE + "/api/auth", {
+      const r = await apiFetch(API_BASE + "/api/catalogo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ acao: "verificar", adminSecret })
@@ -3934,7 +3921,7 @@ function montarPainelAdmin(){
       divLogin.remove();
       montarPainelAdminCompleto();
     } catch (e) {
-      msg.textContent = "Não consegui verificar agora.";
+      if (estadoSessao === "ATIVA") msg.textContent = "Não consegui verificar agora.";
     }
   };
   document.getElementById("adminEntrarBtn").onclick = entrarAdmin;
@@ -3945,18 +3932,8 @@ function montarPainelAdminCompleto(){
   const div = document.createElement("div");
   div.className = "admin-painel";
   div.innerHTML = `
-    <h3>Criar conta de cliente</h3>
+    <h3>Painel de administração</h3>
     <label>Sua senha de admin<input id="adminSecret" type="password" class="figura"></label>
-    <label>Nick do Discord<input id="adminNick" class="figura"></label>
-    <label>Senha para o cliente (6 números)
-      <span style="display:flex;gap:6px;margin-top:4px">
-        <input id="adminSenha" type="text" inputmode="numeric" pattern="\d{6}" maxlength="6"
-          placeholder="000000" class="figura" style="margin-top:0">
-        <button type="button" id="adminGerar" class="opt" style="white-space:nowrap">Gerar</button>
-      </span>
-    </label>
-    <button type="button" class="cta" id="adminCriar" style="margin-top:10px">Criar conta</button>
-    <p class="dica" id="adminMsg"></p>
 
     <h3 style="margin-top:24px">Adicionar item ao catálogo</h3>
     <label>Tipo
@@ -4011,32 +3988,6 @@ function montarPainelAdminCompleto(){
   document.body.appendChild(div);
   document.getElementById("adminSecret").value = sessionStorage.getItem("nftse_admin_secret") || "";
 
-  document.getElementById("adminGerar").onclick = () => {
-    const codigo = String(Math.floor(100000 + Math.random() * 900000));
-    document.getElementById("adminSenha").value = codigo;
-  };
-  document.getElementById("adminCriar").onclick = async () => {
-    const adminSecret = document.getElementById("adminSecret").value;
-    const nick = document.getElementById("adminNick").value.trim();
-    const novaSenha = document.getElementById("adminSenha").value;
-    const msg = document.getElementById("adminMsg");
-    if (!adminSecret || !nick || !novaSenha) { msg.textContent = "Preencha tudo."; return; }
-    if (!/^\d{6}$/.test(novaSenha)) { msg.textContent = "A senha precisa ser 6 números (use o botão Gerar)."; return; }
-    sessionStorage.setItem("nftse_admin_secret", adminSecret);
-    try {
-      const r = await fetch(API_BASE + "/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "criar", nick, novaSenha, adminSecret })
-      });
-      const dados = await r.json();
-      msg.textContent = r.ok ? `Conta "${nick}" criada!` : (dados.erro || "Erro ao criar a conta.");
-      if (r.ok) { document.getElementById("adminNick").value = ""; document.getElementById("adminSenha").value = ""; }
-    } catch (e) {
-      msg.textContent = "Não consegui falar com o servidor.";
-    }
-  };
-
   /* ----- cadastro de item novo ----- */
 
   const campoTipo = document.getElementById("itemTipo");
@@ -4050,7 +4001,7 @@ function montarPainelAdminCompleto(){
   async function listarItensPainel(){
     const listaDiv = document.getElementById("itemLista");
     try {
-      const r = await fetch(API_BASE + "/api/catalogo");
+      const r = await apiFetch(API_BASE + "/api/catalogo");
       const dados = await r.json();
       const itens = dados.itens || [];
       if (!itens.length) { listaDiv.textContent = "Nenhum item cadastrado por aqui ainda."; return; }
@@ -4062,7 +4013,7 @@ function montarPainelAdminCompleto(){
       listaDiv.querySelectorAll("[data-remover-item]").forEach(b => b.onclick = async () => {
         const adminSecret = document.getElementById("adminSecret").value;
         if (!adminSecret) { document.getElementById("itemMsg").textContent = "Preencha sua senha de admin ali em cima primeiro."; return; }
-        await fetch(API_BASE + "/api/catalogo", {
+        await apiFetch(API_BASE + "/api/catalogo", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ acao: "remover", adminSecret, slug: b.dataset.removerItem })
@@ -4101,7 +4052,7 @@ function montarPainelAdminCompleto(){
       if (!adminSecret) { document.getElementById("itemMsg").textContent = "Preencha sua senha de admin ali em cima primeiro."; return; }
       const slugAlvo = b.dataset.faixaSalvar;
       const select = resultados.querySelector(`select[data-faixa-slug="${CSS.escape(slugAlvo)}"]`);
-      const r = await fetch(API_BASE + "/api/catalogo", {
+      const r = await apiFetch(API_BASE + "/api/catalogo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ acao: "definirFaixa", adminSecret, slug: slugAlvo, faixa: select.value })
@@ -4139,7 +4090,7 @@ function montarPainelAdminCompleto(){
     if (!item.pt || !item.en) { msg.textContent = "Preencha ao menos o nome em português e em inglês."; return; }
     sessionStorage.setItem("nftse_admin_secret", adminSecret);
     try {
-      const r = await fetch(API_BASE + "/api/catalogo", {
+      const r = await apiFetch(API_BASE + "/api/catalogo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ acao: "criar", adminSecret, item })
@@ -4163,12 +4114,13 @@ function montarPainelAdminCompleto(){
 /* ----------------------------- roteamento ------------------------------- */
 
 function render(){
+  if (estadoSessao !== "ATIVA") return;
   const rota = location.hash.replace(/^#\/?/, "");
   if (rota.startsWith("item/")) {
     const it = CATALOGO.find(i => i.slug === rota.slice(5));
     if (it) { telaItem(it); window.scrollTo(0, 0); return; }
   }
-  if (rota === "favoritos" && sessao) { telaFavoritos(); window.scrollTo(0, 0); return; }
+  if (rota === "favoritos") { telaFavoritos(); window.scrollTo(0, 0); return; }
   if (rota === "editor") { telaEditor(); window.scrollTo(0, 0); return; }
   telaGrade();
 }
@@ -4179,14 +4131,15 @@ document.getElementById("busca").oninput = e => {
 };
 window.addEventListener("hashchange", render);
 
-document.getElementById("modalFechar").onclick = fecharLogin;
-document.getElementById("modalLoginFundo").onclick = e => { if (e.target.id === "modalLoginFundo") fecharLogin(); };
-document.getElementById("loginEntrar").onclick = fazerLogin;
-document.getElementById("loginSenha").addEventListener("keydown", e => { if (e.key === "Enter") fazerLogin(); });
-
-renderAuthArea();
-montarPainelAdmin();
-Promise.all([carregarCatalogoExtra(), carregarFavoritos()]).then(render);
+(async () => {
+  if (estadoSessao !== "ATIVA") { encerrarNaTela("EXPIRADA"); return; }
+  renderAuthArea();
+  render();
+  await Promise.all([carregarCatalogoExtra(), carregarFavoritos()]);
+  if (estadoSessao !== "ATIVA") return;
+  montarPainelAdmin();
+  render();
+})();
 </script>
 </body>
 </html>

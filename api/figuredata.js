@@ -3,7 +3,7 @@
 // COMO USAR
 // 1. Coloque este arquivo dentro da pasta  api  (a mesma onde estão
 //    auth.js e favoritos.js), com o nome  figuredata.js
-// 2. Não precisa configurar nada — não usa variável de ambiente nenhuma.
+// 2. Só responde pra quem tem sessão ativa do Discord (veja _sessao.js).
 // 3. Publique (redeploy) o site.
 //
 // O que ele faz: busca no próprio site do Habbo o arquivo "external_variables"
@@ -14,9 +14,15 @@
 // da pessoa) porque o site do Habbo não deixa o navegador buscar esse arquivo
 // direto de outro site (bloqueio de CORS) — só um servidor consegue.
 //
-// O resultado fica em cache por 1 hora (o Habbo quase nunca muda isso).
+// O resultado fica guardado na memória do servidor por 1 hora (o Habbo quase
+// nunca muda isso). Não usa cache de CDN: a resposta passaria sem checar a sessão.
+
+import { exigirSessao } from "./_sessao.js";
 
 const HOTEL = "https://www.habbo.com.br";
+const UMA_HORA = 60 * 60 * 1000;
+let emMemoria = null; // { resultado, quando }
+
 const CABECALHOS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
@@ -63,6 +69,13 @@ function extrairSettypes(xml) {
 }
 
 export default async function handler(req, res) {
+  const sessao = await exigirSessao(req, res);
+  if (!sessao) return;
+
+  if (emMemoria && Date.now() - emMemoria.quando < UMA_HORA) {
+    return res.status(200).json(emMemoria.resultado);
+  }
+
   try {
     const rFig = await fetch(`${HOTEL}/gamedata/figuredata/1`, { headers: CABECALHOS });
     if (!rFig.ok) throw new Error("nao consegui buscar figuredata (status " + rFig.status + ")");
@@ -73,7 +86,7 @@ export default async function handler(req, res) {
       settypes: extrairSettypes(xml)
     };
 
-    res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
+    emMemoria = { resultado, quando: Date.now() };
     res.status(200).json(resultado);
   } catch (erro) {
     res.status(502).json({

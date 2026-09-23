@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="same-origin">
+<title>Catálogo NFT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Nunito+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fundo:#150128;
+  --painel:#200a3c;
+  --linha:#6a2fc0;
+  --texto:#f3e9ff;
+  --mudo:#c090e8;
+  --ouro:#ff2ee0;
+  --pixel:"Silkscreen","Courier New",monospace;
+  --corpo:"Nunito Sans",-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--fundo);color:var(--texto);font-family:var(--corpo);
+  font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;padding:16px;
+}
+.sessao-tela{
+  max-width:520px;margin:40px auto;background:var(--painel);border:1px solid var(--linha);
+  border-radius:10px;padding:24px;
+}
+.sessao-tela h1{font-family:var(--pixel);font-size:18px;margin:0 0 10px}
+.sessao-tela p{margin:0 0 12px;line-height:1.5}
+.sessao-tela ol{margin:0 0 16px;padding-left:20px;line-height:1.7}
+.sessao-aviso{color:var(--ouro)}
+.cta{
+  display:inline-block;margin-top:6px;background:linear-gradient(180deg,#ff2ee0,#b800a0);border:none;
+  border-bottom:3px solid #8a0078;border-radius:7px;color:#fff;cursor:pointer;
+  font-family:var(--pixel);font-size:12px;padding:13px 20px;text-decoration:none;
+}
+.cta:active{border-bottom-width:1px;transform:translateY(2px)}
+</style>
+</head>
+<body>
+
+<main id="entrada"><div class="sessao-tela"><p>Verificando seu acesso...</p></div></main>
+
+<script>
+/* Entrada pública do catálogo. Não tem nada do catálogo aqui: ele só vem de
+   /api/app, que confere o token e o IP com o bot do Discord antes de entregar.
+   O link do bot chega como /?token=...; o token fica guardado neste navegador. */
+(function(){
+  var DISCORD = "https://discord.gg/A2DhpT2kh";   // mesmo link de privado/catalogo.html
+  var CHAVE_TOKEN = "nftse_token";
+  var CHAVE_MOTIVO = "nftse_motivo";               // motivo deixado pelo catálogo ao sair
+  var entrada = document.getElementById("entrada");
+
+  function lerToken(){ try { return localStorage.getItem(CHAVE_TOKEN) || ""; } catch (e) { return ""; } }
+  function salvarToken(t){ try { localStorage.setItem(CHAVE_TOKEN, t); } catch (e) {} }
+  function apagarToken(){ try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} }
+  function lerMotivo(){
+    try { var m = sessionStorage.getItem(CHAVE_MOTIVO); sessionStorage.removeItem(CHAVE_MOTIVO); return m; }
+    catch (e) { return null; }
+  }
+
+  // Login antigo (nick + senha em texto puro): não é mais usado.
+  try { localStorage.removeItem("nftse_sessao"); } catch (e) {}
+
+  // Tira o token da barra de endereços na hora (histórico e Referer).
+  var params = new URLSearchParams(location.search);
+  var doLink = (params.get("token") || "").trim();
+  if (params.has("token")) {
+    params.delete("token");
+    var resto = params.toString();
+    history.replaceState(null, "", location.pathname + (resto ? "?" + resto : "") + location.hash);
+  }
+  if (doLink) salvarToken(doLink);
+
+  function telaExpirada(estado){
+    var avisos = {
+      IP_DIFERENTE: "Sua sessão foi encerrada porque foi acessada de outra conexão.",
+      SAIU: "Você saiu do catálogo."
+    };
+    entrada.innerHTML =
+      '<div class="sessao-tela">' +
+        '<h1>Sessão expirada</h1>' +
+        (avisos[estado] ? '<p class="sessao-aviso">' + avisos[estado] + '</p>' : '') +
+        '<p>O acesso ao catálogo é liberado pelo Discord e vale para a conexão em que foi aberto. ' +
+          'Trocar de rede ou de aparelho encerra a sessão.</p>' +
+        '<p>Para entrar de novo:</p>' +
+        '<ol>' +
+          '<li>Abra o servidor do Discord <strong>NFT-SE</strong>.</li>' +
+          '<li>Vá ao canal <strong>catálogo</strong>.</li>' +
+          '<li>Clique em <strong>Acessar catálogo</strong>.</li>' +
+          '<li>Use o link que o bot enviar. Ele é pessoal e só seu.</li>' +
+        '</ol>' +
+        '<a class="cta" href="' + DISCORD + '" target="_blank" rel="noopener">Abrir o Discord</a>' +
+      '</div>';
+  }
+
+  function telaIndisponivel(){
+    entrada.innerHTML =
+      '<div class="sessao-tela">' +
+        '<h1>Não deu para verificar seu acesso</h1>' +
+        '<p>O servidor de acesso não respondeu agora. Recarregue a página em alguns minutos.</p>' +
+        '<button type="button" class="cta" id="recarregarBtn">Recarregar</button>' +
+      '</div>';
+    document.getElementById("recarregarBtn").onclick = function(){ location.reload(); };
+  }
+
+  function recusar(estado){
+    if (estado === "INDISPONIVEL") { telaIndisponivel(); return; }
+    apagarToken();
+    telaExpirada(estado);
+  }
+
+  var motivo = lerMotivo();
+  var token = lerToken();
+  if (!token) { recusar(motivo || "EXPIRADA"); return; }
+
+  fetch("/api/app", { cache: "no-store", headers: { "x-sessao-token": token } })
+    .then(function(r){
+      if (r.ok) {
+        return r.text().then(function(html){
+          // Troca esta página pelo catálogo (que já vem com a pessoa logada).
+          document.open();
+          document.write(html);
+          document.close();
+        });
+      }
+      return r.json().catch(function(){ return {}; }).then(function(d){
+        recusar(d.estado || "INDISPONIVEL");
+      });
+    })
+    .catch(function(){ recusar("INDISPONIVEL"); });
+})();
+</script>
+</body>
+</html>

@@ -2,17 +2,20 @@
 //
 // COMO USAR
 // 1. Coloque este arquivo dentro da pasta  api  (a mesma onde estão
-//    auth.js, favoritos.js e figuredata.js), com o nome  catalogo.js
-// 2. Usa as mesmas três variáveis de ambiente que o auth.js já usa
-//    (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN, ADMIN_SECRET).
-//    Se o auth.js já está funcionando, não precisa configurar nada novo.
+//    favoritos.js e figuredata.js), com o nome  catalogo.js
+// 2. Usa as variáveis de ambiente UPSTASH_REDIS_REST_URL,
+//    UPSTASH_REDIS_REST_TOKEN e ADMIN_SECRET, e a sessão do Discord
+//    (veja _sessao.js): só quem tem sessão ativa lê a lista, e o painel de
+//    admin precisa da sessão E da senha de admin.
 // 3. Publique (redeploy) o site.
 //
 // O que ele faz: guarda, no mesmo banco de dados (Redis) que já é usado
-// pro login e pros favoritos, a lista de itens que você for cadastrando
+// pros favoritos, a lista de itens que você for cadastrando
 // pelo painel (?admin=1) depois que o site já estiver no ar — sem precisar
 // editar o catalogo.html nem publicar de novo. O site principal busca essa
 // lista e junta com os itens que já vêm prontos no arquivo.
+
+import { exigirSessao } from "./_sessao.js";
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -68,7 +71,10 @@ function gerarSlug(texto) {
 }
 
 export default async function handler(req, res) {
-  // Qualquer visitante pode VER a lista (é o que o site usa pra montar o catálogo)
+  const sessao = await exigirSessao(req, res);
+  if (!sessao) return;
+
+  // Quem tem sessão ativa pode VER a lista (é o que o site usa pra montar o catálogo)
   if (req.method === "GET") {
     const itens = await lerExtras();
     const faixas = await lerFaixas();
@@ -83,6 +89,11 @@ export default async function handler(req, res) {
 
   if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
     return res.status(403).json({ erro: "Senha de administrador incorreta." });
+  }
+
+  // Só confere a senha de admin (usado pra liberar o painel na tela)
+  if (acao === "verificar") {
+    return res.status(200).json({ ok: true });
   }
 
   const extras = await lerExtras();
