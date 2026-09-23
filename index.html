@@ -3799,6 +3799,10 @@ async function carregarCatalogoExtra(){
     (dados.itens || []).forEach(it => {
       if (!slugsExistentes.has(it.slug)) { CATALOGO.push(it); slugsExistentes.add(it.slug); }
     });
+    const faixas = dados.faixas || {};
+    CATALOGO.forEach(it => {
+      if (faixas[it.slug]) it.faixa = faixas[it.slug];
+    });
   } catch (e) {
     // Sem servidor de catálogo extra no ar ainda: o site continua funcionando,
     // só com os itens que já vêm prontos no arquivo.
@@ -3993,6 +3997,15 @@ function montarPainelAdminCompleto(){
     <button type="button" class="cta" id="itemCriar" style="margin-top:10px">Adicionar item</button>
     <p class="dica" id="itemMsg"></p>
 
+    <h3 style="margin-top:24px">Faixa de preço de um item já existente</h3>
+    <label>Buscar pelo nome
+      <span style="display:flex;gap:6px;margin-top:4px">
+        <input id="faixaBusca" class="figura" style="margin-top:0" placeholder="Ex: máscara de">
+        <button type="button" id="faixaBuscarBtn" class="opt" style="white-space:nowrap">Buscar</button>
+      </span>
+    </label>
+    <div id="faixaResultados" class="dica" style="margin-top:8px"></div>
+
     <h4 style="margin-top:20px">Itens cadastrados por aqui</h4>
     <div id="itemLista" class="dica">Carregando...</div>`;
   document.body.appendChild(div);
@@ -4061,6 +4074,50 @@ function montarPainelAdminCompleto(){
     }
   }
   listarItensPainel();
+
+  /* ----- faixa de preço de qualquer item já existente ----- */
+
+  function faixaSelectHTML(atual){
+    const opcoes = [["", "Não marcar"], ["1", "$"], ["2", "$$"], ["3", "$$$"], ["4", "$$$$"]];
+    return opcoes.map(([v, t]) => `<option value="${v}" ${String(atual || "") === v ? "selected" : ""}>${t}</option>`).join("");
+  }
+
+  function buscarItensFaixa(){
+    const termo = document.getElementById("faixaBusca").value.trim().toLowerCase();
+    const resultados = document.getElementById("faixaResultados");
+    if (!termo) { resultados.textContent = "Digite parte do nome pra buscar."; return; }
+    const achados = CATALOGO.filter(it => (it.pt + " " + it.en).toLowerCase().includes(termo)).slice(0, 15);
+    if (!achados.length) { resultados.textContent = "Nenhum item encontrado."; return; }
+    resultados.innerHTML = achados.map(it => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--linha)">
+        <span>${esc(it.pt)}</span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <select class="figura" style="margin-top:0;width:auto" data-faixa-slug="${esc(it.slug)}">${faixaSelectHTML(it.faixa)}</select>
+          <button type="button" class="opt" data-faixa-salvar="${esc(it.slug)}" style="padding:4px 8px;font-size:10px">Salvar</button>
+        </span>
+      </div>`).join("");
+    resultados.querySelectorAll("[data-faixa-salvar]").forEach(b => b.onclick = async () => {
+      const adminSecret = document.getElementById("adminSecret").value;
+      if (!adminSecret) { document.getElementById("itemMsg").textContent = "Preencha sua senha de admin ali em cima primeiro."; return; }
+      const slugAlvo = b.dataset.faixaSalvar;
+      const select = resultados.querySelector(`select[data-faixa-slug="${CSS.escape(slugAlvo)}"]`);
+      const r = await fetch(API_BASE + "/api/catalogo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "definirFaixa", adminSecret, slug: slugAlvo, faixa: select.value })
+      });
+      if (r.ok) {
+        const item = CATALOGO.find(it => it.slug === slugAlvo);
+        if (item) { if (select.value) item.faixa = parseInt(select.value, 10); else delete item.faixa; }
+        b.textContent = "Salvo!";
+        setTimeout(() => { b.textContent = "Salvar"; }, 1500);
+      } else {
+        b.textContent = "Erro";
+      }
+    });
+  }
+  document.getElementById("faixaBuscarBtn").onclick = buscarItensFaixa;
+  document.getElementById("faixaBusca").addEventListener("keydown", e => { if (e.key === "Enter") buscarItensFaixa(); });
 
   document.getElementById("itemCriar").onclick = async () => {
     const adminSecret = document.getElementById("adminSecret").value;
