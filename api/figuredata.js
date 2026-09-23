@@ -30,15 +30,6 @@ const CATEGORIAS = {
   cp: "Estampa do Peito", wa: "Cintura", mc: "Item de Mão", pt: "Adesivo"
 };
 
-async function acharUrlBaseGraficos() {
-  const r = await fetch(`${HOTEL}/gamedata/external_variables/1`, { headers: CABECALHOS });
-  if (!r.ok) throw new Error("nao consegui ler external_variables (status " + r.status + ")");
-  const texto = await r.text();
-  const m = texto.match(/flash\.client\.url=(\S+)/);
-  if (!m) throw new Error("nao achei flash.client.url no external_variables");
-  return m[1].trim();
-}
-
 function extrairPaletas(xml) {
   const paletas = {};
   const blocosPaleta = xml.matchAll(/<palette id="(\d+)"[^>]*>([\s\S]*?)<\/palette>/g);
@@ -73,9 +64,8 @@ function extrairSettypes(xml) {
 
 export default async function handler(req, res) {
   try {
-    const baseGraficos = await acharUrlBaseGraficos();
-    const rFig = await fetch(baseGraficos + "figuredata.xml", { headers: CABECALHOS });
-    if (!rFig.ok) throw new Error("nao consegui buscar figuredata.xml (status " + rFig.status + ")");
+    const rFig = await fetch(`${HOTEL}/gamedata/figuredata/1`, { headers: CABECALHOS });
+    if (!rFig.ok) throw new Error("nao consegui buscar figuredata (status " + rFig.status + ")");
     const xml = await rFig.text();
 
     const resultado = {
