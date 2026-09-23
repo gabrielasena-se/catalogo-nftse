@@ -173,6 +173,15 @@ a{color:var(--ouro)}
   padding:20px 14px;gap:14px;border-right:1px solid var(--linha);
 }
 .espelho img{height:160px;width:auto;image-rendering:pixelated}
+.provador-editor{align-items:start;overflow:visible}
+.provador-editor .espelho{
+  position:sticky;top:16px;align-self:start;border-radius:10px 0 0 10px;
+  padding-top:28px;padding-bottom:28px;
+}
+.provador-editor .espelho img{height:200px}
+@media(max-width:700px){
+  .provador-editor .espelho{position:static;border-radius:10px 10px 0 0}
+}
 .girar{display:flex;gap:8px}
 .mini{
   background:var(--tile);border:1px solid var(--linha);border-bottom:2px solid #140026;
@@ -3433,7 +3442,7 @@ function telaEditor(){
         Assim que a gente descobrir os códigos exatos dos itens NFT, eles vão ficar marcados aqui.
       </p>
       <section class="secao">
-        <div class="provador">
+        <div class="provador provador-editor">
           <div class="espelho">
             <img id="espelhoEditorImg" src="" alt="Pré-visualização do avatar">
             <div class="girar">
