@@ -99,6 +99,8 @@ export default async function handler(req, res) {
       img: item.img || "",
       desc: item.desc || ""
     };
+    const faixaNum = parseInt(item.faixa, 10);
+    if (faixaNum >= 1 && faixaNum <= 4) novoItem.faixa = faixaNum;
     if (item.tipo === "roupa") {
       novoItem.peca = item.peca || "";
       if (item.genero === "F" || item.genero === "M") novoItem.genero = item.genero;
