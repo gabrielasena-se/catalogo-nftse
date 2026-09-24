@@ -28,6 +28,9 @@ export default async function handler(req, res) {
 
   const pagina = lerPagina();
   if (!pagina.includes(MARCA_SESSAO)) {
+    // Acontece quando privado/catalogo.html é substituído por uma versão sem a
+    // linha "const SESSAO_INICIAL = /*SESSAO*/null;". Aparece nos logs da Vercel.
+    console.error(`[api/app] privado/catalogo.html sem a marca ${MARCA_SESSAO}; catálogo não entregue.`);
     return res.status(500).json({ ok: false, estado: "INDISPONIVEL" });
   }
 
