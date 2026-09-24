@@ -307,14 +307,29 @@ a{color:var(--ouro)}
 .item-mini[aria-pressed="true"]{border-color:var(--ouro);box-shadow:0 0 0 2px var(--ouro)}
 .selo-origem{
   position:absolute;top:2px;left:2px;width:30px;height:30px;z-index:4;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));pointer-events:none;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));cursor:help;
 }
+.selo-img{display:flex;align-items:center;justify-content:center}
+.selo-img img{width:100%;height:100%;image-rendering:pixelated}
+.selo-ltd{width:34px;height:17px;top:4px}
 .selo-h{
   border-radius:7px;background:linear-gradient(180deg,#ff2ee0,#b800a0);
   border:2px solid #3a0050;color:#fff;font-family:var(--pixel);font-size:16px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 1px 3px rgba(0,0,0,.5);filter:none;
 }
+.selo-r{background:linear-gradient(180deg,#ff5a5a,#b80000)}
+.selo-p{background:linear-gradient(180deg,#b27aff,#5a1ab8)}
+/* Explicação do selo ao passar o mouse; esconde o nome da peça enquanto isso */
+.selo-origem::after{
+  content:attr(data-explica);position:absolute;top:calc(100% + 5px);left:-2px;
+  white-space:nowrap;
+  background:#0c0016;color:var(--texto);border:1px solid var(--linha);border-radius:4px;
+  padding:4px 7px;font-family:var(--corpo);font-size:11px;font-weight:400;
+  opacity:0;pointer-events:none;transition:opacity .1s;z-index:6;
+}
+.selo-origem:hover::after{opacity:1}
+.item-mini:has(.selo-origem:hover)::after{opacity:0}
 </style>
 </head>
 <body>
@@ -3398,6 +3413,30 @@ const BASE_POR_GENERO = {
 // reduzido pra 40x40 e embutido aqui — só é mostrado nos itens que são NFT.
 const CUBO_NFT_B64 = "data:image/png;base64,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";
 
+// Logo "LTD" (edição limitada), a mesma usada no editor do HabboNews, embutida aqui.
+const LTD_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAKCAYAAAC0VX7mAAABG0lEQVQ4ja2Su04CQRSGv5/wFLusj6AJ9FBo6aUmxJbC6AMYQ8kT2FluhK29tDb0kGgviRhIqIi+wLGYndnlYsdJJjPnzJl/vnNmhDNjPyYBdlRvhMguZW3EN30fe5+MqQJEcUKaDQA4bjapxQek2SNImBnKZ7//NhqFywVctjuQC1b+YzfYEpNAaJ1OIs0GzOffAI4QYLn6QVIuZpy0WpgZw+dXBLTPT/PSxHL1C4LOxRnDp5dwYRAUCmLeoqjm4qUeRXESSH2O84uzVU80nS3AoH//AIK76y5xnPD5tQiluXLzXODqtsd0tsCsEK14QvMdXgcNrplh5e6ZG2bQu+kWtIAd1hvbX8O/MALteKBSvl9/TMYFAPsx/QGqD3CnDBZ8PwAAAABJRU5ErkJggg==";
+
+// Moeda Ducket, a mesma da Ducket Shop no jogo (fundo removido), embutida aqui.
+const DUCKET_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB0AAAAdCAYAAABWk2cPAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAATxSURBVEhLvZdpTFRnFIYHQUq1RK1tf7SxFaggVVZNpUVBgRZoGgkasUtaGxrGau0Pyw4KlEUiA5SdmaHspTjsSzBhdYa2YtgFlEVsFUwsiG0U0j9N+jbfuXPHuTMMy5+e5AnDfPd7328553ARiVYKIyOIRKJ1Y2Zlz36uP8ws7XD2/UB8TXy5DPyY/jP7nL3A5utqrhjGW7bTih9KxzAvH8cj+YQe7HtttMdOe37O73ptYfLSq4g+EYbiM1n40TeHw0efcm3ouVwNZZ/moORMNnZZ7wfT0/UQhOkOa1phc1gFrT7xzTAkWIUi3jJkVdhzPJ3iWtqx8066W8OmRqZmCD76DW6l/oJCz3Sk2l3E6KlWjH3RhtFlyHVMFBgxilxSaazaU4o0u4u4HtFCekzb2HybvrnJBmPEHg/FnPQ2CtxTSeROkBLTYhWmT3drmBKrMBWkhHR/MpKswwWUuWbQmOJwHhKtQjEW2016THvjJnOBKT5w9MK8bBxNH5chwTIEPScbOBOxCvfOXgckf2toP1bPLaiyF0sDM1js51gamMVgdheNKVyy0ONzBZlvxSHBMpS0By510FFvfGUHmWtMm9dhOll0A09Vv+OJkuOp6h76JR3rMHXyootfi2mbfx0lzmisiisXmRr5OHrOt9CY4kCm2jSW9Jj2YHKnAdNPONNK9xw0exdhIXwSj8On8FfUXQ3NvuUC07ZABa59Vac2vUpj+XaJqHw7AynWURrTAcOm5YJs/DdlCf8kP+GSSU3VkXwSZknC5rDP6Y6x9Jk3ZUYMvpzmDZmyldJOrULRdaEON6VKVHkVQeHxA4pd0jS0nVNgOF+JB7IRmtMb0orByA4Svi8bpjGebFeurAzulAk0qU2nKm5QZlJzsBTWoiqukbJ1oWJS0P6Y6ePqO1hSZzOjwJsrvVXulDve0XgVFoonMdcxgbnOCcx3aVE7gUdFE5gvUPddrUTqDWtFmlMM0pwZsVS7TI+NDSQbyl616UiMkoQWe2ew2DdDq+f5s2Fa2Ox1spfdJWsMSeoWumbTLnENhqM7NYL8EXLHqG/G/84Sic1XuLCSqUTmnri1m9YHFKEzqBqzmcN4kHVzVdM52W167udzjTS/5mAu+v1qkbX3u5VN2QCfSHyqD0a1YyTmmuA4tRfAL+Jh3hidzNXPKmh+i28JlVeeU9LKiaRtWu6agRoPKar95Wg4WYy7kl4Nv0n69JhI+hXV/gWo+VCOWk8Zuv0UGPmoBTn28Ws37Qmop5WyhJDsicZQdIdB2A759lf6zvfUPocDmgV3upwphbeDB9JPxKMvrBVX3stD4QEJlP4KdPj9BPkhiRYpkB1KgdyNISEK3VLRdDAf7V4lGPCvR71bPqT2iVCK69AX2gofBw8cdjjyzEwrEHOctaxxEmIrZ38bR061cg1CzXJvChKbaNoZT+k+CX0/FtdNyca0N5htWtZUtNViL7abv4jG8+W4nzEEie0FXLaJFpjqw9XlZetIDe2BCsxkDMF997ukp+sjiOdet4FogzHqgkswmzuMZJtIXLKOWIVwDpsIDW1BVTTf0cKe9HR9lg3+FfQP6S29EnlWKjzCV1GGeL2voCxMX7OCydaXUfttCeqDS1eBPSPkqOsxmq+ru7b4v/+tYLHZwhYvWNhim40Dtuyyw+adtnj+jd1gd78Sujq68R8mx9OQjw92IQAAAABJRU5ErkJggg==";
+
+// Selo no canto de cada peça do editor, pela origem (a cor do cabide no HabboNews).
+// Passando o mouse no selo aparece a explicação. Amarelo (CA) e verde (CVD) não têm selo.
+const SELOS_EDITOR = {
+  H:   { letra: "H", explica: "Grátis/HC" },
+  nft: { img: CUBO_NFT_B64, explica: "NFT" },
+  LTD: { img: LTD_B64, classe: "selo-ltd", explica: "Edição Limitada" },
+  CV:  { letra: "R", classe: "selo-r", explica: "Raro (não-clicável)" },
+  CR:  { letra: "R", classe: "selo-r", explica: "Raro (clicável)" },
+  CRX: { letra: "P", classe: "selo-p", explica: "Pack" },
+  CAZ: { img: DUCKET_B64, explica: "Duckets" }
+};
+function seloEditorHTML(origem){
+  const s = SELOS_EDITOR[origem];
+  if (!s) return "";
+  const conteudo = s.img ? `<img src="${s.img}" alt="">` : s.letra;
+  return `<span class="selo-origem ${s.img ? "selo-img" : "selo-h"} ${s.classe || ""}" data-explica="${esc(s.explica)}" aria-label="${esc(s.explica)}">${conteudo}</span>`;
+}
+
 // Peças que existem no jogo mas NÃO devem aparecer no Editor de Visuais
 // (avatares NFT inacessíveis, com erro, fora de linha, etc.)
 const EXCLUIR_ITENS_EDITOR = {
@@ -6145,7 +6184,6 @@ function telaEditor(){
         ${visiveis.map(s => {
           const infoItem = indiceCategoria[s.id];
           const rotuloBotao = infoItem && infoItem.nome ? infoItem.nome : (editorTipoAtivo + "-" + s.id);
-          const ehNFT = !!(infoItem && infoItem.origem === "nft");
           const ehDoJogo = !!(infoItem && !infoItem.nome && !infoItem.origem);
           const zona = ZONA_MINIATURA_EDITOR[editorTipoAtivo];
           const classeImg = zona === "corpo" ? "mini-zoom-corpo" : (zona ? "mini-zoom mini-zoom-" + zona : "");
@@ -6155,8 +6193,7 @@ function telaEditor(){
           return `
           <button type="button" class="item-mini" data-tipo="${editorTipoAtivo}" data-id="${s.id}" data-cor="${s.maxCor}"
             data-codigo="${esc(rotuloBotao)}" aria-pressed="${!!(selAtual && selAtual.id === s.id)}">
-            ${ehNFT ? `<img class="selo-origem" src="${CUBO_NFT_B64}" alt="NFT" title="NFT">` : ""}
-            ${ehDoJogo ? `<span class="selo-origem selo-h" title="Vem do jogo (grátis/HC)">H</span>` : ""}
+            ${seloEditorHTML(ehDoJogo ? "H" : (infoItem && infoItem.origem))}
             ${zona === "corpo" ? `<span class="recorte-corpo">${imgMiniatura}</span>` : (zona ? `<span class="recorte">${imgMiniatura}</span>` : imgMiniatura)}
           </button>`;
         }).join("")}
