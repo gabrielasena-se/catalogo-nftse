@@ -179,13 +179,23 @@ a{color:var(--ouro)}
 }
 .espelho img{height:160px;width:auto;image-rendering:pixelated}
 .provador-editor{align-items:start;overflow:visible}
+/* --altura-topo é medida pelo script (a barra do topo muda de altura conforme
+   a largura da tela): a coluna para logo abaixo dela, sem ficar escondida. */
 .provador-editor .espelho{
-  position:sticky;top:16px;align-self:start;border-radius:10px 0 0 10px;
-  padding-top:28px;padding-bottom:28px;
+  position:sticky;top:calc(var(--altura-topo,0px) + 12px);align-self:start;border-radius:10px 0 0 10px;
+  padding-top:16px;padding-bottom:16px;gap:10px;
+  /* Com o painel de cores embaixo, a coluna nunca passa da altura da tela
+     (se passasse, pararia de acompanhar a rolagem); se faltar espaço, rola por dentro. */
+  max-height:calc(100vh - var(--altura-topo,0px) - 24px);overflow-y:auto;justify-content:flex-start;
 }
-.provador-editor .espelho img{height:280px}
+.provador-editor .espelho > *{flex-shrink:0}
+.provador-editor .espelho img{height:250px}
+.painel-cores{width:100%;border-top:1px solid var(--linha);padding-top:12px}
+.painel-cores label{display:block;font-size:12px;color:var(--mudo);margin-bottom:6px}
+.cores-rolagem{gap:6px;max-height:84px;overflow-y:auto;padding:3px}
+.cores-rolagem .cor{width:22px;height:22px}
 @media(max-width:700px){
-  .provador-editor .espelho{position:static;border-radius:10px 10px 0 0}
+  .provador-editor .espelho{position:static;border-radius:10px 10px 0 0;max-height:none}
 }
 .girar{display:flex;gap:8px}
 .mini{
@@ -3754,6 +3764,13 @@ function urlMiniaturaEditor(tipo, set){
   return TIPOS_CABECA_EDITOR.has(tipo) ? url + "&headonly=1" : url;
 }
 
+// A coluna do avatar no editor fica presa logo abaixo da barra do topo (veja --altura-topo no CSS).
+function medirAlturaTopo(){
+  const topo = document.querySelector("header.topo");
+  document.documentElement.style.setProperty("--altura-topo", (topo ? topo.offsetHeight : 0) + "px");
+}
+addEventListener("resize", medirAlturaTopo);
+
 function telaEditor(){
   if (estadoSessao !== "ATIVA") return;
   if (!FIGUREDATA_COMPLETO && !editorCarregando && !editorErroCarregar) carregarFiguredataCompleto();
@@ -3769,6 +3786,7 @@ function telaEditor(){
     </button>`).join("");
 
   let grade = "";
+  let painelCores = "";
   if (FIGUREDATA_COMPLETO && editorTipoAtivo) {
     const info = FIGUREDATA_COMPLETO.settypes[editorTipoAtivo];
     const excluidos = EXCLUIR_ITENS_EDITOR[editorTipoAtivo];
@@ -3817,23 +3835,27 @@ function telaEditor(){
         <button type="button" class="opt" id="carregarMaisEditor" style="margin-top:8px">
           Carregar mais (${todos.length - qtd} restantes)
         </button>` : ""}
-      ${selAtual && selAtual.colors.length ? `
-        <div class="campo" style="margin-top:10px">
-          <label>Cor</label>
-          <div class="opcoes">
+    `;
+
+    // Fica na coluna da esquerda, embaixo do avatar, e acompanha a rolagem junto com ele.
+    if (selAtual && selAtual.colors.length) {
+      painelCores = `
+        <div class="painel-cores">
+          <label>Cor · ${esc(info.rotulo)}</label>
+          <div class="opcoes cores-rolagem">
             ${paleta.map(c => `
               <button type="button" class="opt cor" data-corslot="0" data-corval="${c.id}"
                 style="background:${c.hex}" aria-pressed="${selAtual.colors[0] === c.id}" title="Cor ${c.id}"></button>`).join("")}
           </div>
           ${selAtual.colors.length > 1 ? `
-          <label style="margin-top:6px;display:block">Segunda cor</label>
-          <div class="opcoes">
+          <label style="margin-top:8px">Segunda cor</label>
+          <div class="opcoes cores-rolagem">
             ${paleta.map(c => `
               <button type="button" class="opt cor" data-corslot="1" data-corval="${c.id}"
                 style="background:${c.hex}" aria-pressed="${selAtual.colors[1] === c.id}" title="Cor ${c.id}"></button>`).join("")}
           </div>` : ""}
-        </div>` : ""}
-    `;
+        </div>`;
+    }
   } else if (editorCarregando) {
     grade = `<p class="dica">Carregando todos os itens do jogo, um instante...</p>`;
   } else if (editorErroCarregar) {
@@ -3862,6 +3884,7 @@ function telaEditor(){
             </div>
             <button type="button" class="opt" id="copiarCodigoEditor" style="margin-top:6px">Copiar código</button>
             <p class="dica" id="copiarCodigoMsg" style="margin:4px 0 0;min-height:14px"></p>
+            ${painelCores}
           </div>
           <div class="controles">
             <div class="campo">
@@ -3898,6 +3921,8 @@ function telaEditor(){
         </div>
       </section>
     </div>`;
+
+  medirAlturaTopo();
 
   function atualizarEditor(){
     document.getElementById("espelhoEditorImg").src =
@@ -3941,7 +3966,10 @@ function telaEditor(){
     const sel = editorSelecionados[editorTipoAtivo];
     if (!sel) return;
     sel.colors[slot] = b.dataset.corval;
+    // Redesenhar a tela faria as caixas de cores voltarem ao topo; guarda e devolve a rolagem.
+    const rolagens = [...app.querySelectorAll(".cores-rolagem")].map(c => c.scrollTop);
     telaEditor();
+    app.querySelectorAll(".cores-rolagem").forEach((c, i) => { c.scrollTop = rolagens[i] || 0; });
   });
 
   document.getElementById("girarEsqEditor").onclick = () => { prov.dir = (prov.dir + 1) % 8; atualizarEditor(); };
