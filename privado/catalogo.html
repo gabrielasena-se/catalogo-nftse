@@ -269,7 +269,7 @@ a{color:var(--ouro)}
 @media(max-width:520px){.item-mini{width:80px;height:80px}}
 .item-mini[aria-pressed="true"]{border-color:var(--ouro);box-shadow:0 0 0 2px var(--ouro)}
 .selo-origem{
-  position:absolute;top:2px;left:2px;width:20px;height:20px;z-index:4;
+  position:absolute;top:2px;left:2px;width:30px;height:30px;z-index:4;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));pointer-events:none;
 }
 </style>
@@ -3444,14 +3444,246 @@ const INFO_ITENS_EDITOR = {
     { id:"6592", nome:"Em breve" },
     { id:"6616", nome:"Em breve" },
     { id:"6617", nome:"Em breve" }
+  ],
+  hr: [
+    ...["100","105","110","115","125","135","145","155","165","170","676","677","678","828","829","830","831","889","891","892","893","802","3011","3020","3021","3025","3041","3048","3056","3090","3162","3163","3172","3194","3247","3256","3260","3278","3281","681","515","834","3004","3037","3040","3160","3161","3195","3221","3251","3273"].map(id => ({ id })),
+    ...["500","505","510","515","520","530","540","545","550","555","575","596","676","677","678","679","681","811","832","833","834","835","836","837","838","939","890","891","892","893","3004","3011","3012","3021","3024","3037","3040","3041","3043","3044","3048","3090","3160","3161","3172","3194","3221","3247","3251","3255","3256","3273"].map(id => ({ id })),
+    { id:"3322", nome:"Revolucionários Anos 20", origem:"CA" },
+    { id:"3325", nome:"Roupa Rave", origem:"CA" },
+    { id:"3339", nome:"Cabelo Ondulado nos Ombros", origem:"CA" },
+    { id:"3369", nome:"Kimono Floral", origem:"CA" },
+    { id:"3370", nome:"Kimono Azul", origem:"CA" },
+    { id:"3377", nome:"Cybergarota", origem:"CA" },
+    { id:"3386", nome:"Topete Digital", origem:"CA" },
+    { id:"3393", nome:"Cabelo Umpa", origem:"CA" },
+    { id:"3396", nome:"Cabelo Lumpa", origem:"CA" },
+    { id:"3436", nome:"Visu Morador de Caverna", origem:"CA" },
+    { id:"3468", nome:"Cabelo com Onda", origem:"CA" },
+    { id:"3499", nome:"Roupa Designer de Óculos", origem:"CA" },
+    { id:"3516", nome:"Cabelo Sereia", origem:"CV" },
+    { id:"3519", nome:"Cabelo Ombre", origem:"CA" },
+    { id:"3520", nome:"Roupa Pijama de Estrela", origem:"CA" },
+    { id:"3525", nome:"Cabelo Disco", origem:"CA" },
+    { id:"3531", nome:"Roupa Hipster Barbudo", origem:"CA" },
+    { id:"3568", nome:"Tiara Trançada", origem:"CA" },
+    { id:"3569", nome:"Coque Descabelado", origem:"CA" },
+    { id:"3602", nome:"Tranças Boxeadoras", origem:"CV" },
+    { id:"3608", nome:"Penteado Princesa Medieval", origem:"CA" },
+    { id:"3625", nome:"Tranças Exploradoras", origem:"CV" },
+    { id:"3657", nome:"Super Mullets", origem:"CA" },
+    { id:"3664", nome:"Franja Cool", origem:"CA" },
+    { id:"3665", nome:"Cabelo Trançado", origem:"CA" },
+    { id:"3670", nome:"Franjinha K-Pop", origem:"CA" },
+    { id:"3671", nome:"Rabo de Cavalo Principesco", origem:"CA" },
+    { id:"3673", nome:"Cabelo de Sereia", origem:"CA" },
+    { id:"3674", nome:"Peruca Luís XV", origem:"CA" },
+    { id:"3676", nome:"Coquinhos K-Pop", origem:"CA" },
+    { id:"3699", nome:"Penteado Anime", origem:"CA" },
+    { id:"3705", nome:"Penteado Harajuki", origem:"CA" },
+    { id:"3706", nome:"Moicano Crespão", origem:"CV" },
+    { id:"3707", nome:"Rabo-de-Cavalo Cacheado", origem:"CV" },
+    { id:"3714", nome:"Rabo de Cavalo Assassino", origem:"CA" },
+    { id:"3715", nome:"Rabo de Cavalo Anos 80", origem:"CA" },
+    { id:"3724", nome:"Cabelo Curto Anos 80", origem:"CA" },
+    { id:"3725", nome:"Penteado Serial Killer", origem:"CA" },
+    { id:"3731", nome:"Penteado Dinamarquês", origem:"CV" },
+    { id:"3733", nome:"Cabelo Comprido Ondulado", origem:"CV" },
+    { id:"3746", nome:"Penteado pro Lado Imperial", origem:"CA" },
+    { id:"3764", nome:"Cabelo Gisele Habbchen", origem:"CV" },
+    { id:"3768", nome:"Peruca de Folhas Encantada", origem:"CA" },
+    { id:"3774", nome:"Penteado Flora da Natureza", origem:"CVD" },
+    { id:"3777", nome:"Penteado Branca de Neve", origem:"CVD" },
+    { id:"3782", nome:"Coque Despojado", origem:"CV" },
+    { id:"3785", nome:"Penteado Príncipe Cacheado", origem:"CV" },
+    { id:"3786", nome:"Penteado High Fade", origem:"CA" },
+    { id:"3789", nome:"Penteado Rocker Bicolor", origem:"CV" },
+    { id:"3790", nome:"Penteado Franja Bagunçada", origem:"CV" },
+    { id:"3791", nome:"Cabelo Comprido Roqueiro", origem:"CA" },
+    { id:"3800", nome:"Dreads BoHo", origem:"CA" },
+    { id:"3810", nome:"Penteado Habbiana Grande", origem:"CA" },
+    { id:"3811", nome:"Cabelo Arco-íris", origem:"CV" },
+    { id:"3819", nome:"Cabelo Medusa", origem:"CV" },
+    { id:"3829", nome:"Cabelo Tufos", origem:"CA" },
+    { id:"3841", nome:"Moicano Moderno", origem:"CA" },
+    { id:"3846", nome:"Cabelo Warlock", origem:"CV" },
+    { id:"3847", nome:"Cabelo de Bruxa", origem:"CV" },
+    { id:"3852", nome:"Cabelo Amarradinho", origem:"CRX" },
+    { id:"3860", nome:"Penteado Picos Glaciais", origem:"CV" },
+    { id:"3866", nome:"Penteado Realeza Glacial", origem:"CV" },
+    { id:"3870", nome:"Cachos Longos", origem:"CA" },
+    { id:"3871", nome:"Penteado Bagunçado", origem:"CA" },
+    { id:"3920", nome:"Boné Camping", origem:"CV" },
+    { id:"3926", nome:"Penteado Esportivo", origem:"CA" },
+    { id:"3936", nome:"Penteado Habbequina", origem:"CV" },
+    { id:"3944", nome:"Penteado Bollywood", origem:"CA" },
+    { id:"3957", nome:"Trança de Joias Indiana", origem:"CV" },
+    { id:"3977", nome:"Visual Hora de Dormir", origem:"CV" },
+    { id:"3983", nome:"Visual Utopia Solar", origem:"CV" },
+    { id:"3990", nome:"Visual Neon Kawaii", origem:"CV" },
+    { id:"3994", nome:"Topete Vintage", origem:"CA" },
+    { id:"3998", nome:"Penteado Ondulado Vintage", origem:"CA" },
+    { id:"4020", nome:"Coque Duplo Cyberpunk", origem:"CA" },
+    { id:"4024", nome:"Penteado Vivo", origem:"CV" },
+    { id:"4031", nome:"Tranças Nórdicas", origem:"CA" },
+    { id:"4090", nome:"Penteado K-idol", origem:"CA" },
+    { id:"4117", nome:"Penteado Neo-Pop", origem:"CA" },
+    { id:"4118", nome:"Penteado Cachos Divinos", origem:"CA" },
+    { id:"4126", nome:"Penteado Coroa de Flores", origem:"CV" },
+    { id:"4131", nome:"Penteado Face Frame", origem:"CV" },
+    { id:"4141", nome:"Coque Thai Real", origem:"CR" },
+    { id:"4143", nome:"Penteado Viúva Negra", origem:"CV" },
+    { id:"4160", nome:"Penteado 80's", origem:"CA" },
+    { id:"4162", nome:"Mullet Moderno", origem:"CA" },
+    { id:"4181", nome:"Penteado Undercut Arco-íris", origem:"CVD" },
+    { id:"4182", nome:"Penteado Escova", origem:"CV" },
+    { id:"4186", nome:"Penteado Hime", origem:"CV" },
+    { id:"4193", nome:"Penteado Onryo", origem:"CA" },
+    { id:"4216", nome:"Penteado de Fada", origem:"CV" },
+    { id:"4273", nome:"Traje Governanta", origem:"CA" },
+    { id:"4274", nome:"Traje Aristocrático", origem:"CA" },
+    { id:"4298", nome:"Trança Camponesa", origem:"CV" },
+    { id:"4343", nome:"Penteado Borboleta", origem:"CVD" },
+    { id:"4352", nome:"Coquinho Despretencioso", origem:"CV" },
+    { id:"4360", nome:"Penteado Show H-Pop Idols", origem:"CVD" },
+    { id:"4363", nome:"Penteado H-Pop Idols", origem:"CVD" },
+    { id:"4370", nome:"Penteado Cristas do Orgulho", origem:"CRX" },
+    { id:"4911", nome:"Penteado Cristas", origem:"CRX" },
+    { id:"4991", nome:"Penteado Bacon 2.0", origem:"CAZ" },
+    { id:"4996", nome:"Penteado Festa Estudantil", origem:"CV" },
+    { id:"5018", nome:"Penteado Pixetrançado", origem:"CV" },
+    { id:"5019", nome:"Penteado High Fade Perfeito", origem:"CA" },
+    { id:"5109", nome:"Cabeça Vegana", origem:"CRX" },
+    { id:"5120", nome:"Penteado Joystick", origem:"CV" },
+    { id:"5142", nome:"Visual Estudante de Artes", origem:"CV" },
+    { id:"5176", nome:"Penteado Professor Maluco", origem:"CV" },
+    { id:"5210", nome:"Dreads Ombré", origem:"CA" },
+    { id:"5248", nome:"Penteado Tentáculos", origem:"CV" },
+    { id:"5271", nome:"Rabo de Cavalo Esportivo", origem:"CA" },
+    { id:"5275", nome:"Penteado Heroico", origem:"CA" },
+    { id:"5285", nome:"Penteado Tiara Futebol", origem:"CA" },
+    { id:"5298", nome:"Penteado Cachos Vintage", origem:"CV" },
+    { id:"5306", nome:"Penteado Bicolor", origem:"CV" },
+    { id:"5331", nome:"Penteado Animalesco", origem:"CA" },
+    { id:"5360", nome:"Traje Oba-Bobba", origem:"CV" },
+    { id:"5372", nome:"Penteado Encanto da Galáxia", origem:"CV" },
+    { id:"5383", nome:"Trança da Estrela Celestial", origem:"CA" },
+    { id:"5408", nome:"Penteado Coque Desgrenhado", origem:"CV" },
+    { id:"5445", nome:"Cabelos Etéreos", origem:"LTD" },
+    { id:"5465", nome:"Penteado Capuz", origem:"CV" },
+    { id:"5481", nome:"Coque Lápis", origem:"CVD" },
+    { id:"5517", nome:"Chiquinhas Balonísticas", origem:"CA" },
+    { id:"5544", nome:"Penteado Neo-Emo", origem:"CV" },
+    { id:"5556", nome:"Pompadour Colorido", origem:"CA" },
+    { id:"5567", nome:"Peruca de Lã", origem:"CVD" },
+    { id:"5579", nome:"Penteado Super Trança", origem:"CA" },
+    { id:"5598", nome:"Penteado Spiky", origem:"CVD" },
+    { id:"5602", nome:"Penteado Emo 2000", origem:"CA" },
+    { id:"5605", nome:"Penteado Borboletas", origem:"CVD" },
+    { id:"5606", nome:"Penteado Coquinho 2000", origem:"CA" },
+    { id:"5617", nome:"Penteado Coquinho Trançado", origem:"CA" },
+    { id:"5619", nome:"Penteado Bratz Cloe", origem:"CA" },
+    { id:"5679", nome:"Penteado Bratz Jade", origem:"CA" },
+    { id:"5680", nome:"Penteado Bratz Sasha", origem:"CA" },
+    { id:"5681", nome:"Penteado Bratz Yasmin", origem:"CA" },
+    { id:"5720", nome:"Trança Floral", origem:"CV" },
+    { id:"5772", nome:"Penteado Cabelo Preso", origem:"CA" },
+    { id:"5773", nome:"Penteado Manhã Ondulada", origem:"CV" },
+    { id:"5791", nome:"Penteado Ondas Bagunçadas", origem:"CA" },
+    { id:"5795", nome:"Coque da Sonhadora", origem:"CA" },
+    { id:"5801", nome:"Penteado Medusa Celestial", origem:"CV" },
+    { id:"5898", nome:"Penteado Ondulado Colorido", origem:"CA" },
+    { id:"5912", nome:"Penteado Coquinho Meio Solto", origem:"CA" },
+    { id:"5914", nome:"Penteado Bicolor Dividido", origem:"CV" },
+    { id:"5924", nome:"Penteado Franjão", origem:"CA" },
+    { id:"5933", nome:"Penteado Cabelo Crescido", origem:"CA" },
+    { id:"5962", nome:"Penteado Gel Fixador", origem:"CA" },
+    { id:"5969", nome:"Cabelo Ondulado Bratz Sasha", origem:"CA" },
+    { id:"5971", nome:"Cabelo Bratz Cameron", origem:"CA" },
+    { id:"5973", nome:"Rabo de Cavalo dos Anos 50", origem:"CV" },
+    { id:"6010", nome:"Traje Sereia Iara", origem:"CV" },
+    { id:"2063", nome:"Penteado Cachos Perfeitos", origem:"CA" },
+    { id:"6055", nome:"Penteado de Alice", origem:"CA" },
+    { id:"6083", nome:"Trancinhas Praianas", origem:"CA" },
+    { id:"6084", nome:"Afro-Pato", origem:"CAZ" },
+    { id:"6085", nome:"Coquinho Cool Casual", origem:"CA" },
+    { id:"6126", nome:"Super Penteado Unicórnio", origem:"CV" },
+    { id:"6127", nome:"Super Penteado Unicórnio", origem:"CV" },
+    { id:"6174", nome:"Penteado de Vênus", origem:"CV" },
+    { id:"6211", nome:"Penteado Pontas Gélidas", origem:"CV" },
+    { id:"6313", nome:"Cabelo do Condado", origem:"CA" },
+    { id:"6314", nome:"Trança Élfica Longa", origem:"CA" },
+    { id:"6323", nome:"Cabelos Élficos Majestosos", origem:"CA" },
+    { id:"6345", nome:"Faixa de Dormir Deluxe", origem:"CA" },
+    { id:"6374", nome:"Cabelo de Vaso", origem:"CV" },
+    { id:"6397", nome:"Náufrago da Selva", origem:"CA" },
+    { id:"6420", nome:"Penteado Afro Extravagante", origem:"CA" },
+    { id:"6421", nome:"Cabelo Jogador de Hockey", origem:"CA" },
+    { id:"6434", nome:"Cóque de Coração", origem:"CA" },
+    { id:"6453", nome:"Ondulado Femme Fatale", origem:"CA" },
+    { id:"6500", nome:"Penteado Água-Viva", origem:"CV" },
+    { id:"6505", nome:"Deixe Crescer", origem:"CA" },
+    { id:"6533", nome:"Couro Cabeludo Tatuado", origem:"CA" },
+    { id:"5039", nome:"Penteado Boneco", origem:"nft" },
+    { id:"5040", nome:"Penteado Chiquinhas de Boneca", origem:"nft" },
+    { id:"5124", nome:"Penteado Branco Invernal", origem:"nft" },
+    { id:"5125", nome:"Penteado Ondulado Branco Invernal", origem:"nft" },
+    { id:"5320", nome:"Penteado Rolos", origem:"nft" },
+    { id:"5321", nome:"Mini-Dreads", origem:"nft" },
+    { id:"5388", nome:"Cabelo de Roqueiro Ondulado", origem:"nft" },
+    { id:"5389", nome:"Cabelo de Roqueiro Penteado", origem:"nft" },
+    { id:"5390", nome:"Cabelo de Roqueiro com Lenço", origem:"nft" },
+    { id:"5437", nome:"Penteado Natal Despojado", origem:"nft" },
+    { id:"5438", nome:"Penteado Multi-Chiquinhas", origem:"nft" },
+    { id:"5439", nome:"Penteado Multi-Chiquinhas", origem:"nft" },
+    { id:"5503", nome:"Penteado Glamour Hollywood", origem:"nft" },
+    { id:"5555", nome:"Coquinhos Abelhinha", origem:"nft" },
+    { id:"5566", nome:"Penteado Marshmallow", origem:"nft" },
+    { id:"5589", nome:"Penteado E-girl", origem:"nft" },
+    { id:"5590", nome:"Penteado E-boy", origem:"nft" },
+    { id:"5637", nome:"Penteado Surfista", origem:"nft" },
+    { id:"5638", nome:"Penteado Ondulado", origem:"nft" },
+    { id:"5711", nome:"Penteado Grego Clássico", origem:"nft" },
+    { id:"5712", nome:"Cachos Gregos Clássicos", origem:"nft" },
+    { id:"5755", nome:"Penteado Cachos Mexicanos", origem:"nft" },
+    { id:"5756", nome:"Penteado Crespo Mexicano", origem:"nft" },
+    { id:"5841", nome:"Cabelo Selvagem", origem:"nft" },
+    { id:"5887", nome:"Tufos Míticos", origem:"nft" },
+    { id:"6034", nome:"Cabelo Akai Akuma", origem:"nft" },
+    { id:"6035", nome:"Cabelo Yume Kawaii", origem:"nft" },
+    { id:"6063", nome:"Cabelo Comprido da Bonnie", origem:"nft" },
+    { id:"6078", nome:"Penteado Mop", origem:"nft" },
+    { id:"6220", nome:"Corte Ombre Colorido A", origem:"nft" },
+    { id:"6221", nome:"Corte Ombre Colorido B", origem:"nft" },
+    { id:"6269", nome:"Penteado de Mago", origem:"nft" },
+    { id:"6318", nome:"Coquinho Boneco-de-Neve", origem:"nft" },
+    { id:"6465", nome:"Cabelo Bouffant Grande", origem:"nft" },
+    { id:"6466", nome:"Mullet Espetado", origem:"nft" },
+    { id:"6467", nome:"Cachos bem Cacheados", origem:"nft" },
+    { id:"6496", nome:"Cabelo Pronto pra Praia", origem:"nft" },
+    { id:"6551", nome:"Em breve" },
+    { id:"6566", nome:"Em breve" },
+    { id:"6570", nome:"Em breve" }
+  ],
+  he: [
+    { id:"6495", nome:"Trança de Palmeira", origem:"nft" }
   ]
 };
+
+EXCLUIR_ITENS_EDITOR.hr = new Set(["4269","4270","9534","6508"]);
 
 const INDICE_ITENS_EDITOR = {};
 for (const tipo in INFO_ITENS_EDITOR) {
   const mapa = {};
   INFO_ITENS_EDITOR[tipo].forEach((e, i) => { mapa[e.id] = { ...e, ordem: i }; });
   INDICE_ITENS_EDITOR[tipo] = mapa;
+}
+
+// Peças de "hd" que substituem a cabeça inteira — quando uma destas está
+// selecionada, o cabelo (hr) não deve aparecer por cima, mesmo que esteja escolhido.
+const HD_SEM_CABELO_EDITOR = new Set(["6519","6520"]);
+
+function removerCabeloEditor(lista){
+  return lista.filter(p => p.split("-")[0] !== "hr");
 }
 
 function figuraMultipla(){
@@ -3468,16 +3700,19 @@ function figuraMultipla(){
     if (codigo) { if (i >= 0) lista[i] = codigo; else lista.push(codigo); }
     else if (i >= 0) { lista.splice(i, 1); }
   });
+  const hdSelecionado = editorSelecionados.hd;
+  if (hdSelecionado && HD_SEM_CABELO_EDITOR.has(hdSelecionado.id)) lista = removerCabeloEditor(lista);
   return lista.join(".");
 }
 
 function figuraComCandidatoEditor(tipo, set){
-  const lista = figuraMultipla().split(".").filter(Boolean);
+  let lista = figuraMultipla().split(".").filter(Boolean);
   const paleta = FIGUREDATA_COMPLETO.palettes[FIGUREDATA_COMPLETO.settypes[tipo].paletteid] || [];
   const corPadrao = (paleta[0] || { id: "1" }).id;
   const codigo = tipo + "-" + set.id + "-" + corPadrao + (set.maxCor >= 2 ? "-" + corPadrao : "");
   const i = lista.findIndex(p => p.split("-")[0] === tipo);
   if (i >= 0) lista[i] = codigo; else lista.push(codigo);
+  if (tipo === "hd" && HD_SEM_CABELO_EDITOR.has(set.id)) lista = removerCabeloEditor(lista);
   return lista.join(".");
 }
 
