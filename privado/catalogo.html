@@ -318,10 +318,16 @@ a{color:var(--ouro)}
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 1px 3px rgba(0,0,0,.5);filter:none;
 }
-.selo-raro{width:14px;height:32px;left:5px}
-.selo-habbo{width:26px;height:26px}
-.selo-habbo img{image-rendering:auto}
-.selo-p{background:linear-gradient(180deg,#b27aff,#5a1ab8)}
+/* Tamanhos pensados para ficar na mesma proporção do cubo NFT (≈16px visíveis) */
+.selo-habbo{width:16px;height:16px;top:9px;left:9px}
+.selo-cambio{width:18px;height:18px;top:8px;left:8px}
+.selo-raro{width:9px;height:20px;top:7px;left:12px}
+.selo-ducket{width:18px;height:18px;top:8px;left:8px}
+.selo-habbo img,.selo-cambio img,.selo-raro img,.selo-ducket img{image-rendering:auto}
+.selo-p{
+  background:linear-gradient(180deg,#b27aff,#5a1ab8);
+  width:18px;height:18px;top:8px;left:8px;border-width:1px;border-radius:4px;font-size:10px;
+}
 /* Explicação do selo ao passar o mouse; esconde o nome da peça enquanto isso */
 .selo-origem::after{
   content:attr(data-explica);position:absolute;top:calc(100% + 5px);left:-2px;
@@ -350,7 +356,7 @@ a{color:var(--ouro)}
 
 <footer class="rodape">
   Catálogo informativo. Negociações e transferências acontecem no Discord.
-  <br>Desenvolvido por .senna para o NFT-SE.
+  <br>Plataforma desenvolvida exclusivamente para a NFT-SE. Reprodução ou redistribuição não autorizada.
 </footer>
 
 <script>
@@ -3426,20 +3432,20 @@ const RARO_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAgCAYAAAAi
 // "H" amarelo do Habbo, para as peças grátis/HC, embutido aqui.
 const HABBO_H_B64 = "data:image/png;base64,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";
 // Moeda de câmbio do Habbo, para as peças compráveis, embutida aqui.
-const CAMBIO_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAYAAAAehFoBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEKSURBVFhH7Zc7DsIwEAVzi9DzacLVyN2cW4UCl6SD+o0trSKDXOQ9aZoY744trUKGoT2fnXQPhSK6h0IR3UOhiL+HDYUt34V3npSXwv0VmsOCFj6csBRY00Wg0DKfhDSPykPZ8iSs6SywP+VqsbCFEdnAoaLAmq4Ch4zwgKzP/pSrxcKHF4agDgWH6JluQiSwzKPAdV4A+9PPwhSyMB9wSFiQQ0Yh/p5Y2MKF0I+FuYFCpXA0dLoe/XnihdHPwhauCDO7DsAXCYVIOWR6QPanXC0WtjAiG4qP0ODFEsELYH32p1wtFrZwEBYQeAAOGde5v0JzWNDChxeOwoYR3UOhiO6hUET3UCiiKV/NhgQ1tEzJswAAAABJRU5ErkJggg==";
+const CAMBIO_B64 = "data:image/png;base64,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";
 
 // Selo no canto de cada peça do editor, pela origem (a cor do cabide no HabboNews).
 // Passando o mouse no selo aparece a explicação.
 const SELOS_EDITOR = {
-  H:   { img: HABBO_H_B64, classe: "selo-habbo", explica: "Grátis/HC" },
+  H:   { img: HABBO_H_B64, classe: "selo-habbo", explica: "Grátis ou HC" },
   nft: { img: CUBO_NFT_B64, explica: "NFT" },
   LTD: { img: LTD_B64, classe: "selo-ltd", explica: "Edição Limitada" },
-  CA:  { img: CAMBIO_B64, explica: "Comprável" },
-  CVD: { img: CAMBIO_B64, explica: "Comprável (clicável)" },
+  CA:  { img: CAMBIO_B64, classe: "selo-cambio", explica: "Catálogo/Feira" },
+  CVD: { img: CAMBIO_B64, classe: "selo-cambio", explica: "Catálogo/Feira (clicável)" },
   CV:  { img: RARO_B64, classe: "selo-raro", explica: "Raro (não-clicável)" },
   CR:  { img: RARO_B64, classe: "selo-raro", explica: "Raro (clicável)" },
   CRX: { letra: "P", classe: "selo-p", explica: "Pack" },
-  CAZ: { img: DUCKET_B64, explica: "Duckets" }
+  CAZ: { img: DUCKET_B64, classe: "selo-ducket", explica: "Duckets" }
 };
 function seloEditorHTML(origem){
   const s = SELOS_EDITOR[origem];
