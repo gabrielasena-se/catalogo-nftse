@@ -64,12 +64,6 @@ a{color:var(--ouro)}
 }
 .busca::placeholder{color:#a066c8}
 .busca:focus{outline:2px solid var(--ouro);outline-offset:1px}
-.btn-discord{
-  background:linear-gradient(180deg,#a83cf0,#6c1cc0);border:none;border-bottom:3px solid #4a1090;border-radius:6px;
-  color:#fff;font-family:var(--pixel);font-size:11px;letter-spacing:1.5px;padding:10px 14px;text-decoration:none;
-  display:inline-block;
-}
-.btn-discord:active{border-bottom-width:1px;transform:translateY(2px)}
 
 /* ---------- abas ---------- */
 .abas{max-width:1120px;margin:0 auto;padding:22px 18px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -127,6 +121,12 @@ a{color:var(--ouro)}
 .card-en-linha .card-en{margin-top:0}
 .card-faixa{font-family:var(--pixel);font-size:11px;letter-spacing:1px;color:var(--ouro);flex:none}
 .cifra-apagada{opacity:.25}
+/* Meus visuais */
+.visual-card:hover{background:var(--tile);border-color:var(--linha)}
+.visual-avatar{height:88%;width:auto;image-rendering:pixelated}
+.visual-acoes{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.visual-acoes .opt{padding:5px 8px;font-size:12px}
+.visual-excluir:hover{border-color:#ff5a5a;color:#ff9a9a}
 
 /* ---------- item ---------- */
 .voltar{
@@ -190,6 +190,13 @@ a{color:var(--ouro)}
 }
 .provador-editor .espelho > *{flex-shrink:0}
 .provador-editor .espelho img{height:250px}
+/* Copiar código / Salvar visual, lado a lado embaixo do avatar */
+.acoes-visual{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.acoes-visual .opt{padding:6px 9px;font-size:12px}
+.salvar-visual{display:flex;gap:6px;width:100%}
+.salvar-visual[hidden]{display:none}
+.salvar-visual .figura{flex:1;min-width:0;padding:6px 8px;font-size:12px}
+.salvar-visual .opt{padding:6px 9px;font-size:12px}
 .painel-cores{width:100%;border-top:1px solid var(--linha);padding-top:12px}
 .painel-cores label{display:block;font-size:12px;color:var(--mudo);margin-bottom:6px}
 /* As caixas de cores mostram até 5 linhas e encolhem até 3 quando a tela é
@@ -348,7 +355,6 @@ a{color:var(--ouro)}
     <input class="busca" id="busca" type="search" placeholder="Buscar por nome...">
     <a href="#editor" class="auth-entrar link-editor">Editor de Visuais</a>
     <span id="authArea" class="auth-area"></span>
-    <a class="btn-discord" id="discordTopo" href="#" target="_blank" rel="noopener">Entrar no Discord</a>
   </div>
 </header>
 
@@ -364,7 +370,6 @@ a{color:var(--ouro)}
    1) CONFIGURAÇÃO — mexa só daqui até a linha "FIM DA CONFIGURAÇÃO"
    ========================================================================== */
 
-const DISCORD = "https://discord.gg/A2DhpT2kh";
 const DISCORD_TICKET = "https://discord.com/channels/1551324519845855333/1551337178016125038";
 
 // Endereço da pasta /api (sessão, catálogo, favoritos). Deixe vazio se hospedar tudo junto
@@ -3246,7 +3251,6 @@ let termo = "";
 const prov = { pele:"1", cabelo:"828", corCabelo:"45", dir:2, acao:"std", figLivre:"", nick:"", genero:"M" };
 
 const app = document.getElementById("app");
-document.getElementById("discordTopo").href = DISCORD;
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
 
@@ -3360,6 +3364,120 @@ function telaFavoritos(){
 
   document.getElementById("voltarFav").onclick = () => { location.hash = ""; };
   ligarCliquesGrade();
+}
+
+/* --------------------------- visuais salvos ------------------------------ */
+
+let meusVisuais = null;   // lista vinda de /api/visuais; null = ainda não carregada
+
+async function carregarVisuais(){
+  const r = await apiFetch(API_BASE + "/api/visuais");
+  const dados = await r.json();
+  if (!r.ok) throw new Error(dados.erro || "erro");
+  meusVisuais = dados.visuais || [];
+}
+
+async function salvarVisual(nome, figura, genero){
+  try {
+    const r = await apiFetch(API_BASE + "/api/visuais", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, figura, genero })
+    });
+    const dados = await r.json();
+    if (!r.ok) return { ok: false, erro: dados.erro || "Não consegui salvar agora." };
+    if (meusVisuais) meusVisuais.unshift(dados.visual);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, erro: "Não consegui falar com o servidor agora." };
+  }
+}
+
+async function excluirVisual(id){
+  const r = await apiFetch(API_BASE + "/api/visuais", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id })
+  });
+  if (!r.ok) throw new Error("erro");
+  meusVisuais = (meusVisuais || []).filter(v => v.id !== id);
+}
+
+function dataCurta(ms){
+  try { return new Date(ms).toLocaleDateString("pt-BR"); } catch (e) { return ""; }
+}
+
+async function telaVisuais(){
+  const cabecalho = `
+    <button class="voltar" id="voltarVisuais">&lt; Voltar ao catálogo</button>
+    <h1 style="margin:0 0 6px">Meus visuais</h1>
+    <p class="dica" style="margin:0 0 16px">Os visuais que você salvou no <a href="#editor">Editor de Visuais</a>.</p>`;
+
+  if (!meusVisuais) {
+    app.innerHTML = `<div class="envoltorio">${cabecalho}<p class="dica">Carregando seus visuais...</p></div>`;
+    document.getElementById("voltarVisuais").onclick = () => { location.hash = ""; };
+    try { await carregarVisuais(); }
+    catch (e) {
+      if (estadoSessao !== "ATIVA") return;
+      app.querySelector(".envoltorio p.dica:last-child").textContent = "Não consegui carregar seus visuais agora. Tente de novo em instantes.";
+      return;
+    }
+    if (location.hash !== "#visuais") return;   // a pessoa já saiu da página enquanto carregava
+  }
+
+  const cartoes = meusVisuais.map(v => `
+    <div class="card visual-card">
+      <span class="palco"><img class="visual-avatar" loading="lazy" alt=""
+        src="${esc(urlAvatar(v.figura, { dir: 2, size: "l", genero: v.genero }))}"></span>
+      <span class="card-txt">
+        <span class="card-pt">${esc(v.nome)}</span>
+        <span class="card-en">Salvo em ${esc(dataCurta(v.criadoEm))}</span>
+        <span class="visual-acoes">
+          <button type="button" class="opt" data-abrir="${esc(v.id)}">Abrir no editor</button>
+          <button type="button" class="opt" data-copiar="${esc(v.id)}">Copiar código</button>
+          <button type="button" class="opt visual-excluir" data-excluir="${esc(v.id)}">Excluir</button>
+        </span>
+      </span>
+    </div>`).join("");
+
+  app.innerHTML = `
+    <div class="envoltorio">
+      ${cabecalho}
+      ${meusVisuais.length ? `<div class="grade">${cartoes}</div>` : `
+        <p style="color:var(--mudo)">Você ainda não salvou nenhum visual. Monte um no
+          <a href="#editor">Editor de Visuais</a> e clique em "Salvar visual".</p>`}
+    </div>`;
+
+  document.getElementById("voltarVisuais").onclick = () => { location.hash = ""; };
+  const achar = id => meusVisuais.find(v => v.id === id);
+
+  app.querySelectorAll("[data-abrir]").forEach(b => b.onclick = () => {
+    const v = achar(b.dataset.abrir);
+    if (!v) return;
+    prov.figLivre = v.figura;
+    prov.genero = v.genero;
+    prov.nick = "";
+    editorSelecionados = {};
+    location.hash = "editor";
+  });
+
+  app.querySelectorAll("[data-copiar]").forEach(b => b.onclick = async () => {
+    const v = achar(b.dataset.copiar);
+    if (!v) return;
+    try { await navigator.clipboard.writeText(v.figura); b.textContent = "Copiado!"; }
+    catch (e) { prompt("Copie o código do visual:", v.figura); }
+  });
+
+  app.querySelectorAll("[data-excluir]").forEach(b => b.onclick = async () => {
+    const v = achar(b.dataset.excluir);
+    if (!v || !confirm(`Excluir o visual "${v.nome}"?`)) return;
+    b.disabled = true;
+    try { await excluirVisual(v.id); telaVisuais(); }
+    catch (e) {
+      b.disabled = false;
+      if (estadoSessao === "ATIVA") alert("Não consegui excluir agora. Tente de novo em instantes.");
+    }
+  });
 }
 
 let editorSelecionados = {};       // tipo -> { id, colors:[cor1, cor2?] } | null
@@ -6266,8 +6384,15 @@ function telaEditor(){
               <button class="mini" id="girarEsqEditor" aria-label="Girar para a esquerda">&#8592;</button>
               <button class="mini" id="girarDirEditor" aria-label="Girar para a direita">&#8594;</button>
             </div>
-            <button type="button" class="opt" id="copiarCodigoEditor" style="margin-top:6px">Copiar código</button>
-            <p class="dica" id="copiarCodigoMsg" style="margin:4px 0 0;min-height:14px"></p>
+            <div class="acoes-visual">
+              <button type="button" class="opt" id="copiarCodigoEditor">Copiar código</button>
+              <button type="button" class="opt" id="salvarVisualEditor">Salvar visual</button>
+            </div>
+            <div class="salvar-visual" id="salvarVisualForm" hidden>
+              <input class="figura" id="nomeVisualEditor" maxlength="40" placeholder="Nome (opcional)">
+              <button type="button" class="opt" id="confirmarSalvarVisual">Salvar</button>
+            </div>
+            <p class="dica" id="copiarCodigoMsg" style="margin:0;min-height:14px;text-align:center"></p>
             ${painelCores}
           </div>
           <div class="controles">
@@ -6371,6 +6496,30 @@ function telaEditor(){
   document.getElementById("limparEditor").onclick = () => {
     editorSelecionados = {};
     telaEditor();
+  };
+
+  const formSalvar = document.getElementById("salvarVisualForm");
+  const campoNomeVisual = document.getElementById("nomeVisualEditor");
+  document.getElementById("salvarVisualEditor").onclick = () => {
+    formSalvar.hidden = !formSalvar.hidden;
+    if (!formSalvar.hidden) campoNomeVisual.focus();
+  };
+  async function confirmarSalvarVisual(){
+    const msg = document.getElementById("copiarCodigoMsg");
+    msg.textContent = "Salvando...";
+    const resultado = await salvarVisual(campoNomeVisual.value, figuraMultipla(), prov.genero);
+    if (resultado.ok) {
+      formSalvar.hidden = true;
+      campoNomeVisual.value = "";
+      msg.innerHTML = `Visual salvo! <a href="#visuais">Ver meus visuais</a>`;
+    } else {
+      msg.textContent = resultado.erro;
+    }
+  }
+  document.getElementById("confirmarSalvarVisual").onclick = confirmarSalvarVisual;
+  campoNomeVisual.onkeydown = e => {
+    if (e.key === "Enter") confirmarSalvarVisual();
+    if (e.key === "Escape") formSalvar.hidden = true;
   };
 
   document.getElementById("figLivreEditor").oninput = e => { prov.figLivre = e.target.value; atualizarEditor(); };
@@ -6622,6 +6771,7 @@ function encerrarNaTela(estado){
   estadoSessao = estado;
   sessao = null;
   meusFavoritos = new Set();
+  meusVisuais = null;
   // Fora do ar não quer dizer que o token morreu: guarda pra tentar de novo.
   if (estado !== "INDISPONIVEL") apagarToken();
   try { sessionStorage.setItem(CHAVE_MOTIVO, estado); } catch (e) {}
@@ -6682,6 +6832,7 @@ function renderAuthArea(){
   const el = document.getElementById("authArea");
   if (!sessao) { el.innerHTML = ""; return; }
   el.innerHTML = `<a href="#favoritos" class="auth-entrar">♥ Meus favoritos</a>
+    <a href="#visuais" class="auth-entrar">Meus visuais</a>
     <span class="auth-nick">${esc(sessao.habboName)}</span>
     <button type="button" class="auth-sair" id="sairBtn">sair</button>`;
   document.getElementById("sairBtn").onclick = fazerLogout;
@@ -6940,6 +7091,7 @@ function render(){
     if (it) { telaItem(it); window.scrollTo(0, 0); return; }
   }
   if (rota === "favoritos") { telaFavoritos(); window.scrollTo(0, 0); return; }
+  if (rota === "visuais") { telaVisuais(); window.scrollTo(0, 0); return; }
   if (rota === "editor") { telaEditor(); window.scrollTo(0, 0); return; }
   telaGrade();
 }
