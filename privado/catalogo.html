@@ -269,10 +269,9 @@ a{color:var(--ouro)}
 @media(max-width:520px){.item-mini{width:80px;height:80px}}
 .item-mini[aria-pressed="true"]{border-color:var(--ouro);box-shadow:0 0 0 2px var(--ouro)}
 .selo-origem{
-  position:absolute;top:4px;left:4px;width:14px;height:14px;border-radius:50%;
-  border:1px solid rgba(0,0,0,.45);z-index:4;box-shadow:0 0 0 1px rgba(255,255,255,.5);
+  position:absolute;top:2px;left:2px;width:20px;height:20px;z-index:4;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));pointer-events:none;
 }
-.selo-origem.ltd{border-radius:3px}
 </style>
 </head>
 <body>
@@ -3343,21 +3342,20 @@ const BASE_POR_GENERO = {
 
 // Nomes, origem e ordem de exibição das peças, coletados manualmente.
 // Peça sem entrada aqui aparece só com o código, no final da lista.
-const CORES_ORIGEM_EDITOR = { CR:"#ff6fd8", CV:"#ff3b3b", CA:"#ffd23f", LTD:"#ffd700", nft:"#ff2ee0" };
-const ROTULOS_ORIGEM_EDITOR = {
-  CR:"Cabide Rosa", CV:"Cabide Vermelho (raro)", CA:"Cabide Amarelo (pack)",
-  LTD:"Limitado (com lote)", nft:"NFT"
-};
+// Ícone do cubo azul (o mesmo selo de "isso é NFT" que aparece na TokenTrove),
+// reduzido pra 40x40 e embutido aqui — só é mostrado nos itens que são NFT.
+const CUBO_NFT_B64 = "data:image/png;base64,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";
 
 // Peças que existem no jogo mas NÃO devem aparecer no Editor de Visuais
 // (avatares NFT inacessíveis, com erro, fora de linha, etc.)
 const EXCLUIR_ITENS_EDITOR = {
-  hd: new Set(["4202","4203","4204","4205","4206","4266","4267","4268","4279","4280","4287","5143","5153","5154","6295"])
+  hd: new Set(["4202","4203","4204","4205","4206","4266","4267","4268","4279","4280","4287","5143","5153","5154","6295","6507"])
 };
 
 const INFO_ITENS_EDITOR = {
   hd: [
     ...["180","185","190","195","200","205","206","207","208","209","3091","3092","3093","3094","3095"].map(id => ({ id })),
+    ...["600","605","610","616","620","625","626","627","628","629","3096","3097","3098","3099","3100","3104","3105","3106"].map(id => ({ id })),
     { id:"3536", nome:"Cara de Gato Demoníaco", origem:"CR" },
     { id:"3537", nome:"Olho de Ciclope", origem:"CR" },
     { id:"3600", nome:"Olhos Mil e Uma Noites", origem:"CA" },
@@ -3391,8 +3389,8 @@ const INFO_ITENS_EDITOR = {
     { id:"6456", nome:"Rosto Cicatrizado", origem:"CV" },
     { id:"6435", nome:"Pele Iridescente", origem:"LTD" },
     { id:"6436", nome:"Pele Iridescente", origem:"LTD" },
-    { id:"6519", nome:"Espantalho Assustador (cabeça grande)", origem:"LTD" },
-    { id:"6520", nome:"Espantalho Assustador (cabeça pequena)", origem:"LTD" },
+    { id:"6519", nome:"Espantalho Assustador", origem:"LTD" },
+    { id:"6520", nome:"Espantalho Assustador", origem:"LTD" },
     { id:"5041", nome:"Rosto de Boneca", origem:"nft" },
     { id:"5042", nome:"Rosto Boneca Possuída", origem:"nft" },
     { id:"5316", nome:"Olhar Brilhante", origem:"nft" },
@@ -3532,12 +3530,11 @@ function telaEditor(){
         ${visiveis.map(s => {
           const infoItem = indiceCategoria[s.id];
           const rotuloBotao = infoItem && infoItem.nome ? infoItem.nome : (editorTipoAtivo + "-" + s.id);
-          const corOrigem = infoItem && infoItem.origem ? (CORES_ORIGEM_EDITOR[infoItem.origem] || "") : "";
-          const nomeOrigem = infoItem && infoItem.origem ? (ROTULOS_ORIGEM_EDITOR[infoItem.origem] || "") : "";
+          const ehNFT = !!(infoItem && infoItem.origem === "nft");
           return `
           <button type="button" class="item-mini" data-tipo="${editorTipoAtivo}" data-id="${s.id}" data-cor="${s.maxCor}"
             data-codigo="${esc(rotuloBotao)}" aria-pressed="${!!(selAtual && selAtual.id === s.id)}">
-            ${corOrigem ? `<span class="selo-origem${infoItem.origem === "LTD" ? " ltd" : ""}" style="background:${corOrigem}" title="${esc(nomeOrigem)}"></span>` : ""}
+            ${ehNFT ? `<img class="selo-origem" src="${CUBO_NFT_B64}" alt="NFT" title="NFT">` : ""}
             <img src="${esc(urlMiniaturaEditor(editorTipoAtivo, s))}" alt="${esc(rotuloBotao)}" loading="lazy"
               onerror="this.closest('button').style.display='none'">
           </button>`;
