@@ -6271,11 +6271,15 @@ function figuraMultipla(){
   return lista.join(".");
 }
 
+// Miniatura de uma opção: o avatar padrão do gênero vestindo só aquela peça,
+// sem acumular o que já foi escolhido (isso fica só na prévia grande).
 function figuraComCandidatoEditor(tipo, set){
-  let lista = figuraMultipla().split(".").filter(Boolean);
+  const base = BASE_POR_GENERO[prov.genero] || BASE_POR_GENERO.M;
+  let lista = [base.hd, base.hr, base.ch, base.lg];
   const paleta = FIGUREDATA_COMPLETO.palettes[FIGUREDATA_COMPLETO.settypes[tipo].paletteid] || [];
   const i = lista.findIndex(p => p.split("-")[0] === tipo);
-  const corAtual = i >= 0 ? lista[i].split("-")[2] : null;
+  const sel = editorSelecionados[tipo];
+  const corAtual = sel && sel.colors && sel.colors[0];
   const corPadrao = corAtual || (paleta[0] || { id: "1" }).id;
   const codigo = tipo + "-" + set.id + "-" + corPadrao + (set.maxCor >= 2 ? "-" + corPadrao : "");
   if (i >= 0) lista[i] = codigo; else lista.push(codigo);
