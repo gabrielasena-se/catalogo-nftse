@@ -126,6 +126,12 @@ a{color:var(--ouro)}
 .visual-avatar{height:88%;width:auto;image-rendering:pixelated}
 .visual-itens{margin:8px 0 8px;padding:0 0 0 16px;font-size:12px;line-height:1.45;color:var(--texto)}
 .visual-itens-basicas{color:var(--mudo);list-style:none;margin-left:-16px}
+.visual-itens a{color:var(--texto);text-decoration:underline;text-decoration-color:var(--linha);text-underline-offset:2px}
+.visual-itens a:hover{color:var(--ouro);text-decoration-color:var(--ouro)}
+/* NFT: o cubo ocupa o lugar da bolinha da lista */
+.visual-item-nft{list-style:none;margin-left:-16px;display:flex;align-items:center;gap:4px}
+.visual-item-nft img{width:13px;height:13px;flex:none;margin-left:1px}
+.visual-item-nft a,.visual-item-nft{font-weight:600}
 .visual-acoes{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .visual-acoes .opt{padding:5px 8px;font-size:12px}
 .visual-excluir:hover{border-color:#ff5a5a;color:#ff9a9a}
@@ -221,8 +227,22 @@ a{color:var(--ouro)}
 .salvar-visual{display:flex;flex-direction:column;gap:6px;width:100%}
 .salvar-visual[hidden]{display:none}
 .salvar-visual-linha{display:flex;gap:6px}
-.salvar-visual-privado{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mudo);cursor:pointer}
-.salvar-visual-privado input{accent-color:var(--ouro);margin:0}
+/* Caixa de marcar do site: lilás claro, rosa com ✓ branco quando marcada */
+.caixa-marcar{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--mudo);cursor:pointer;line-height:1.3}
+.caixa-marcar input{
+  appearance:none;-webkit-appearance:none;flex:none;margin:0;cursor:pointer;
+  width:16px;height:16px;border-radius:4px;border:2px solid #b89ae8;background:#e6d9ff;
+  display:inline-grid;place-content:center;transition:background .1s,border-color .1s;
+}
+.caixa-marcar input::after{
+  content:"";width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;
+  transform:rotate(45deg) translate(-1px,-1px);opacity:0;
+}
+.caixa-marcar input:checked{background:var(--ouro);border-color:var(--ouro)}
+.caixa-marcar input:checked::after{opacity:1}
+.caixa-marcar input:focus-visible{outline:2px solid var(--ouro);outline-offset:2px}
+.caixa-marcar input:disabled{opacity:.6;cursor:wait}
+.caixa-marcar:hover input:not(:checked){border-color:var(--ouro)}
 .salvar-visual .figura{flex:1;min-width:0;padding:6px 8px;font-size:12px}
 .salvar-visual .opt{padding:6px 9px;font-size:12px}
 .painel-cores{width:100%;border-top:1px solid var(--linha);padding-top:12px}
@@ -3488,18 +3508,42 @@ function abrirVisualNoEditor(figura, genero){
   location.hash = "editor";
 }
 
-// Itens usados num visual, pelos nomes do editor. Peças sem nome (grátis/HC)
-// entram só pela categoria, agrupadas no fim.
+// Peça ("tipo-id", sem cor) -> item do catálogo que a veste, para virar link.
+let catalogoPorPeca = null;
+function itemDoCatalogoPorPeca(tipoId){
+  if (!catalogoPorPeca) {
+    catalogoPorPeca = {};
+    CATALOGO.forEach(it => [it.peca, it.pecaF].filter(Boolean).forEach(peca =>
+      peca.split(".").forEach(p => {
+        const chave = p.split("-").slice(0, 2).join("-");
+        if (!catalogoPorPeca[chave]) catalogoPorPeca[chave] = it;
+      })));
+  }
+  return catalogoPorPeca[tipoId] || null;
+}
+
+// Itens usados num visual, pelos nomes do editor. NFTs ganham o cubo e, quando
+// estão no catálogo, viram link para a página do item. Peças sem nome
+// (grátis/HC) entram só pela categoria, agrupadas no fim.
 function itensDoVisualHTML(figura){
-  const nomes = [], basicas = [];
+  const itens = [], vistos = new Set(), basicas = [];
   for (const parte of String(figura).split(".").filter(Boolean)) {
     const [tipo, id] = parte.split("-");
     const info = (INDICE_ITENS_EDITOR[tipo] || {})[id];
-    if (info && info.nome) { if (!nomes.includes(info.nome)) nomes.push(info.nome); }
+    if (info && info.nome) {
+      const doCatalogo = itemDoCatalogoPorPeca(tipo + "-" + id);
+      const chave = doCatalogo ? doCatalogo.slug : info.nome;
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      itens.push({ nome: info.nome, nft: info.origem === "nft", slug: doCatalogo && doCatalogo.slug });
+    }
     else if (CATEGORIAS_PECA[tipo] && !basicas.includes(CATEGORIAS_PECA[tipo])) basicas.push(CATEGORIAS_PECA[tipo]);
   }
   return `<ul class="visual-itens">
-      ${nomes.map(n => `<li>${esc(n)}</li>`).join("")}
+      ${itens.map(i => `<li${i.nft ? ' class="visual-item-nft"' : ""}>
+        ${i.nft ? `<img src="${CUBO_NFT_B64}" alt="NFT" title="NFT">` : ""}
+        ${i.slug ? `<a href="#item/${esc(i.slug)}">${esc(i.nome)}</a>` : esc(i.nome)}
+      </li>`).join("")}
       ${basicas.length ? `<li class="visual-itens-basicas">Básicas: ${esc(basicas.join(", "))}</li>` : ""}
     </ul>`;
 }
@@ -3530,9 +3574,9 @@ async function telaVisuais(){
         <span class="card-pt">${esc(v.nome)}</span>
         <span class="card-en">Salvo em ${esc(dataCurta(v.criadoEm))}</span>
         ${itensDoVisualHTML(v.figura)}
-        <label class="salvar-visual-privado">
-          <input type="checkbox" data-privado="${esc(v.id)}" ${v.publico === false ? "checked" : ""}>
-          Não mostrar na página dos itens
+        <label class="caixa-marcar">
+          <input type="checkbox" data-publico="${esc(v.id)}" ${v.publico === false ? "" : "checked"}>
+          Mostrar meu visual na página de itens
         </label>
         <span class="visual-acoes">
           <button type="button" class="opt" data-abrir="${esc(v.id)}">Abrir no editor</button>
@@ -3558,9 +3602,9 @@ async function telaVisuais(){
     if (v) abrirVisualNoEditor(v.figura, v.genero);
   });
 
-  app.querySelectorAll("[data-privado]").forEach(c => c.onchange = async () => {
+  app.querySelectorAll("[data-publico]").forEach(c => c.onchange = async () => {
     c.disabled = true;
-    try { await mudarPublicoVisual(c.dataset.privado, !c.checked); }
+    try { await mudarPublicoVisual(c.dataset.publico, c.checked); }
     catch (e) {
       c.checked = !c.checked;
       if (estadoSessao === "ATIVA") alert("Não consegui mudar agora. Tente de novo em instantes.");
@@ -6498,8 +6542,8 @@ function telaEditor(){
                 <input class="figura" id="nomeVisualEditor" maxlength="40" placeholder="Nome (opcional)">
                 <button type="button" class="opt" id="confirmarSalvarVisual">Salvar</button>
               </div>
-              <label class="salvar-visual-privado">
-                <input type="checkbox" id="privadoVisualEditor"> Não mostrar na página dos itens
+              <label class="caixa-marcar">
+                <input type="checkbox" id="publicoVisualEditor" checked> Mostrar meu visual na página de itens
               </label>
             </div>
             <p class="dica" id="copiarCodigoMsg" style="margin:0;min-height:14px;text-align:center"></p>
@@ -6617,7 +6661,7 @@ function telaEditor(){
   async function confirmarSalvarVisual(){
     const msg = document.getElementById("copiarCodigoMsg");
     msg.textContent = "Salvando...";
-    const publico = !document.getElementById("privadoVisualEditor").checked;
+    const publico = document.getElementById("publicoVisualEditor").checked;
     const resultado = await salvarVisual(campoNomeVisual.value, figuraMultipla(), prov.genero, publico);
     if (resultado.ok) {
       formSalvar.hidden = true;
@@ -6947,6 +6991,7 @@ async function carregarCatalogoExtra(){
     CATALOGO.forEach(it => {
       if (faixas[it.slug]) it.faixa = faixas[it.slug];
     });
+    catalogoPorPeca = null;   // itens novos: refaz o índice peça -> item na próxima consulta
   } catch (e) {
     // Sem servidor de catálogo extra no ar ainda: o site continua funcionando,
     // só com os itens que já vêm prontos no arquivo.
