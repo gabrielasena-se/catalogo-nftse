@@ -177,7 +177,9 @@ a{color:var(--ouro)}
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:20px 14px;gap:14px;border-right:1px solid var(--linha);
 }
-.espelho img{height:160px;width:auto;image-rendering:pixelated}
+.espelho img{height:250px;width:auto;image-rendering:pixelated}
+.opcoes-peles{gap:6px}
+.opcoes-peles .cor{width:22px;height:22px}
 .provador-editor{align-items:start;overflow:visible}
 /* --altura-topo é medida pelo script (a barra do topo muda de altura conforme
    a largura da tela): a coluna para logo abaixo dela, sem ficar escondida. */
@@ -389,8 +391,12 @@ const HOTEL = "https://www.habbo.com.br";
 // Deixe vazio para tentar direto no Habbo; se der erro, veja o arquivo buscar-visual.js.
 const PROXY = "/api/habbo?nick=";
 
-// Visual base do manequim. Cada peça é trocada pelos botões do provador.
-const BASE = { hd:"hd-180-1", hr:"hr-828-45", ch:"ch-210-66", lg:"lg-280-110", sh:"sh-305-62" };
+// Avatar padrão de cada gênero, usado no provador dos itens e no Editor de Visuais
+// (o toggle Masculino/Feminino troca essas peças, não só a pose).
+const BASE_POR_GENERO = {
+  M: { hd: "hd-3091-11", hr: "hr-828-1347", ch: "ch-6353-1", lg: "lg-270-92" },
+  F: { hd: "hd-600-11", hr: "hr-6434-1347", ch: "ch-665-92", lg: "lg-700-92" }
+};
 
 const CATALOGO = [
   // --- Visuais (aba "Clothes" da TokenTrove) ---
@@ -3233,22 +3239,27 @@ function vestirPecas(lista, peca){
   return out;
 }
 
-const PELES  = [ {id:"1",cor:"#f5d0a9"}, {id:"2",cor:"#ecc08a"}, {id:"3",cor:"#d9a066"},
-                 {id:"7",cor:"#b07a4a"}, {id:"10",cor:"#8a5a33"}, {id:"14",cor:"#5c3a1e"} ];
-const CABELOS = [ {id:"828",rotulo:"Curto"}, {id:"3163",rotulo:"Repicado"},
-                  {id:"540",rotulo:"Longo"}, {id:"165",rotulo:"Raspado"} ];
-const CORES_CABELO = [ {id:"45",cor:"#2d2016"}, {id:"42",cor:"#8b5a2b"},
-                       {id:"31",cor:"#e0c070"}, {id:"40",cor:"#b43b2e"}, {id:"61",cor:"#d8d8d8"} ];
+// Todos os tons de pele do jogo (paleta das peças "hd"), na ordem do Habbo.
+// Os 11 primeiros são grátis; os demais são de HC.
+const PELES = ("14:F5DA88 10:FFDBC1 1:FFCB98 8:F4AC54 12:FF987F 1369:e0a9a9 1370:ca8154 19:B87560 20:9C543F " +
+  "1371:904925 30:4C311E 1372:543d35 1373:653a1d 21:6E392C 1374:714947 1375:856860 1376:895048 1377:a15253 " +
+  "1378:aa7870 1379:be8263 1380:b6856d 1381:ba8a82 1382:c88f82 1383:d9a792 1384:c68383 1368:BC576A 1367:FF5757 " +
+  "1366:FF7575 1358:B65E38 1385:a76644 1386:7c5133 1387:9a7257 5:945C2F 1389:d98c63 4:AE7748 1388:c57040 " +
+  "1359:B88655 3:C99263 18:A89473 17:C89F56 9:DC9B4C 1357:FF8C40 1390:de9d75 1391:eca782 11:FFB696 2:E3AE7D " +
+  "7:FFC680 15:DFC375 13:F0DCA3 22:EAEFD0 23:E2E4B0 24:D5D08C 1361:BDE05F 1362:5DC446 1360:A2CC89 26:C2C4A7 " +
+  "28:F1E5DA 1392:f6d3d4 1393:e5b6b0 25:C4A7B3 1363:AC94B3 1364:D288CE 1365:6799CC 29:B3BDC3 27:C5C0C2")
+  .split(" ").map(par => { const [id, hex] = par.split(":"); return { id, cor: "#" + hex }; });
 const ACOES = [ {id:"std",rotulo:"Parado"}, {id:"wlk",rotulo:"Andando"},
                 {id:"wav",rotulo:"Acenando"}, {id:"sit",rotulo:"Sentado"} ];
 
 /* --------- montagem da figure string e das URLs do habbo-imaging -------- */
 
+// Avatar padrão do gênero escolhido, com o tom de pele do provador, vestindo a peça.
 function figura(estado, peca){
-  const partes = { ...BASE };
-  partes.hd = "hd-180-" + estado.pele;
-  partes.hr = "hr-" + estado.cabelo + "-" + estado.corCabelo;
-  return vestirPecas(Object.values(partes), peca).join(".");
+  const base = BASE_POR_GENERO[estado.genero] || BASE_POR_GENERO.M;
+  const [tipoHd, idHd, corHd] = base.hd.split("-");
+  const partes = [`${tipoHd}-${idHd}-${estado.pele || corHd}`, base.hr, base.ch, base.lg];
+  return vestirPecas(partes, peca).join(".");
 }
 
 function urlAvatar(fig, o = {}){
@@ -3269,7 +3280,7 @@ function urlAvatar(fig, o = {}){
 
 let aba = "roupa";
 let termo = "";
-const prov = { pele:"1", cabelo:"828", corCabelo:"45", dir:2, acao:"std", figLivre:"", nick:"", genero:"M" };
+const prov = { pele:"11", dir:2, acao:"std", figLivre:"", nick:"", genero:"M" };
 
 const app = document.getElementById("app");
 
@@ -3547,12 +3558,6 @@ function pecaParaFigura(tipo, sel){
   return tipo + "-" + sel.id + "-" + cor1 + cor2;
 }
 
-// Peças padrão do corpo base, uma versão pra cada gênero
-// (o toggle Masculino/Feminino não só muda a pose — troca essas peças também).
-const BASE_POR_GENERO = {
-  M: { hd: "hd-3091-11", hr: "hr-828-1347", ch: "ch-6353-1", lg: "lg-270-92" },
-  F: { hd: "hd-600-11", hr: "hr-6434-1347", ch: "ch-665-92", lg: "lg-700-92" }
-};
 
 // Nomes, origem e ordem de exibição das peças, coletados manualmente.
 // Peça sem entrada aqui aparece só com o código, no final da lista.
@@ -6659,15 +6664,7 @@ function blocoProvador(it){
         </div>
         <div class="campo">
           <label>Tom de pele</label>
-          <div class="opcoes">${cores(PELES, "pele")}</div>
-        </div>
-        <div class="campo">
-          <label>Cabelo</label>
-          <div class="opcoes">${botoes(CABELOS, "cabelo")}</div>
-        </div>
-        <div class="campo">
-          <label>Cor do cabelo</label>
-          <div class="opcoes">${cores(CORES_CABELO, "corCabelo")}</div>
+          <div class="opcoes opcoes-peles">${cores(PELES, "pele")}</div>
         </div>
         <div class="campo">
           <label>Ação</label>
