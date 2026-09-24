@@ -255,7 +255,11 @@ a{color:var(--ouro)}
   border-radius:5px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:var(--corpo);
   text-decoration:none;display:inline-block;
 }
-.auth-nick{color:var(--texto);font-weight:600}
+.auth-nick{
+  color:var(--texto);font-weight:600;
+  /* Nick muito comprido termina em "…" para não empurrar o topo; o nick inteiro aparece no title */
+  display:inline-block;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;
+}
 /* "sair" com o visual do antigo botão "Entrar no Discord" */
 .auth-sair{
   background:linear-gradient(180deg,#a83cf0,#6c1cc0);border:none;border-bottom:3px solid #4a1090;border-radius:6px;
@@ -6856,9 +6860,9 @@ async function toggleFavorito(slug){
 function renderAuthArea(){
   const el = document.getElementById("authArea");
   if (!sessao) { el.innerHTML = ""; return; }
-  el.innerHTML = `<a href="#favoritos" class="auth-entrar">♥ Meus favoritos</a>
+  el.innerHTML = `<a href="#favoritos" class="auth-entrar">♥ Favoritos</a>
     <a href="#visuais" class="auth-entrar">Meus visuais</a>
-    <span class="auth-nick">${esc(sessao.habboName)}</span>
+    <span class="auth-nick" title="${esc(sessao.habboName)}">${esc(sessao.habboName)}</span>
     <button type="button" class="auth-sair" id="sairBtn">sair</button>`;
   document.getElementById("sairBtn").onclick = fazerLogout;
 }
