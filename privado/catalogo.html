@@ -272,6 +272,12 @@ a{color:var(--ouro)}
   position:absolute;top:2px;left:2px;width:30px;height:30px;z-index:4;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));pointer-events:none;
 }
+.selo-h{
+  border-radius:50%;background:linear-gradient(180deg,#ff2ee0,#b800a0);
+  color:#fff;font-family:var(--pixel);font-size:15px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 3px rgba(0,0,0,.5);filter:none;
+}
 </style>
 </head>
 <body>
@@ -3765,10 +3771,12 @@ function telaEditor(){
           const infoItem = indiceCategoria[s.id];
           const rotuloBotao = infoItem && infoItem.nome ? infoItem.nome : (editorTipoAtivo + "-" + s.id);
           const ehNFT = !!(infoItem && infoItem.origem === "nft");
+          const ehDoJogo = !!(infoItem && !infoItem.nome && !infoItem.origem);
           return `
           <button type="button" class="item-mini" data-tipo="${editorTipoAtivo}" data-id="${s.id}" data-cor="${s.maxCor}"
             data-codigo="${esc(rotuloBotao)}" aria-pressed="${!!(selAtual && selAtual.id === s.id)}">
             ${ehNFT ? `<img class="selo-origem" src="${CUBO_NFT_B64}" alt="NFT" title="NFT">` : ""}
+            ${ehDoJogo ? `<span class="selo-origem selo-h" title="Vem do jogo (grátis/HC)">H</span>` : ""}
             <img src="${esc(urlMiniaturaEditor(editorTipoAtivo, s))}" alt="${esc(rotuloBotao)}" loading="lazy"
               onerror="this.closest('button').style.display='none'">
           </button>`;
