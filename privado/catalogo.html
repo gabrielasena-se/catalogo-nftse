@@ -124,6 +124,8 @@ a{color:var(--ouro)}
 /* Meus visuais */
 .visual-card:hover{background:var(--tile);border-color:var(--linha)}
 .visual-avatar{height:88%;width:auto;image-rendering:pixelated}
+.visual-itens{margin:8px 0 8px;padding:0 0 0 16px;font-size:12px;line-height:1.45;color:var(--texto)}
+.visual-itens-basicas{color:var(--mudo);list-style:none;margin-left:-16px}
 .visual-acoes{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .visual-acoes .opt{padding:5px 8px;font-size:12px}
 .visual-excluir:hover{border-color:#ff5a5a;color:#ff9a9a}
@@ -165,6 +167,27 @@ a{color:var(--ouro)}
 .gifs img{image-rendering:pixelated;margin:0 auto}
 .gifs figcaption{font-size:11px;color:var(--mudo);margin-top:8px}
 
+/* "Em movimento" à esquerda e o carrossel de visuais dos usuários à direita */
+.linha-movimento{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+.linha-movimento > .secao{flex:none}
+.linha-movimento > .secao-comunidade{flex:1;min-width:280px}
+.carrossel{display:flex;align-items:center;gap:8px}
+.carrossel > .dica{margin:0}
+.carrossel-trilho{
+  display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;flex:1;min-width:0;padding-bottom:6px;
+  scrollbar-width:thin;scrollbar-color:var(--linha) transparent;
+}
+.carrossel-trilho::-webkit-scrollbar{height:6px}
+.carrossel-trilho::-webkit-scrollbar-thumb{background:var(--linha);border-radius:3px}
+.carrossel-item{
+  flex:none;scroll-snap-align:start;margin:0;background:var(--painel);border:1px solid var(--linha);border-radius:10px;
+  padding:12px 12px 10px;width:136px;display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.carrossel-item img{height:170px;width:auto;image-rendering:pixelated}
+.carrossel-item .opt{padding:5px 9px;font-size:12px}
+.carrossel-seta{flex:none}
+@media(max-width:520px){.carrossel-seta{display:none}}
+
 /* ---------- provador ---------- */
 .provador{
   background:var(--painel);border:1px solid var(--linha);border-radius:10px;
@@ -195,8 +218,11 @@ a{color:var(--ouro)}
 /* Copiar código / Salvar visual, lado a lado embaixo do avatar */
 .acoes-visual{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .acoes-visual .opt{padding:6px 9px;font-size:12px}
-.salvar-visual{display:flex;gap:6px;width:100%}
+.salvar-visual{display:flex;flex-direction:column;gap:6px;width:100%}
 .salvar-visual[hidden]{display:none}
+.salvar-visual-linha{display:flex;gap:6px}
+.salvar-visual-privado{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mudo);cursor:pointer}
+.salvar-visual-privado input{accent-color:var(--ouro);margin:0}
 .salvar-visual .figura{flex:1;min-width:0;padding:6px 8px;font-size:12px}
 .salvar-visual .opt{padding:6px 9px;font-size:12px}
 .painel-cores{width:100%;border-top:1px solid var(--linha);padding-top:12px}
@@ -3413,12 +3439,12 @@ async function carregarVisuais(){
   meusVisuais = dados.visuais || [];
 }
 
-async function salvarVisual(nome, figura, genero){
+async function salvarVisual(nome, figura, genero, publico){
   try {
     const r = await apiFetch(API_BASE + "/api/visuais", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, figura, genero })
+      body: JSON.stringify({ nome, figura, genero, publico })
     });
     const dados = await r.json();
     if (!r.ok) return { ok: false, erro: dados.erro || "Não consegui salvar agora." };
@@ -3439,8 +3465,43 @@ async function excluirVisual(id){
   meusVisuais = (meusVisuais || []).filter(v => v.id !== id);
 }
 
+async function mudarPublicoVisual(id, publico){
+  const r = await apiFetch(API_BASE + "/api/visuais", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, publico })
+  });
+  if (!r.ok) throw new Error("erro");
+  const v = (meusVisuais || []).find(x => x.id === id);
+  if (v) v.publico = publico;
+}
+
 function dataCurta(ms){
   try { return new Date(ms).toLocaleDateString("pt-BR"); } catch (e) { return ""; }
+}
+
+function abrirVisualNoEditor(figura, genero){
+  prov.figLivre = figura;
+  prov.genero = genero;
+  prov.nick = "";
+  editorSelecionados = {};
+  location.hash = "editor";
+}
+
+// Itens usados num visual, pelos nomes do editor. Peças sem nome (grátis/HC)
+// entram só pela categoria, agrupadas no fim.
+function itensDoVisualHTML(figura){
+  const nomes = [], basicas = [];
+  for (const parte of String(figura).split(".").filter(Boolean)) {
+    const [tipo, id] = parte.split("-");
+    const info = (INDICE_ITENS_EDITOR[tipo] || {})[id];
+    if (info && info.nome) { if (!nomes.includes(info.nome)) nomes.push(info.nome); }
+    else if (CATEGORIAS_PECA[tipo] && !basicas.includes(CATEGORIAS_PECA[tipo])) basicas.push(CATEGORIAS_PECA[tipo]);
+  }
+  return `<ul class="visual-itens">
+      ${nomes.map(n => `<li>${esc(n)}</li>`).join("")}
+      ${basicas.length ? `<li class="visual-itens-basicas">Básicas: ${esc(basicas.join(", "))}</li>` : ""}
+    </ul>`;
 }
 
 async function telaVisuais(){
@@ -3468,6 +3529,11 @@ async function telaVisuais(){
       <span class="card-txt">
         <span class="card-pt">${esc(v.nome)}</span>
         <span class="card-en">Salvo em ${esc(dataCurta(v.criadoEm))}</span>
+        ${itensDoVisualHTML(v.figura)}
+        <label class="salvar-visual-privado">
+          <input type="checkbox" data-privado="${esc(v.id)}" ${v.publico === false ? "checked" : ""}>
+          Não mostrar na página dos itens
+        </label>
         <span class="visual-acoes">
           <button type="button" class="opt" data-abrir="${esc(v.id)}">Abrir no editor</button>
           <button type="button" class="opt" data-copiar="${esc(v.id)}">Copiar código</button>
@@ -3489,12 +3555,17 @@ async function telaVisuais(){
 
   app.querySelectorAll("[data-abrir]").forEach(b => b.onclick = () => {
     const v = achar(b.dataset.abrir);
-    if (!v) return;
-    prov.figLivre = v.figura;
-    prov.genero = v.genero;
-    prov.nick = "";
-    editorSelecionados = {};
-    location.hash = "editor";
+    if (v) abrirVisualNoEditor(v.figura, v.genero);
+  });
+
+  app.querySelectorAll("[data-privado]").forEach(c => c.onchange = async () => {
+    c.disabled = true;
+    try { await mudarPublicoVisual(c.dataset.privado, !c.checked); }
+    catch (e) {
+      c.checked = !c.checked;
+      if (estadoSessao === "ATIVA") alert("Não consegui mudar agora. Tente de novo em instantes.");
+    }
+    c.disabled = false;
   });
 
   app.querySelectorAll("[data-copiar]").forEach(b => b.onclick = async () => {
@@ -6423,8 +6494,13 @@ function telaEditor(){
               <button type="button" class="opt" id="salvarVisualEditor">Salvar visual</button>
             </div>
             <div class="salvar-visual" id="salvarVisualForm" hidden>
-              <input class="figura" id="nomeVisualEditor" maxlength="40" placeholder="Nome (opcional)">
-              <button type="button" class="opt" id="confirmarSalvarVisual">Salvar</button>
+              <div class="salvar-visual-linha">
+                <input class="figura" id="nomeVisualEditor" maxlength="40" placeholder="Nome (opcional)">
+                <button type="button" class="opt" id="confirmarSalvarVisual">Salvar</button>
+              </div>
+              <label class="salvar-visual-privado">
+                <input type="checkbox" id="privadoVisualEditor"> Não mostrar na página dos itens
+              </label>
             </div>
             <p class="dica" id="copiarCodigoMsg" style="margin:0;min-height:14px;text-align:center"></p>
             ${painelCores}
@@ -6541,7 +6617,8 @@ function telaEditor(){
   async function confirmarSalvarVisual(){
     const msg = document.getElementById("copiarCodigoMsg");
     msg.textContent = "Salvando...";
-    const resultado = await salvarVisual(campoNomeVisual.value, figuraMultipla(), prov.genero);
+    const publico = !document.getElementById("privadoVisualEditor").checked;
+    const resultado = await salvarVisual(campoNomeVisual.value, figuraMultipla(), prov.genero, publico);
     if (resultado.ok) {
       formSalvar.hidden = true;
       campoNomeVisual.value = "";
@@ -6606,6 +6683,12 @@ function telaItem(it){
           <figcaption>Andando</figcaption>
         </figure>
       </div>
+    </section>
+    <section class="secao secao-comunidade">
+      <h2>Visuais salvos pelos usuários</h2>
+      <div class="carrossel" id="carrosselVisuais">
+        <p class="dica">Carregando visuais...</p>
+      </div>
     </section>` : "";
 
   const msg = encodeURIComponent(it.pt);
@@ -6627,14 +6710,57 @@ function telaItem(it){
              data-item="${msg}">Tenho interesse</a>
         </div>
       </div>
-      ${gifs}
+      ${gifs ? `<div class="linha-movimento">${gifs}</div>` : ""}
       ${ehRoupa ? blocoProvador(it) : ""}
     </div>`;
+  if (ehRoupa) carregarCarrosselVisuais(it);
 
   document.getElementById("voltar").onclick = () => { location.hash = ""; };
   const botaoFav = app.querySelector("[data-fav]");
   if (botaoFav) botaoFav.onclick = () => toggleFavorito(botaoFav.dataset.fav);
   if (ehRoupa) ligarProvador(it);
+}
+
+// Carrossel da página do item: visuais públicos de qualquer pessoa que usam o item
+// (em qualquer versão, masculina ou feminina). Nunca mostra quem criou.
+async function carregarCarrosselVisuais(it){
+  const caixa = document.getElementById("carrosselVisuais");
+  const semCor = peca => peca.split(".").map(p => p.split("-").slice(0, 2).join("-")).join(".");
+  const versoes = [...new Set([it.peca, it.pecaF].filter(Boolean).map(semCor))];
+  let visuais = [];
+  try {
+    const r = await apiFetch(API_BASE + "/api/visuais?item=" + encodeURIComponent(versoes.join("|")));
+    const dados = await r.json();
+    if (!r.ok) throw new Error(dados.erro || "erro");
+    visuais = dados.visuais || [];
+  } catch (e) {
+    if (caixa && estadoSessao === "ATIVA") caixa.innerHTML = `<p class="dica">Não consegui carregar os visuais agora.</p>`;
+    return;
+  }
+  if (!caixa || !document.body.contains(caixa)) return;   // a pessoa já saiu da página
+  if (!visuais.length) {
+    caixa.innerHTML = `<p class="dica">Ninguém salvou um visual com este item ainda.
+      Monte o seu no <a href="#editor">Editor de Visuais</a>!</p>`;
+    return;
+  }
+  caixa.innerHTML = `
+    <button type="button" class="mini carrossel-seta" data-seta="-1" aria-label="Anteriores">&#8592;</button>
+    <div class="carrossel-trilho">
+      ${visuais.map((v, i) => `
+        <figure class="carrossel-item">
+          <img loading="lazy" alt="Visual salvo por um usuário"
+            src="${esc(urlAvatar(v.figura, { dir: 2, size: "l", genero: v.genero }))}">
+          <button type="button" class="opt" data-experimentar="${i}">Experimentar</button>
+        </figure>`).join("")}
+    </div>
+    <button type="button" class="mini carrossel-seta" data-seta="1" aria-label="Próximos">&#8594;</button>`;
+  const trilho = caixa.querySelector(".carrossel-trilho");
+  caixa.querySelectorAll("[data-seta]").forEach(b => b.onclick = () =>
+    trilho.scrollBy({ left: Number(b.dataset.seta) * trilho.clientWidth * 0.8, behavior: "smooth" }));
+  caixa.querySelectorAll("[data-experimentar]").forEach(b => b.onclick = () => {
+    const v = visuais[Number(b.dataset.experimentar)];
+    if (v) abrirVisualNoEditor(v.figura, v.genero);
+  });
 }
 
 function blocoProvador(it){
