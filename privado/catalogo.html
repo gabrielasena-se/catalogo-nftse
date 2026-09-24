@@ -268,6 +268,11 @@ a{color:var(--ouro)}
 .item-mini:hover::after,.item-mini:focus::after{opacity:1}
 @media(max-width:520px){.item-mini{width:80px;height:80px}}
 .item-mini[aria-pressed="true"]{border-color:var(--ouro);box-shadow:0 0 0 2px var(--ouro)}
+.selo-origem{
+  position:absolute;top:4px;left:4px;width:14px;height:14px;border-radius:50%;
+  border:1px solid rgba(0,0,0,.45);z-index:4;box-shadow:0 0 0 1px rgba(255,255,255,.5);
+}
+.selo-origem.ltd{border-radius:3px}
 </style>
 </head>
 <body>
@@ -1012,7 +1017,7 @@ const CATALOGO = [
   { slug:"bone-habbo-2022", tipo:"roupa", pt:"Boné Habbo 2022", en:"Habbo Cap 2022",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothes/cap2022.png", peca:"", desc:"" },
   { slug:"rosto-boneca-possuida", tipo:"roupa", pt:"Rosto de Boneca Possuída", en:"Possessed Doll Face",
-    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/halloween/clothing_nftpossesseddoll.png", peca:"", desc:"" },
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/halloween/clothing_nftpossesseddoll.png", peca:"hd-5042-0", desc:"" },
   { slug:"jaqueta-perigo-biologico", tipo:"roupa", pt:"Jaqueta Perigo Biológico", en:"Biohazard Jacket",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftbiohazardjacket.gif", peca:"", desc:"" },
   { slug:"topete-verao", tipo:"roupa", pt:"Topete de Verão", en:"Summer Quiff",
@@ -1060,7 +1065,7 @@ const CATALOGO = [
   { slug:"colar-h-dourado", tipo:"roupa", pt:"Colar H Dourado", en:"Gold H Necklace",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftblingnecklace.png", peca:"", desc:"" },
   { slug:"rosto-sorridente-desenho", tipo:"roupa", pt:"Rosto Sorridente de Desenho", en:"Cartoonish Smiling Face",
-    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftsmileyface.gif", peca:"", desc:"" },
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftsmileyface.gif", peca:"hd-6158-2", desc:"" },
   { slug:"cabelo-roqueiro-penteado", tipo:"roupa", pt:"Cabelo Roqueiro Penteado", en:"Combed Rocker Hair",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft23rock2hr.gif", peca:"", desc:"" },
   { slug:"lingua-saborosa", tipo:"roupa", pt:"Língua Saborosa", en:"Yummy Tongue",
@@ -2904,7 +2909,7 @@ const CATALOGO = [
   { slug:"bau-tesouro-selva", tipo:"roupa", pt:"Baú do Tesouro da Selva", en:"Jungle Treasure Chest",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nfttreasurechest.gif", peca:"", desc:"" },
   { slug:"rosto-cicatriz", tipo:"roupa", pt:"Rosto com Cicatriz", en:"Scar Face",
-    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftscarface.png", peca:"", desc:"" },
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftscarface.png", peca:"hd-6456-0", desc:"" },
   { slug:"cavalinho-pau-loiro", tipo:"roupa", pt:"Cavalinho de Pau Loiro", en:"Blonde Hobby Horse",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nfthobbyhorse1.png", peca:"", desc:"" },
   { slug:"chapeu-bucket-frosty", tipo:"roupa", pt:"Chapéu Bucket do Frosty", en:"Frosty's Bucket Hat",
@@ -3006,7 +3011,7 @@ const CATALOGO = [
   { slug:"fantasia-pintor-cavalete", tipo:"roupa", pt:"Fantasia de Pintor com Cavalete", en:"Easel Painter's Outfit",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftartistset.gif", peca:"", desc:"" },
   { slug:"rosto-boneca", tipo:"roupa", pt:"Rosto de Boneca", en:"Doll Face",
-    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/halloween/clothing_nftdollface.png", peca:"", desc:"" },
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/halloween/clothing_nftdollface.png", peca:"hd-5041-0", desc:"" },
   { slug:"trancas-inverno", tipo:"roupa", pt:"Tranças de Inverno", en:"Winter Locks",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/hairstyle/clothing_nftwinterweaves.gif", peca:"", desc:"" },
   { slug:"rosto-sardento-b", tipo:"roupa", pt:"Rosto Sardento B", en:"Freckled Face B",
@@ -3161,7 +3166,7 @@ function urlAvatar(fig, o = {}){
     direction: o.dir ?? 2,
     head_direction: o.dir ?? 2,
     action: o.acao ?? "std",
-    gesture: o.gesto ?? "sml",
+    gesture: o.gesto ?? "std",
     size: o.size ?? "l",
     img_format: o.formato ?? "png",
     gender: o.genero ?? "M"
@@ -3336,6 +3341,121 @@ const BASE_POR_GENERO = {
   F: { hd: "hd-600-11", hr: "hr-6434-1347", ch: "ch-665-92", lg: "lg-700-92" }
 };
 
+// Nomes, origem e ordem de exibição das peças, coletados manualmente.
+// Peça sem entrada aqui aparece só com o código, no final da lista.
+const CORES_ORIGEM_EDITOR = { CR:"#ff6fd8", CV:"#ff3b3b", CA:"#ffd23f", LTD:"#ffd700", nft:"#ff2ee0" };
+const ROTULOS_ORIGEM_EDITOR = {
+  CR:"Cabide Rosa", CV:"Cabide Vermelho (raro)", CA:"Cabide Amarelo (pack)",
+  LTD:"Limitado (com lote)", nft:"NFT"
+};
+
+// Peças que existem no jogo mas NÃO devem aparecer no Editor de Visuais
+// (avatares NFT inacessíveis, com erro, fora de linha, etc.)
+const EXCLUIR_ITENS_EDITOR = {
+  hd: new Set(["4202","4203","4204","4205","4206","4266","4267","4268","4279","4280","4287","5143","5153","5154","6295"])
+};
+
+const INFO_ITENS_EDITOR = {
+  hd: [
+    ...["180","185","190","195","200","205","206","207","208","209","3091","3092","3093","3094","3095"].map(id => ({ id })),
+    { id:"3536", nome:"Cara de Gato Demoníaco", origem:"CR" },
+    { id:"3537", nome:"Olho de Ciclope", origem:"CR" },
+    { id:"3600", nome:"Olhos Mil e Uma Noites", origem:"CA" },
+    { id:"3603", nome:"Olhos Zumbi", origem:"CA" },
+    { id:"3604", nome:"Olhos Demoníacos", origem:"CA" },
+    { id:"3631", nome:"Maquiagem Boneca de Porcelana", origem:"CA" },
+    { id:"3704", nome:"Máscara Robótica", origem:"CA" },
+    { id:"3721", nome:"Look Vampiresco", origem:"CV" },
+    { id:"3813", nome:"Decoração Facial de Cristais BoHo", origem:"CA" },
+    { id:"3814", nome:"Pintura Facial BoHo Chic", origem:"CA" },
+    { id:"3845", nome:"Olhos Possuídos", origem:"CA" },
+    { id:"3956", nome:"Maquiagem Bollywood", origem:"CA" },
+    { id:"3997", nome:"Rosto Marcado", origem:"CA" },
+    { id:"4015", nome:"Emoções Cibernéticas", origem:"CV" },
+    { id:"4023", nome:"Mil Olhos", origem:"CR" },
+    { id:"4163", nome:"Maquiagem 80's", origem:"CA" },
+    { id:"4174", nome:"Maquiagem Gângster", origem:"CA" },
+    { id:"4393", nome:"Makeup Ídolo Pop", origem:"CA" },
+    { id:"5522", nome:"Maquiagem Cômica", origem:"CA" },
+    { id:"5682", nome:"Maquiagem Bratz Cloe", origem:"CA" },
+    { id:"5683", nome:"Maquiagem Bratz Jade", origem:"CA" },
+    { id:"5684", nome:"Maquiagem Bratz Sasha", origem:"CA" },
+    { id:"5685", nome:"Maquiagem Bratz Yasmin", origem:"CA" },
+    { id:"5696", nome:"Maquiagem Coração", origem:"CA" },
+    { id:"5913", nome:"Rosto Coelhinho", origem:"CA" },
+    { id:"6021", nome:"Cara no Sol", origem:"CA" },
+    { id:"6072", nome:"Rosto Bratz Koby", origem:"CA" },
+    { id:"6157", nome:"Olhos da Deusa", origem:"CA" },
+    { id:"6216", nome:"Olhos da Deusa", origem:"CA" },
+    { id:"6361", nome:"Pele de Manequim", origem:"CV" },
+    { id:"6456", nome:"Rosto Cicatrizado", origem:"CV" },
+    { id:"6435", nome:"Pele Iridescente", origem:"LTD" },
+    { id:"6436", nome:"Pele Iridescente", origem:"LTD" },
+    { id:"6519", nome:"Espantalho Assustador (cabeça grande)", origem:"LTD" },
+    { id:"6520", nome:"Espantalho Assustador (cabeça pequena)", origem:"LTD" },
+    { id:"5041", nome:"Rosto de Boneca", origem:"nft" },
+    { id:"5042", nome:"Rosto Boneca Possuída", origem:"nft" },
+    { id:"5316", nome:"Olhar Brilhante", origem:"nft" },
+    { id:"5317", nome:"Olhar Brilhante", origem:"nft" },
+    { id:"5318", nome:"Olhar Vívido", origem:"nft" },
+    { id:"5319", nome:"Olhar Vívido", origem:"nft" },
+    { id:"5430", nome:"Skin de Estátua", origem:"nft" },
+    { id:"5524", nome:"Olhos Sonolentos", origem:"nft" },
+    { id:"5525", nome:"Olhos Sonolentos", origem:"nft" },
+    { id:"5740", nome:"Quer Jogar um Jogo?", origem:"nft" },
+    { id:"5741", nome:"Quer Jogar um Jogo?", origem:"nft" },
+    { id:"5798", nome:"Coroa de Sangue", origem:"nft" },
+    { id:"5799", nome:"Coroa de Sangue", origem:"nft" },
+    { id:"5837", nome:"Rosto Sardento A", origem:"nft" },
+    { id:"5838", nome:"Rosto Sardento A", origem:"nft" },
+    { id:"5839", nome:"Rosto Sardento B", origem:"nft" },
+    { id:"5840", nome:"Rosto Sardento B", origem:"nft" },
+    { id:"5888", nome:"Rosto de Herói de Desenho", origem:"nft" },
+    { id:"6007", nome:"Rosto de Herói de Desenho", origem:"nft" },
+    { id:"5889", nome:"Rosto de Heroína de Desenho", origem:"nft" },
+    { id:"6008", nome:"Rosto de Heroína de Desenho", origem:"nft" },
+    { id:"5890", nome:"Rosto de Antagonista", origem:"nft" },
+    { id:"6009", nome:"Rosto de Antagonista", origem:"nft" },
+    { id:"6001", nome:"Pele Bronze", origem:"nft" },
+    { id:"6002", nome:"Pele Bronze", origem:"nft" },
+    { id:"6003", nome:"Pele Prata", origem:"nft" },
+    { id:"6004", nome:"Pele Prata", origem:"nft" },
+    { id:"6005", nome:"Pele Ouro", origem:"nft" },
+    { id:"6006", nome:"Pele Ouro", origem:"nft" },
+    { id:"6024", nome:"Olhos de Coração Rosa Elétrico", origem:"nft" },
+    { id:"6025", nome:"Olhos de Coração Rosa Elétrico", origem:"nft" },
+    { id:"6026", nome:"Olhos de Coração Azul Elétrico", origem:"nft" },
+    { id:"6027", nome:"Olhos de Coração Azul Elétrico", origem:"nft" },
+    { id:"6046", nome:"Cara com Cicatriz", origem:"nft" },
+    { id:"6045", nome:"Cara com Cicatriz", origem:"nft" },
+    { id:"6158", nome:"Rosto Sorridente Cartoon", origem:"nft" },
+    { id:"6159", nome:"Rosto Sorridente Cartoon", origem:"nft" },
+    { id:"6218", nome:"Olhos Prateados", origem:"nft" },
+    { id:"6219", nome:"Olhos Prateados", origem:"nft" },
+    { id:"6248", nome:"Fantasia de Esqueleto", origem:"nft" },
+    { id:"6289", nome:"Skin Noite Polar", origem:"nft" },
+    { id:"6440", nome:"Rosto Élfico", origem:"nft" },
+    { id:"6438", nome:"Rosto Élfico", origem:"nft" },
+    { id:"6441", nome:"Maquiagem Élfica", origem:"nft" },
+    { id:"6439", nome:"Maquiagem Élfica", origem:"nft" },
+    { id:"6556", nome:"Em breve" },
+    { id:"6557", nome:"Em breve" },
+    { id:"6575", nome:"Em breve" },
+    { id:"6576", nome:"Em breve" },
+    { id:"6591", nome:"Em breve" },
+    { id:"6592", nome:"Em breve" },
+    { id:"6616", nome:"Em breve" },
+    { id:"6617", nome:"Em breve" }
+  ]
+};
+
+const INDICE_ITENS_EDITOR = {};
+for (const tipo in INFO_ITENS_EDITOR) {
+  const mapa = {};
+  INFO_ITENS_EDITOR[tipo].forEach((e, i) => { mapa[e.id] = { ...e, ordem: i }; });
+  INDICE_ITENS_EDITOR[tipo] = mapa;
+}
+
 function figuraMultipla(){
   let lista;
   if (prov.figLivre.trim()) {
@@ -3386,7 +3506,17 @@ function telaEditor(){
   let grade = "";
   if (FIGUREDATA_COMPLETO && editorTipoAtivo) {
     const info = FIGUREDATA_COMPLETO.settypes[editorTipoAtivo];
-    const todos = info.sets.filter(s => s.gender === "U" || s.gender === prov.genero);
+    const excluidos = EXCLUIR_ITENS_EDITOR[editorTipoAtivo];
+    const todos = info.sets.filter(s =>
+      (s.gender === "U" || s.gender === prov.genero) &&
+      !(excluidos && excluidos.has(s.id))
+    );
+    const indiceCategoria = INDICE_ITENS_EDITOR[editorTipoAtivo] || {};
+    todos.sort((a, b) => {
+      const oa = indiceCategoria[a.id] ? indiceCategoria[a.id].ordem : Infinity;
+      const ob = indiceCategoria[b.id] ? indiceCategoria[b.id].ordem : Infinity;
+      return oa - ob;
+    });
     const qtd = editorQtdMostrada[editorTipoAtivo] || 48;
     const visiveis = todos.slice(0, qtd);
     const selAtual = editorSelecionados[editorTipoAtivo];
@@ -3399,12 +3529,19 @@ function telaEditor(){
         ${semNenhum ? "" : `
           <button type="button" class="item-mini" data-remover="${editorTipoAtivo}"
             aria-pressed="${!selAtual}" title="Nenhum">Nenhum</button>`}
-        ${visiveis.map(s => `
+        ${visiveis.map(s => {
+          const infoItem = indiceCategoria[s.id];
+          const rotuloBotao = infoItem && infoItem.nome ? infoItem.nome : (editorTipoAtivo + "-" + s.id);
+          const corOrigem = infoItem && infoItem.origem ? (CORES_ORIGEM_EDITOR[infoItem.origem] || "") : "";
+          const nomeOrigem = infoItem && infoItem.origem ? (ROTULOS_ORIGEM_EDITOR[infoItem.origem] || "") : "";
+          return `
           <button type="button" class="item-mini" data-tipo="${editorTipoAtivo}" data-id="${s.id}" data-cor="${s.maxCor}"
-            data-codigo="${editorTipoAtivo}-${s.id}" aria-pressed="${!!(selAtual && selAtual.id === s.id)}">
-            <img src="${esc(urlMiniaturaEditor(editorTipoAtivo, s))}" alt="${editorTipoAtivo}-${s.id}" loading="lazy"
+            data-codigo="${esc(rotuloBotao)}" aria-pressed="${!!(selAtual && selAtual.id === s.id)}">
+            ${corOrigem ? `<span class="selo-origem${infoItem.origem === "LTD" ? " ltd" : ""}" style="background:${corOrigem}" title="${esc(nomeOrigem)}"></span>` : ""}
+            <img src="${esc(urlMiniaturaEditor(editorTipoAtivo, s))}" alt="${esc(rotuloBotao)}" loading="lazy"
               onerror="this.closest('button').style.display='none'">
-          </button>`).join("")}
+          </button>`;
+        }).join("")}
       </div>
       ${todos.length > qtd ? `
         <button type="button" class="opt" id="carregarMaisEditor" style="margin-top:8px">
