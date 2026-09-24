@@ -183,7 +183,7 @@ a{color:var(--ouro)}
   position:sticky;top:16px;align-self:start;border-radius:10px 0 0 10px;
   padding-top:28px;padding-bottom:28px;
 }
-.provador-editor .espelho img{height:200px}
+.provador-editor .espelho img{height:280px}
 @media(max-width:700px){
   .provador-editor .espelho{position:static;border-radius:10px 10px 0 0}
 }
@@ -253,12 +253,18 @@ a{color:var(--ouro)}
 @media(max-width:520px){.opcoes-itens{grid-template-columns:repeat(auto-fill,80px)}}
 .item-mini{
   width:104px;height:104px;padding:4px;border-radius:8px;flex-shrink:0;position:relative;
-  border:2px solid var(--linha);cursor:pointer;
+  border:2px solid var(--linha);cursor:pointer;overflow:hidden;
   background:repeating-conic-gradient(#200a3c 0% 25%,#280d48 0% 50%) 0 0/10px 10px;
   display:flex;align-items:center;justify-content:center;
 }
 .item-mini[aria-pressed="true"]{border-color:var(--ouro)}
 .item-mini img{max-width:100%;max-height:100%}
+.item-mini img.mini-zoom{
+  position:absolute;left:50%;max-width:none;max-height:none;width:auto;height:200%;
+  transform:translateX(-50%);
+}
+.mini-zoom-cima{top:0}
+.mini-zoom-baixo{top:auto;bottom:0}
 .item-mini::after{
   content:attr(data-codigo);position:absolute;top:-26px;left:50%;transform:translateX(-50%);
   background:#0c0016;color:var(--texto);font-size:11px;padding:3px 7px;border-radius:4px;
@@ -3311,6 +3317,14 @@ let editorQtdMostrada = {};        // tipo -> quantos itens já exibidos (carreg
 
 const TIPOS_MANDATORIOS_EDITOR = ["hd", "ch", "lg"];
 const TIPOS_CABECA_EDITOR = new Set(["hd", "hr", "ha", "he", "ea", "fa"]);
+// Categorias em que a peça é pequena no corpo todo — a miniatura dá um "zoom"
+// na região certa (aproximado, sem servidor pra conferir o resultado renderizado).
+// Categorias em que a peça é pequena no corpo todo — a miniatura corta a imagem
+// na cintura, igual ao editor oficial do Habbo (cintura pra cima ou pra baixo).
+const ZONA_MINIATURA_EDITOR = {
+  ch: "cima", cc: "cima", ca: "cima", cp: "cima", wa: "cima",
+  lg: "baixo", sh: "baixo"
+};
 const ORDEM_CATEGORIAS_EDITOR = ["hd", "hr", "ch", "cc", "lg", "sh", "ha", "he", "ea", "fa", "ca", "cp", "wa", "mc", "pt"];
 
 async function carregarFiguredataCompleto(){
@@ -3773,12 +3787,14 @@ function telaEditor(){
           const rotuloBotao = infoItem && infoItem.nome ? infoItem.nome : (editorTipoAtivo + "-" + s.id);
           const ehNFT = !!(infoItem && infoItem.origem === "nft");
           const ehDoJogo = !!(infoItem && !infoItem.nome && !infoItem.origem);
+          const zona = ZONA_MINIATURA_EDITOR[editorTipoAtivo];
           return `
           <button type="button" class="item-mini" data-tipo="${editorTipoAtivo}" data-id="${s.id}" data-cor="${s.maxCor}"
             data-codigo="${esc(rotuloBotao)}" aria-pressed="${!!(selAtual && selAtual.id === s.id)}">
             ${ehNFT ? `<img class="selo-origem" src="${CUBO_NFT_B64}" alt="NFT" title="NFT">` : ""}
             ${ehDoJogo ? `<span class="selo-origem selo-h" title="Vem do jogo (grátis/HC)">H</span>` : ""}
             <img src="${esc(urlMiniaturaEditor(editorTipoAtivo, s))}" alt="${esc(rotuloBotao)}" loading="lazy"
+              class="${zona ? "mini-zoom mini-zoom-" + zona : ""}"
               onerror="this.closest('button').style.display='none'">
           </button>`;
         }).join("")}
