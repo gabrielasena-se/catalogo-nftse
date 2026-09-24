@@ -176,22 +176,29 @@ a{color:var(--ouro)}
 /* "Em movimento" à esquerda e o carrossel de visuais dos usuários à direita */
 .linha-movimento{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
 .linha-movimento > .secao{flex:none}
-.linha-movimento > .secao-comunidade{flex:1;min-width:280px}
+/* Carrossel encostado à direita, mostrando até 3 visuais por vez */
+.linha-movimento > .secao-comunidade{margin-left:auto;max-width:100%;text-align:right}
+.secao-comunidade .carrossel{justify-content:flex-end;text-align:left}
 .carrossel{display:flex;align-items:center;gap:8px}
-.carrossel > .dica{margin:0}
+.carrossel > .dica{margin:0;max-width:522px}
 .carrossel-trilho{
-  display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;flex:1;min-width:0;padding-bottom:6px;
-  scrollbar-width:thin;scrollbar-color:var(--linha) transparent;
+  display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;min-width:0;
+  width:max-content;max-width:min(522px,100%);padding-bottom:6px;   /* até 3 caixas de 166px + 2 espaços de 12px */
+  scrollbar-width:thin;scrollbar-color:#5fc8f0 transparent;
 }
 .carrossel-trilho::-webkit-scrollbar{height:6px}
-.carrossel-trilho::-webkit-scrollbar-thumb{background:var(--linha);border-radius:3px}
+.carrossel-trilho::-webkit-scrollbar-thumb{background:#5fc8f0;border-radius:3px}
+/* Mesmo tamanho das caixas de "Em movimento", com a borda no azul do cubo NFT */
 .carrossel-item{
-  flex:none;scroll-snap-align:start;margin:0;background:var(--painel);border:1px solid var(--linha);border-radius:10px;
-  padding:12px 12px 10px;width:136px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  flex:none;scroll-snap-align:start;margin:0;background:var(--painel);border:1px solid #5fc8f0;border-radius:10px;
+  box-sizing:border-box;width:166px;height:275px;padding:14px 18px;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
 }
-.carrossel-item img{height:170px;width:auto;image-rendering:pixelated}
-.carrossel-item .opt{padding:5px 9px;font-size:12px}
-.carrossel-seta{flex:none}
+.carrossel-item img{width:128px;height:220px;image-rendering:pixelated}
+.carrossel-item .opt{padding:3px 9px;font-size:11px;border-color:#5fc8f0;color:#9fe0fa}
+.carrossel-item .opt:hover{background:#5fc8f0;color:#0c2a3a}
+.carrossel-seta{flex:none;border-color:#5fc8f0}
+.carrossel-seta[hidden]{display:none}
 @media(max-width:520px){.carrossel-seta{display:none}}
 
 /* ---------- provador ---------- */
@@ -6799,6 +6806,8 @@ async function carregarCarrosselVisuais(it){
     </div>
     <button type="button" class="mini carrossel-seta" data-seta="1" aria-label="Próximos">&#8594;</button>`;
   const trilho = caixa.querySelector(".carrossel-trilho");
+  // Com até 3 visuais cabe tudo: as setas não têm para onde levar.
+  if (trilho.scrollWidth <= trilho.clientWidth + 1) caixa.querySelectorAll("[data-seta]").forEach(b => b.hidden = true);
   caixa.querySelectorAll("[data-seta]").forEach(b => b.onclick = () =>
     trilho.scrollBy({ left: Number(b.dataset.seta) * trilho.clientWidth * 0.8, behavior: "smooth" }));
   caixa.querySelectorAll("[data-experimentar]").forEach(b => b.onclick = () => {
