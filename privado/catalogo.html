@@ -253,18 +253,19 @@ a{color:var(--ouro)}
 @media(max-width:520px){.opcoes-itens{grid-template-columns:repeat(auto-fill,80px)}}
 .item-mini{
   width:104px;height:104px;padding:4px;border-radius:8px;flex-shrink:0;position:relative;
-  border:2px solid var(--linha);cursor:pointer;overflow:hidden;
+  border:2px solid var(--linha);cursor:pointer;
   background:repeating-conic-gradient(#200a3c 0% 25%,#280d48 0% 50%) 0 0/10px 10px;
   display:flex;align-items:center;justify-content:center;
 }
 .item-mini[aria-pressed="true"]{border-color:var(--ouro)}
 .item-mini img{max-width:100%;max-height:100%}
+.item-mini .recorte{position:relative;width:100%;height:100%;overflow:hidden}
 .item-mini img.mini-zoom{
-  position:absolute;left:50%;max-width:none;max-height:none;width:auto;
+  position:absolute;left:50%;max-width:none;max-height:none;width:280%;height:auto;
   transform:translateX(-50%);
 }
-.item-mini img.mini-zoom-cima{height:155%;top:0}
-.item-mini img.mini-zoom-baixo{height:200%;top:auto;bottom:0}
+.item-mini img.mini-zoom-cima{top:auto;bottom:-60px}
+.item-mini img.mini-zoom-baixo{top:auto;bottom:0}
 .item-mini::after{
   content:attr(data-codigo);position:absolute;top:-26px;left:50%;transform:translateX(-50%);
   background:#0c0016;color:var(--texto);font-size:11px;padding:3px 7px;border-radius:4px;
@@ -3788,14 +3789,15 @@ function telaEditor(){
           const ehNFT = !!(infoItem && infoItem.origem === "nft");
           const ehDoJogo = !!(infoItem && !infoItem.nome && !infoItem.origem);
           const zona = ZONA_MINIATURA_EDITOR[editorTipoAtivo];
+          const imgMiniatura = `<img src="${esc(urlMiniaturaEditor(editorTipoAtivo, s))}" alt="${esc(rotuloBotao)}" loading="lazy"
+              class="${zona ? "mini-zoom mini-zoom-" + zona : ""}"
+              onerror="this.closest('button').style.display='none'">`;
           return `
           <button type="button" class="item-mini" data-tipo="${editorTipoAtivo}" data-id="${s.id}" data-cor="${s.maxCor}"
             data-codigo="${esc(rotuloBotao)}" aria-pressed="${!!(selAtual && selAtual.id === s.id)}">
             ${ehNFT ? `<img class="selo-origem" src="${CUBO_NFT_B64}" alt="NFT" title="NFT">` : ""}
             ${ehDoJogo ? `<span class="selo-origem selo-h" title="Vem do jogo (grátis/HC)">H</span>` : ""}
-            <img src="${esc(urlMiniaturaEditor(editorTipoAtivo, s))}" alt="${esc(rotuloBotao)}" loading="lazy"
-              class="${zona ? "mini-zoom mini-zoom-" + zona : ""}"
-              onerror="this.closest('button').style.display='none'">
+            ${zona ? `<span class="recorte">${imgMiniatura}</span>` : imgMiniatura}
           </button>`;
         }).join("")}
       </div>
