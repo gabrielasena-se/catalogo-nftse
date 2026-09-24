@@ -318,7 +318,9 @@ a{color:var(--ouro)}
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 1px 3px rgba(0,0,0,.5);filter:none;
 }
-.selo-r{background:linear-gradient(180deg,#ff5a5a,#b80000)}
+.selo-raro{width:14px;height:32px;left:5px}
+.selo-habbo{width:26px;height:26px}
+.selo-habbo img{image-rendering:auto}
 .selo-p{background:linear-gradient(180deg,#b27aff,#5a1ab8)}
 /* Explicação do selo ao passar o mouse; esconde o nome da peça enquanto isso */
 .selo-origem::after{
@@ -3419,14 +3421,23 @@ const LTD_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAKCAYAAAC0V
 // Moeda Ducket, a mesma da Ducket Shop no jogo (fundo removido), embutida aqui.
 const DUCKET_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB0AAAAdCAYAAABWk2cPAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAATxSURBVEhLvZdpTFRnFIYHQUq1RK1tf7SxFaggVVZNpUVBgRZoGgkasUtaGxrGau0Pyw4KlEUiA5SdmaHspTjsSzBhdYa2YtgFlEVsFUwsiG0U0j9N+jbfuXPHuTMMy5+e5AnDfPd7328553ARiVYKIyOIRKJ1Y2Zlz36uP8ws7XD2/UB8TXy5DPyY/jP7nL3A5utqrhjGW7bTih9KxzAvH8cj+YQe7HtttMdOe37O73ptYfLSq4g+EYbiM1n40TeHw0efcm3ouVwNZZ/moORMNnZZ7wfT0/UQhOkOa1phc1gFrT7xzTAkWIUi3jJkVdhzPJ3iWtqx8066W8OmRqZmCD76DW6l/oJCz3Sk2l3E6KlWjH3RhtFlyHVMFBgxilxSaazaU4o0u4u4HtFCekzb2HybvrnJBmPEHg/FnPQ2CtxTSeROkBLTYhWmT3drmBKrMBWkhHR/MpKswwWUuWbQmOJwHhKtQjEW2016THvjJnOBKT5w9MK8bBxNH5chwTIEPScbOBOxCvfOXgckf2toP1bPLaiyF0sDM1js51gamMVgdheNKVyy0ONzBZlvxSHBMpS0By510FFvfGUHmWtMm9dhOll0A09Vv+OJkuOp6h76JR3rMHXyootfi2mbfx0lzmisiisXmRr5OHrOt9CY4kCm2jSW9Jj2YHKnAdNPONNK9xw0exdhIXwSj8On8FfUXQ3NvuUC07ZABa59Vac2vUpj+XaJqHw7AynWURrTAcOm5YJs/DdlCf8kP+GSSU3VkXwSZknC5rDP6Y6x9Jk3ZUYMvpzmDZmyldJOrULRdaEON6VKVHkVQeHxA4pd0jS0nVNgOF+JB7IRmtMb0orByA4Svi8bpjGebFeurAzulAk0qU2nKm5QZlJzsBTWoiqukbJ1oWJS0P6Y6ePqO1hSZzOjwJsrvVXulDve0XgVFoonMdcxgbnOCcx3aVE7gUdFE5gvUPddrUTqDWtFmlMM0pwZsVS7TI+NDSQbyl616UiMkoQWe2ew2DdDq+f5s2Fa2Ox1spfdJWsMSeoWumbTLnENhqM7NYL8EXLHqG/G/84Sic1XuLCSqUTmnri1m9YHFKEzqBqzmcN4kHVzVdM52W167udzjTS/5mAu+v1qkbX3u5VN2QCfSHyqD0a1YyTmmuA4tRfAL+Jh3hidzNXPKmh+i28JlVeeU9LKiaRtWu6agRoPKar95Wg4WYy7kl4Nv0n69JhI+hXV/gWo+VCOWk8Zuv0UGPmoBTn28Ws37Qmop5WyhJDsicZQdIdB2A759lf6zvfUPocDmgV3upwphbeDB9JPxKMvrBVX3stD4QEJlP4KdPj9BPkhiRYpkB1KgdyNISEK3VLRdDAf7V4lGPCvR71bPqT2iVCK69AX2gofBw8cdjjyzEwrEHOctaxxEmIrZ38bR061cg1CzXJvChKbaNoZT+k+CX0/FtdNyca0N5htWtZUtNViL7abv4jG8+W4nzEEie0FXLaJFpjqw9XlZetIDe2BCsxkDMF997ukp+sjiOdet4FogzHqgkswmzuMZJtIXLKOWIVwDpsIDW1BVTTf0cKe9HR9lg3+FfQP6S29EnlWKjzCV1GGeL2voCxMX7OCydaXUfttCeqDS1eBPSPkqOsxmq+ru7b4v/+tYLHZwhYvWNhim40Dtuyyw+adtnj+jd1gd78Sujq68R8mx9OQjw92IQAAAABJRU5ErkJggg==";
 
+// Exclamação verde dos Raros (catálogo do Habbo), embutida aqui.
+const RARO_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAgCAYAAAAi7kmXAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACNSURBVEhL7dLRDUAwFAXQ/ogNrGQQYwgrGcIIYgs7VPKSS3u1vGr46k3uB95pXqLGnLHKXsIDsfpgtr10s6sUz8PSeHUPyIP4wKCbamk7VtICCzwgIi9iMASQPMjgbkXkNUTcIRVAGKjh/+EV1asyeIQygAuQ8jvyIC4AX4TvIAaTV30DEXdIBRAGQbgDpAlBe+OwA/UAAAAASUVORK5CYII=";
+// "H" amarelo do Habbo, para as peças grátis/HC, embutido aqui.
+const HABBO_H_B64 = "data:image/png;base64,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";
+// Moeda de câmbio do Habbo, para as peças compráveis, embutida aqui.
+const CAMBIO_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAYAAAAehFoBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEKSURBVFhH7Zc7DsIwEAVzi9DzacLVyN2cW4UCl6SD+o0trSKDXOQ9aZoY744trUKGoT2fnXQPhSK6h0IR3UOhiL+HDYUt34V3npSXwv0VmsOCFj6csBRY00Wg0DKfhDSPykPZ8iSs6SywP+VqsbCFEdnAoaLAmq4Ch4zwgKzP/pSrxcKHF4agDgWH6JluQiSwzKPAdV4A+9PPwhSyMB9wSFiQQ0Yh/p5Y2MKF0I+FuYFCpXA0dLoe/XnihdHPwhauCDO7DsAXCYVIOWR6QPanXC0WtjAiG4qP0ODFEsELYH32p1wtFrZwEBYQeAAOGde5v0JzWNDChxeOwoYR3UOhiO6hUET3UCiiKV/NhgQ1tEzJswAAAABJRU5ErkJggg==";
+
 // Selo no canto de cada peça do editor, pela origem (a cor do cabide no HabboNews).
-// Passando o mouse no selo aparece a explicação. Amarelo (CA) e verde (CVD) não têm selo.
+// Passando o mouse no selo aparece a explicação.
 const SELOS_EDITOR = {
-  H:   { letra: "H", explica: "Grátis/HC" },
+  H:   { img: HABBO_H_B64, classe: "selo-habbo", explica: "Grátis/HC" },
   nft: { img: CUBO_NFT_B64, explica: "NFT" },
   LTD: { img: LTD_B64, classe: "selo-ltd", explica: "Edição Limitada" },
-  CV:  { letra: "R", classe: "selo-r", explica: "Raro (não-clicável)" },
-  CR:  { letra: "R", classe: "selo-r", explica: "Raro (clicável)" },
+  CA:  { img: CAMBIO_B64, explica: "Comprável" },
+  CVD: { img: CAMBIO_B64, explica: "Comprável (clicável)" },
+  CV:  { img: RARO_B64, classe: "selo-raro", explica: "Raro (não-clicável)" },
+  CR:  { img: RARO_B64, classe: "selo-raro", explica: "Raro (clicável)" },
   CRX: { letra: "P", classe: "selo-p", explica: "Pack" },
   CAZ: { img: DUCKET_B64, explica: "Duckets" }
 };
