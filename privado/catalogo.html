@@ -270,7 +270,11 @@ a{color:var(--ouro)}
 }
 .item-mini img.mini-zoom-cima{top:auto;bottom:-40px}
 .item-mini img.mini-zoom-baixo{top:auto;bottom:0}
-.item-mini img.mini-zoom-cintura{width:118%;top:auto;bottom:-22px}
+.item-mini img.mini-zoom-tronco{width:118%;top:-62px}
+.item-mini img.mini-zoom-acessorio{width:136%;top:auto;bottom:-36px}
+.item-mini img.mini-zoom-cintura{width:104%;top:auto;bottom:-12px}
+.item-mini img.mini-zoom-mao{width:80%;top:auto;bottom:-8px}
+.item-mini img.mini-zoom-mascote{width:86%;top:auto;bottom:-8px}
 .item-mini img.mini-zoom-corpo{transform:scale(1.12)}
 .item-mini::after{
   content:attr(data-codigo);position:absolute;top:-26px;left:50%;transform:translateX(-50%);
@@ -3329,9 +3333,9 @@ const TIPOS_CABECA_EDITOR = new Set(["hd", "hr", "ha", "he", "ea", "fa"]);
 // Categorias em que a peça é pequena no corpo todo — a miniatura corta a imagem
 // na cintura, igual ao editor oficial do Habbo (cintura pra cima ou pra baixo).
 const ZONA_MINIATURA_EDITOR = {
-  ch: "cima", cc: "cima", ca: "cima", cp: "cima", wa: "cintura",
+  ch: "tronco", cc: "tronco", ca: "acessorio", cp: "cima", wa: "cintura",
   lg: "baixo", sh: "baixo",
-  pt: "corpo"
+  mc: "mao", pt: "mascote"
 };
 const ORDEM_CATEGORIAS_EDITOR = ["hd", "hr", "ch", "cc", "lg", "sh", "ha", "he", "ea", "fa", "ca", "cp", "wa", "mc", "pt"];
 
