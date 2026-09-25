@@ -80,8 +80,21 @@ a{color:var(--ouro)}
 .linha-info-grade{
   display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px;
 }
+.tags-item{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.tag-item{
+  background:transparent;border:1px solid #b800b8;color:#ff8cf0;border-radius:999px;
+  padding:3px 10px;font-size:11px;cursor:pointer;
+}
+.tag-item:hover{background:#b800b8;color:#fff}
 .contador-itens{
   font-family:var(--pixel);font-size:10px;color:var(--mudo);margin:0;
+}
+.ordenar{
+  font-family:var(--pixel);font-size:10px;color:var(--mudo);display:flex;align-items:center;gap:8px;
+}
+.ordenar select{
+  font:inherit;color:var(--texto,#fff);background:var(--tile);border:1px solid var(--linha);
+  border-radius:6px;padding:6px 8px;cursor:pointer;
 }
 .dica-clique{
   font-family:var(--pixel);font-size:10px;color:var(--mudo);opacity:.75;margin:0;
@@ -4321,6 +4334,61 @@ function categoriasDoItem(it){
   return [...new Set(it.peca.split(".").map(p => CATEGORIAS_PECA[p.split("-")[0]]).filter(Boolean))];
 }
 
+// Tira acento e deixa minúsculo, pra busca achar "sofa" em "Sofá".
+const semAcento = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+// Tags automáticas: palavras no nome (pt, nome antigo ou inglês) que colocam o item
+// num grupo, pra busca achar por tema ("natal", "animais", "assento"...).
+// "tipos" limita a regra a mobis; sem "tipos" vale pra todos os itens.
+const TAGS_AUTOMATICAS = [
+  { tag:"assento", tipos:["furni"], re:/\b(cadeira|sofa|banqueta|poltrona|banco|trono|pufe|puff|espreguicadeira|balanco|chair|stool|throne|seat|bench|armchair|couch|lounger)s?\b/ },
+  { tag:"cama", tipos:["furni"], re:/\b(camas?|beliche|saco de dormir|beds?|sleeping ?bag)\b/ },
+  { tag:"mesa", tipos:["furni"], re:/\b(mesa|mesinha|escrivaninha|balcao|tables?|desk|counter)\b/ },
+  { tag:"iluminação", tipos:["furni"], re:/\b(lampada|lustre|luminaria|abajur|poste|vela|lanterna|iluminacao|lamps?|lights?|chandelier|candles?|lantern)\b/ },
+  { tag:"planta", tipos:["furni"], re:/\b(plantas?|arvores?|arbust\w*|flor|flores|tulipas|bonsai|lirios|amarilis|cacto|palmeira|jiboia|costela-de-adao|sakura|plants?|trees?|flowers?|tulips|bush|cactus)\b/ },
+  { tag:"tapete e piso", tipos:["furni"], re:/\b(tapete|piso|chao|passarela|rugs?|floor|carpet)\b/ },
+  { tag:"quadro e pôster", tipos:["furni"], re:/\b(poster|quadro|pintura|retrato|grafite|autorretrato|cavalete|painting|portrait|graffiti|easel)\b/ },
+  { tag:"estátua", tipos:["furni"], re:/\b(estatua|escultura|busto|statue|sculpture)\b/ },
+  { tag:"troféu", tipos:["furni"], re:/\b(trofeu|tofeu|trophy|podio)\b/ },
+  { tag:"porta e teleporte", tipos:["furni"], re:/\b(porta|portao|portoes|teleport\w*|doors?|gates?)\b/ },
+  { tag:"divisória e pilar", tipos:["furni"], re:/\b(divisoria|esquina|pilar|coluna|dividers?|pillars?|corner)\b/ },
+  { tag:"estante e baú", tipos:["furni"], re:/\b(estante|prateleira|armario|bau|cristaleira|vitrine|comoda|penteadeira|shelf|cabinet|chest|bookcase|dresser)\b/ },
+  { tag:"veículo", tipos:["furni"], re:/\b(carro|kombi|iate|submarino|bote|hot rod|monster truck|trem|trenzinho|carruagem|patinete|navio|aerostatico|infobus|cooper|heli-drone|cars?|boat|yacht|truck|train|carriage|scooter|ship)\b/ },
+  { tag:"música", tipos:["furni"], re:/\b(caixa de som|boombox|dj|jukebox|cd|radio|piano|guitarra|caixinha de musica|toca-discos|music)\b/ },
+  { tag:"tecnologia e jogos", tipos:["furni"], re:/\b(tv|computador|arcade|videogame|joystick|controle|gamer|jogos?|dvd|camera|games?|gaming|computer)\b/ },
+  { tag:"água", tipos:["furni"], re:/\b(aquario|fonte|lago|laguinho|piscina|banheira|aquarium|fountain|pond|pool|bathtub)\b/ },
+  { tag:"boneco e pelúcia", tipos:["furni"], re:/\b(bonecas?|bonequinh[oa]s?|boneco|pelucia|action figure|figura de acao|dolls?|plush|figurine)\b/ },
+  { tag:"comida e bebida", re:/\b(bolo|bolinho|doces?|docinhos?|pirulito|sorvete|sorveteira|picole|chocolate|bombons?|suco|refresco|cafe|cenouras?|frutas?|frutinhas|abacaxi|biscoito|mousse|lanche|almoco|cakes?|candy|ice cream|juice|coffee|cookie|popsicle|food)\b/ },
+  { tag:"animais", re:/\b(pato|patos|gato|gatinho|cao|caes|cachorro|cachorrinho|poodle|dragao|pinguim|urso|ursinho|coruja|tartaruga|elefante|leao|tubarao|peixes?|cavalo|passaro|passarinhos|raposa|girafa|camundongo|macaco|crocodilo|croco|coelho|coelhinho|unicornio|touro|bufalo|tigre|lontra|camaleao|morcego|chinchila|tamia|preguica|mamute|dinossauro|velociraptor|tricerato\w*|arqueopterix|caranguejo|piranha|pegaso|grou|ave|aves|carneirinho|habbolano|guaxinim|camarao|duck|cat|dog|dragon|penguin|bear|owl|turtle|elephant|lion|shark|fish|horse|bird|fox|giraffe|mouse|monkey|crocodile|bunny|rabbit|unicorn|bull|pet)s?\b/ },
+  { tag:"natal", re:/\b(natal|natalin[oa]s?|papai noel|noel|rena|rudolf|poinsetia|christmas|xmas|santa|reindeer)\b/ },
+  { tag:"halloween", re:/\b(halloween|habboween|abobora|fantasm\w*|esqueleto|caveira|vampir\w*|bruxa|zumbi|mumia|sinistr[oa]|vodu|possuida|pesadelo|espantalho|pumpkin|ghost|skeleton|skull|zombie|spooky|witch)\b/ },
+  { tag:"verão e praia", re:/\b(praia|verao|coco|boia|inflavel|areia|guarda-sol|beach|summer|inflatable|parasol)\b/ },
+  { tag:"inverno e neve", re:/\b(neve|nevad[oa]s?|gelo|gelad[oa]s?|congelad[oa]s?|inverno|invernal|snow|ice(?! cream)|frozen|winter|frost\w*)\b/ },
+  { tag:"aniversário", re:/\b(aniversario|birthday|bday)\b/ },
+  { tag:"amor", re:/\b(amor|coracao|romantic[oa]|paixao|love|heart|valentine)s?\b/ }
+];
+
+// Tags que o admin coloca à mão, vindas do servidor: { slug: ["tag", ...] }
+let tagsManuais = {};
+
+// Todas as tags do item: as automáticas e as colocadas pelo admin.
+function tagsDoItem(it){
+  if (!it._tagsAuto) {
+    const texto = semAcento(it.pt + " " + (it.ptAntigo || "") + " " + it.en);
+    it._tagsAuto = TAGS_AUTOMATICAS
+      .filter(r => (!r.tipos || r.tipos.includes(it.tipo)) && r.re.test(texto))
+      .map(r => r.tag);
+  }
+  return [...new Set([...it._tagsAuto, ...(tagsManuais[it.slug] || [])])];
+}
+
+// Texto em que a busca procura: nomes, categorias da peça e tags.
+function textoDeBusca(it){
+  // ptAntigo: nome que o item tinha antes de padronizar pelos nomes do jogo (continua achando na busca)
+  return semAcento(it.pt + " " + (it.ptAntigo || "") + " " + it.en + " " +
+    categoriasDoItem(it).join(" ") + " " + tagsDoItem(it).join(" "));
+}
+
 // Veste as partes da peça na lista do visual, trocando as do mesmo tipo.
 function vestirPecas(lista, peca){
   const out = [...lista];
@@ -4436,11 +4504,26 @@ function ligarCliquesGrade(){
     b.onclick = (e) => { e.stopPropagation(); toggleFavorito(b.dataset.fav); });
 }
 
+// Ordem da grade. "preco" é a ordem do catálogo (por faixa, do mais barato ao mais caro).
+const ORDENS = [
+  { id:"preco", rotulo:"Preço (menor → maior)" },
+  { id:"curtidos", rotulo:"Mais curtidos" },
+  { id:"az", rotulo:"Ordem alfabética (A–Z)" }
+];
+let ordem = "preco";
+try { if (ORDENS.some(o => o.id === localStorage.getItem("nftse_ordem"))) ordem = localStorage.getItem("nftse_ordem"); } catch (e) {}
+
+function ordenarLista(lista){
+  const pos = new Map(CATALOGO.map((it, i) => [it, i]));
+  const porPreco = (a, b) => (a.faixa || 9) - (b.faixa || 9) || pos.get(a) - pos.get(b);
+  if (ordem === "curtidos") return [...lista].sort((a, b) => (contagens[b.slug] || 0) - (contagens[a.slug] || 0) || porPreco(a, b));
+  if (ordem === "az") return [...lista].sort((a, b) => a.pt.localeCompare(b.pt, "pt-BR", { sensitivity:"base", numeric:true }));
+  return [...lista].sort(porPreco);
+}
+
 function telaGrade(){
-  const lista = CATALOGO.filter(it =>
-    it.tipo === aba &&
-    // ptAntigo: nome que o item tinha antes de padronizar pelos nomes do jogo (continua achando na busca)
-    (it.pt + " " + (it.ptAntigo || "") + " " + it.en + " " + categoriasDoItem(it).join(" ")).toLowerCase().includes(termo.toLowerCase()));
+  const busca = semAcento(termo.trim());
+  const lista = ordenarLista(CATALOGO.filter(it => it.tipo === aba && textoDeBusca(it).includes(busca)));
 
   const abas = ABAS.map(a => `
     <button class="aba" role="tab" aria-selected="${a.id===aba}" data-aba="${a.id}">
@@ -4457,6 +4540,11 @@ function telaGrade(){
     <div class="envoltorio">
       <div class="linha-info-grade">
         <p class="contador-itens">${esc(rotuloAba)}: ${lista.length} ${lista.length === 1 ? "item exibido" : "itens exibidos"}</p>
+        <label class="ordenar">Ordenar por
+          <select id="ordemGrade">
+            ${ORDENS.map(o => `<option value="${o.id}" ${o.id === ordem ? "selected" : ""}>${o.rotulo}</option>`).join("")}
+          </select>
+        </label>
         <p class="dica-clique"><svg class="icone-clique" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs><linearGradient id="gradDicaClique" x1="0" y1="0" x2="24" y2="24">
             <stop offset="0" stop-color="#ff2ee0"/><stop offset="1" stop-color="#b800b8"/>
@@ -4475,6 +4563,11 @@ function telaGrade(){
 
   app.querySelectorAll("[data-aba]").forEach(b =>
     b.onclick = () => { aba = b.dataset.aba; render(); });
+  document.getElementById("ordemGrade").onchange = e => {
+    ordem = e.target.value;
+    try { localStorage.setItem("nftse_ordem", ordem); } catch (err) {}
+    render();
+  };
   ligarCliquesGrade();
 }
 
@@ -7793,6 +7886,8 @@ function telaItem(it){
           <p class="item-en">${esc(it.en)}</p>
           <span class="selo">${ABAS.find(a => a.id === it.tipo).rotulo}</span>
           ${categoriaDoItem(it) ? `<span class="selo">${esc(categoriaDoItem(it))}</span>` : ""}
+          ${tagsDoItem(it).length ? `<div class="tags-item">${tagsDoItem(it).map(t =>
+            `<button type="button" class="tag-item" data-tag="${esc(t)}" title="Buscar itens com essa tag">#${esc(t)}</button>`).join("")}</div>` : ""}
           <p class="desc">${esc(it.desc || "")}</p>
           <a class="cta" href="${DISCORD_TICKET}" target="_blank" rel="noopener"
              data-item="${msg}">Tenho interesse</a>
@@ -7804,6 +7899,12 @@ function telaItem(it){
   if (ehRoupa) carregarCarrosselVisuais(it);
 
   document.getElementById("voltar").onclick = () => { location.hash = ""; };
+  app.querySelectorAll("[data-tag]").forEach(b => b.onclick = () => {
+    termo = b.dataset.tag;
+    aba = it.tipo;
+    document.getElementById("busca").value = termo;
+    location.hash = "";
+  });
   const botaoFav = app.querySelector("[data-fav]");
   if (botaoFav) botaoFav.onclick = () => toggleFavorito(botaoFav.dataset.fav);
   if (ehRoupa) ligarProvador(it);
@@ -8053,6 +8154,7 @@ async function carregarCatalogoExtra(){
     (dados.itens || []).forEach(it => {
       if (!slugsExistentes.has(it.slug)) { CATALOGO.push(it); slugsExistentes.add(it.slug); }
     });
+    tagsManuais = dados.tags || {};
     const faixas = dados.faixas || {};
     CATALOGO.forEach(it => {
       if (faixas[it.slug]) it.faixa = faixas[it.slug];
@@ -8219,6 +8321,17 @@ function montarPainelAdminCompleto(){
     </label>
     <div id="faixaResultados" class="dica" style="margin-top:8px"></div>
 
+    <h3 style="margin-top:24px">Tags de busca de um item</h3>
+    <p class="dica" style="margin:0">As tags automáticas vêm do nome do item. Aqui você acrescenta outras,
+      separadas por vírgula (ex: fofo, rosa, festa).</p>
+    <label>Buscar pelo nome
+      <span style="display:flex;gap:6px;margin-top:4px">
+        <input id="tagsBusca" class="figura" style="margin-top:0" placeholder="Ex: sofá">
+        <button type="button" id="tagsBuscarBtn" class="opt" style="white-space:nowrap">Buscar</button>
+      </span>
+    </label>
+    <div id="tagsResultados" class="dica" style="margin-top:8px"></div>
+
     <h4 style="margin-top:20px">Itens cadastrados por aqui</h4>
     <div id="itemLista" class="dica">Carregando...</div>`;
   document.body.appendChild(div);
@@ -8304,6 +8417,49 @@ function montarPainelAdminCompleto(){
     });
   }
   document.getElementById("faixaBuscarBtn").onclick = buscarItensFaixa;
+
+  /* ----- tags de busca de qualquer item ----- */
+
+  function buscarItensTags(){
+    const busca = semAcento(document.getElementById("tagsBusca").value.trim());
+    const resultados = document.getElementById("tagsResultados");
+    if (!busca) { resultados.textContent = "Digite parte do nome pra buscar."; return; }
+    const achados = CATALOGO.filter(it => semAcento(it.pt + " " + (it.ptAntigo || "") + " " + it.en).includes(busca)).slice(0, 15);
+    if (!achados.length) { resultados.textContent = "Nenhum item encontrado."; return; }
+    resultados.innerHTML = achados.map(it => `
+      <div style="padding:6px 0;border-bottom:1px solid var(--linha)">
+        <div>${esc(it.pt)} <span style="opacity:.6">(${esc(it.tipo)})</span></div>
+        <div style="opacity:.7;margin:2px 0 4px">Automáticas: ${(tagsDoItem(it), it._tagsAuto.length) ? esc(it._tagsAuto.join(", ")) : "nenhuma"}</div>
+        <span style="display:flex;gap:6px;align-items:center">
+          <input class="figura" style="margin-top:0" data-tags-slug="${esc(it.slug)}"
+            value="${esc((tagsManuais[it.slug] || []).join(", "))}" placeholder="tags extras, separadas por vírgula">
+          <button type="button" class="opt" data-tags-salvar="${esc(it.slug)}" style="padding:4px 8px;font-size:10px">Salvar</button>
+        </span>
+      </div>`).join("");
+    resultados.querySelectorAll("[data-tags-salvar]").forEach(b => b.onclick = async () => {
+      const adminSecret = document.getElementById("adminSecret").value;
+      if (!adminSecret) { document.getElementById("itemMsg").textContent = "Preencha sua senha de admin ali em cima primeiro."; return; }
+      const slugAlvo = b.dataset.tagsSalvar;
+      const campo = resultados.querySelector(`input[data-tags-slug="${CSS.escape(slugAlvo)}"]`);
+      const tags = campo.value.split(",").map(t => t.trim()).filter(Boolean);
+      const r = await apiFetch(API_BASE + "/api/catalogo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "definirTags", adminSecret, slug: slugAlvo, tags })
+      });
+      const dados = await r.json().catch(() => ({}));
+      if (r.ok) {
+        if (dados.tags && dados.tags.length) tagsManuais[slugAlvo] = dados.tags; else delete tagsManuais[slugAlvo];
+        campo.value = (dados.tags || []).join(", ");
+        b.textContent = "Salvo!";
+        setTimeout(() => { b.textContent = "Salvar"; }, 1500);
+      } else {
+        b.textContent = "Erro";
+      }
+    });
+  }
+  document.getElementById("tagsBuscarBtn").onclick = buscarItensTags;
+  document.getElementById("tagsBusca").addEventListener("keydown", e => { if (e.key === "Enter") buscarItensTags(); });
   document.getElementById("faixaBusca").addEventListener("keydown", e => { if (e.key === "Enter") buscarItensFaixa(); });
 
   document.getElementById("itemCriar").onclick = async () => {
