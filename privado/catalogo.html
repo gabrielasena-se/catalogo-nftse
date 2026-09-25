@@ -4811,37 +4811,6 @@ function categoriasDoItem(it){
 // Tira acento e deixa minúsculo, pra busca achar "sofa" em "Sofá".
 const semAcento = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-// Tags automáticas: palavras no nome (pt, nome antigo ou inglês) que colocam o item
-// num grupo, pra busca achar por tema ("natal", "animais", "assento"...).
-// "tipos" limita a regra a mobis; sem "tipos" vale pra todos os itens.
-const TAGS_AUTOMATICAS = [
-  { tag:"assento", tipos:["furni"], re:/\b(cadeira|sofa|banqueta|poltrona|banco|trono|pufe|puff|espreguicadeira|balanco|chair|stool|throne|seat|bench|armchair|couch|lounger)s?\b/ },
-  { tag:"cama", tipos:["furni"], re:/\b(camas?|beliche|saco de dormir|beds?|sleeping ?bag)\b/ },
-  { tag:"mesa", tipos:["furni"], re:/\b(mesa|mesinha|escrivaninha|balcao|tables?|desk|counter)\b/ },
-  { tag:"iluminação", tipos:["furni"], re:/\b(lampada|lustre|luminaria|abajur|poste|vela|lanterna|iluminacao|lamps?|lights?|chandelier|candles?|lantern)\b/ },
-  { tag:"planta", tipos:["furni"], re:/\b(plantas?|arvores?|arbust\w*|flor|flores|tulipas|bonsai|lirios|amarilis|cacto|palmeira|jiboia|costela-de-adao|sakura|plants?|trees?|flowers?|tulips|bush|cactus)\b/ },
-  { tag:"tapete e piso", tipos:["furni"], re:/\b(tapete|piso|chao|passarela|rugs?|floor|carpet)\b/ },
-  { tag:"quadro e pôster", tipos:["furni"], re:/\b(poster|quadro|pintura|retrato|grafite|autorretrato|cavalete|painting|portrait|graffiti|easel)\b/ },
-  { tag:"estátua", tipos:["furni"], re:/\b(estatua|escultura|busto|statue|sculpture)\b/ },
-  { tag:"troféu", tipos:["furni"], re:/\b(trofeu|tofeu|trophy|podio)\b/ },
-  { tag:"porta e teleporte", tipos:["furni"], re:/\b(porta|portao|portoes|teleport\w*|doors?|gates?)\b/ },
-  { tag:"divisória e pilar", tipos:["furni"], re:/\b(divisoria|esquina|pilar|coluna|dividers?|pillars?|corner)\b/ },
-  { tag:"estante e baú", tipos:["furni"], re:/\b(estante|prateleira|armario|bau|cristaleira|vitrine|comoda|penteadeira|shelf|cabinet|chest|bookcase|dresser)\b/ },
-  { tag:"veículo", tipos:["furni"], re:/\b(carro|kombi|iate|submarino|bote|hot rod|monster truck|trem|trenzinho|carruagem|patinete|navio|aerostatico|infobus|cooper|heli-drone|cars?|boat|yacht|truck|train|carriage|scooter|ship)\b/ },
-  { tag:"música", tipos:["furni"], re:/\b(caixa de som|boombox|dj|jukebox|cd|radio|piano|guitarra|caixinha de musica|toca-discos|music)\b/ },
-  { tag:"tecnologia e jogos", tipos:["furni"], re:/\b(tv|computador|arcade|videogame|joystick|controle|gamer|jogos?|dvd|camera|games?|gaming|computer)\b/ },
-  { tag:"água", tipos:["furni"], re:/\b(aquario|fonte|lago|laguinho|piscina|banheira|aquarium|fountain|pond|pool|bathtub)\b/ },
-  { tag:"boneco e pelúcia", tipos:["furni"], re:/\b(bonecas?|bonequinh[oa]s?|boneco|pelucia|action figure|figura de acao|dolls?|plush|figurine)\b/ },
-  { tag:"comida e bebida", re:/\b(bolo|bolinho|doces?|docinhos?|pirulito|sorvete|sorveteira|picole|chocolate|bombons?|suco|refresco|cafe|cenouras?|frutas?|frutinhas|abacaxi|biscoito|mousse|lanche|almoco|cakes?|candy|ice cream|juice|coffee|cookie|popsicle|food)\b/ },
-  { tag:"animais", re:/\b(pato|patos|gato|gatinho|cao|caes|cachorro|cachorrinho|poodle|dragao|pinguim|urso|ursinho|coruja|tartaruga|elefante|leao|tubarao|peixes?|cavalo|passaro|passarinhos|raposa|girafa|camundongo|macaco|crocodilo|croco|coelho|coelhinho|unicornio|touro|bufalo|tigre|lontra|camaleao|morcego|chinchila|tamia|preguica|mamute|dinossauro|velociraptor|tricerato\w*|arqueopterix|caranguejo|piranha|pegaso|grou|ave|aves|carneirinho|habbolano|guaxinim|camarao|duck|cat|dog|dragon|penguin|bear|owl|turtle|elephant|lion|shark|fish|horse|bird|fox|giraffe|mouse|monkey|crocodile|bunny|rabbit|unicorn|bull|pet)s?\b/ },
-  { tag:"natal", re:/\b(natal|natalin[oa]s?|papai noel|noel|rena|rudolf|poinsetia|christmas|xmas|santa|reindeer)\b/ },
-  { tag:"halloween", re:/\b(halloween|habboween|abobora|fantasm\w*|esqueleto|caveira|vampir\w*|bruxa|zumbi|mumia|sinistr[oa]|vodu|possuida|pesadelo|espantalho|pumpkin|ghost|skeleton|skull|zombie|spooky|witch)\b/ },
-  { tag:"verão e praia", re:/\b(praia|verao|coco|boia|inflavel|areia|guarda-sol|beach|summer|inflatable|parasol)\b/ },
-  { tag:"inverno e neve", re:/\b(neve|nevad[oa]s?|gelo|gelad[oa]s?|congelad[oa]s?|inverno|invernal|snow|ice(?! cream)|frozen|winter|frost\w*)\b/ },
-  { tag:"aniversário", re:/\b(aniversario|birthday|bday)\b/ },
-  { tag:"amor", re:/\b(amor|coracao|romantic[oa]|paixao|love|heart|valentine)s?\b/ }
-];
-
 // Etiquetas da página do mobi: o que dá pra fazer com ele e quanto espaço ocupa.
 const USOS_MOBI = { s:"Pode sentar", d:"Pode deitar", a:"Pode andar em cima", p:"Vai na parede" };
 const ICONES_USO = {
@@ -4867,25 +4836,19 @@ function etiquetasMobiHTML(it){
 // Tags que o admin coloca à mão, vindas do servidor: { slug: ["tag", ...] }
 let tagsManuais = {};
 
-// Todas as tags do item: as automáticas e as colocadas pelo admin.
+// Tags do item: só as colocadas pelo admin.
 function tagsDoItem(it){
-  if (!it._tagsAuto) {
-    const texto = semAcento(it.pt + " " + (it.ptAntigo || "") + " " + it.en);
-    it._tagsAuto = TAGS_AUTOMATICAS
-      .filter(r => (!r.tipos || r.tipos.includes(it.tipo)) && r.re.test(texto))
-      .map(r => r.tag);
-    // o que dá pra fazer com o mobi também vira tag ("pode sentar", "vai na parede"...)
-    const m = MEDIDAS_MOBIS[it.slug];
-    if (m && m[3]) it._tagsAuto.push(...[...m[3]].map(k => USOS_MOBI[k].toLowerCase()));
-  }
-  return [...new Set([...it._tagsAuto, ...(tagsManuais[it.slug] || [])])];
+  return tagsManuais[it.slug] || [];
 }
 
-// Texto em que a busca procura: nomes, categorias da peça e tags.
+// Texto em que a busca procura: nomes, categorias da peça, usos do mobi e tags.
 function textoDeBusca(it){
+  // o que dá pra fazer com o mobi ("pode sentar", "vai na parede"...) continua achando na busca
+  const m = MEDIDAS_MOBIS[it.slug];
+  const usos = m && m[3] ? [...m[3]].map(k => USOS_MOBI[k]).join(" ") : "";
   // ptAntigo: nome que o item tinha antes de padronizar pelos nomes do jogo (continua achando na busca)
   return semAcento(it.pt + " " + (it.ptAntigo || "") + " " + it.en + " " +
-    categoriasDoItem(it).join(" ") + " " + tagsDoItem(it).join(" "));
+    categoriasDoItem(it).join(" ") + " " + usos + " " + tagsDoItem(it).join(" "));
 }
 
 // Veste as partes da peça na lista do visual, trocando as do mesmo tipo.
@@ -9082,8 +9045,7 @@ function montarPainelAdminCompleto(){
     <div id="faixaResultados" class="dica" style="margin-top:8px"></div>
 
     <h3 style="margin-top:24px">Tags de busca de um item</h3>
-    <p class="dica" style="margin:0">As tags automáticas vêm do nome do item. Aqui você acrescenta outras,
-      separadas por vírgula (ex: fofo, rosa, festa).</p>
+    <p class="dica" style="margin:0">Escreva as tags do item separadas por vírgula (ex: fofo, rosa, festa). Elas aparecem na página do item e ajudam na busca.</p>
     <label>Buscar pelo nome
       <span style="display:flex;gap:6px;margin-top:4px">
         <input id="tagsBusca" class="figura" style="margin-top:0" placeholder="Ex: sofá">
@@ -9189,7 +9151,6 @@ function montarPainelAdminCompleto(){
     resultados.innerHTML = achados.map(it => `
       <div style="padding:6px 0;border-bottom:1px solid var(--linha)">
         <div>${esc(it.pt)} <span style="opacity:.6">(${esc(it.tipo)})</span></div>
-        <div style="opacity:.7;margin:2px 0 4px">Automáticas: ${(tagsDoItem(it), it._tagsAuto.length) ? esc(it._tagsAuto.join(", ")) : "nenhuma"}</div>
         <span style="display:flex;gap:6px;align-items:center">
           <input class="figura" style="margin-top:0" data-tags-slug="${esc(it.slug)}"
             value="${esc((tagsManuais[it.slug] || []).join(", "))}" placeholder="tags extras, separadas por vírgula">
