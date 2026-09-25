@@ -8041,13 +8041,18 @@ function ligarProvador(it){
       ? vestirPecas(prov.figLivre.trim().split(".").filter(Boolean), peca).join(".")
       : figura(prov, peca);
     img.src = urlAvatar(fig, { dir:prov.dir, acao:prov.acao, size:"l", genero:prov.genero });
-    // As animações acompanham o mesmo avatar do provador (só recarregam se o visual mudou).
-    if (fig + prov.genero === ultimoGif) return;
-    ultimoGif = fig + prov.genero;
+    // Animações: avatar padrão feminino acenando e masculino andando, com o tom de pele
+    // do provador. Item de um gênero só, ou visual próprio carregado: os dois mostram esse avatar.
+    const doisGeneros = !it.genero && !prov.figLivre.trim();
+    const figDe = g => doisGeneros ? figura({ ...prov, genero:g }, pecaDoItem(it, g)) : fig;
+    const gAcenando = doisGeneros ? "F" : prov.genero, gAndando = doisGeneros ? "M" : prov.genero;
+    const chaveGif = figDe(gAcenando) + gAcenando + figDe(gAndando) + gAndando;
+    if (chaveGif === ultimoGif) return;   // só recarrega se o visual mudou
+    ultimoGif = chaveGif;
     const acenando = document.getElementById("gifAcenando");
     const andando = document.getElementById("gifAndando");
-    if (acenando) acenando.src = urlAvatar(fig, { dir:2, acao:"wav", formato:"gif", genero:prov.genero });
-    if (andando) andando.src = urlAvatar(fig, { dir:4, acao:"wlk", formato:"gif", genero:prov.genero });
+    if (acenando) acenando.src = urlAvatar(figDe(gAcenando), { dir:2, acao:"wav", formato:"gif", genero:gAcenando });
+    if (andando) andando.src = urlAvatar(figDe(gAndando), { dir:4, acao:"wlk", formato:"gif", genero:gAndando });
   }
 
   app.querySelectorAll("[data-campo]").forEach(b => b.onclick = () => {
