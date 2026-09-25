@@ -384,6 +384,14 @@ a{color:var(--ouro)}
 
 .opcoes-itens{display:grid;grid-template-columns:repeat(auto-fill,104px);gap:8px;justify-content:center}
 @media(max-width:520px){.opcoes-itens{grid-template-columns:repeat(auto-fill,80px)}}
+.sem-imagem{
+  position:absolute;left:4px;right:4px;bottom:4px;padding:3px 4px;border-radius:5px;
+  background:rgba(21,1,40,.88);color:var(--texto);font-size:9px;line-height:1.2;text-align:center;pointer-events:none;
+}
+.aviso-sem-imagem{
+  margin:0 0 8px;padding:8px 10px;border-radius:8px;border:1px solid var(--ouro);
+  background:rgba(255,46,224,.08);color:var(--texto);font-size:12px;line-height:1.4;
+}
 .item-mini{
   width:104px;height:104px;padding:4px;border-radius:8px;flex-shrink:0;position:relative;
   border:2px solid var(--linha);cursor:pointer;
@@ -4851,6 +4859,14 @@ function textoDeBusca(it){
     categoriasDoItem(it).join(" ") + " " + usos + " " + tagsDoItem(it).join(" "));
 }
 
+// Peças que o gerador de imagens do Habbo (avatarimage) ainda não desenha, ou desenha pela metade,
+// embora apareçam dentro do jogo. Vão para o fim da lista no editor e ganham um aviso.
+// Quando o Habbo atualizar o gerador, é só tirar daqui.
+const SEM_IMAGEM_HABBO = { ca:[5984], pt:[6342], sh:[5928], wa:[5674,5676,5719,5775,5778,5780,5782,5784,5786,6392,6394] };
+const semImagemHabbo = (tipo, id) => !!(SEM_IMAGEM_HABBO[tipo] && SEM_IMAGEM_HABBO[tipo].includes(+id));
+const pecaSemImagem = peca => String(peca || "").split(".").some(p => { const [t, id] = p.split("-"); return semImagemHabbo(t, id); });
+const AVISO_SEM_IMAGEM = "Imagem temporariamente indisponível";
+
 // Veste as partes da peça na lista do visual, trocando as do mesmo tipo.
 function vestirPecas(lista, peca){
   const out = [...lista];
@@ -8050,6 +8066,9 @@ function telaEditor(){
     );
     const indiceCategoria = INDICE_ITENS_EDITOR[editorTipoAtivo] || {};
     todos.sort((a, b) => {
+      // peças que o gerador do Habbo ainda não desenha ficam no fim
+      const sa = semImagemHabbo(editorTipoAtivo, a.id), sb = semImagemHabbo(editorTipoAtivo, b.id);
+      if (sa !== sb) return sa ? 1 : -1;
       const oa = indiceCategoria[a.id] ? indiceCategoria[a.id].ordem : Infinity;
       const ob = indiceCategoria[b.id] ? indiceCategoria[b.id].ordem : Infinity;
       return oa - ob;
@@ -8080,6 +8099,7 @@ function telaEditor(){
             data-codigo="${esc(rotuloBotao)}" aria-pressed="${!!(selAtual && selAtual.id === s.id)}">
             ${seloEditorHTML(ehDoJogo ? "H" : (infoItem && infoItem.origem))}
             ${zona === "corpo" ? `<span class="recorte-corpo">${imgMiniatura}</span>` : (zona ? `<span class="recorte">${imgMiniatura}</span>` : imgMiniatura)}
+            ${semImagemHabbo(editorTipoAtivo, s.id) ? `<span class="sem-imagem">${AVISO_SEM_IMAGEM}</span>` : ""}
           </button>`;
         }).join("")}
       </div>
@@ -8707,6 +8727,7 @@ function blocoProvador(it){
     <h2>Provador</h2>
     <div class="provador">
       <div class="espelho">
+        ${pecaSemImagem(it.peca) || pecaSemImagem(it.pecaF) ? `<p class="aviso-sem-imagem">${AVISO_SEM_IMAGEM}: o gerador de imagens do Habbo ainda não mostra esta peça no avatar. No jogo ela aparece normalmente.</p>` : ""}
         <img id="espelhoImg" src="" alt="Pré-visualização do avatar">
         <div class="girar">
           <button class="mini" id="girarEsq" aria-label="Girar para a esquerda">&#8592;</button>
