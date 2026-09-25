@@ -8347,8 +8347,8 @@ async function carregarOrigensMobis(){
 }
 
 // Quarto de n x n quadradinhos em pixels do jogo, com o canto do fundo em (0, 0).
-function cenaQuarto(n){
-  const TW = 32, TH = 16, PAREDE = 116;
+function cenaQuarto(n, PAREDE = 116){
+  const TW = 32, TH = 16;
   const tela = (i, j) => [(i - j) * TW, (i + j) * TH];
   const [ax, ay] = tela(0, 0), [bx, by] = tela(0, n), [cx, cy] = tela(n, 0), [dx, dy] = tela(n, n);
   const L = bx - 10, T = ay - PAREDE - 10, W = cx + 10 - L, H = dy + 2 * TH + 12 - T;
@@ -8381,13 +8381,20 @@ async function carregarQuarto(it){
   if (!caixa || !m || !orig) { const sec = document.getElementById("secaoQuarto"); if (sec) sec.remove(); return; }
   // na direção em que o mobi é mostrado, a largura dele corre ao longo do outro eixo do chão
   const [y, x] = m, parede = (m[3] || "").includes("p");
-  const n = Math.max(4, (x || 1) + 2, (y || 1) + 2);
-  const c = cenaQuarto(n);
+  const [ox, oy, iw, ih] = orig;
+  // mobi de parede: o quarto fica largo e alto o bastante para o quadro caber na parede
+  const n = parede ? Math.max(4, Math.ceil(iw / 32) + 2) : Math.max(4, (x || 1) + 2, (y || 1) + 2);
+  const alturaParede = parede ? Math.max(116, ih + 40) : 116;
+  const c = cenaQuarto(n, alturaParede);
   let px, py;
-  if (parede) { [px, py] = c.tela(Math.ceil(n / 2), 0); py -= 56; }
+  if (parede) {
+    // no meio da parede da esquerda (é para ela que os mobis de parede estão virados)
+    const [bx, by] = c.tela(0, n);
+    px = bx / 2 - Math.round(iw / 2) + ox;
+    py = by / 2 - alturaParede / 2 - Math.round(ih / 2) + oy;
+  }
   else { [px, py] = c.tela(Math.floor((n - (x || 1)) / 2), Math.floor((n - (y || 1)) / 2)); py += c.TH; }
   // posição da imagem dentro do desenho do quarto; mobis altos (balões, dirigível) aumentam a cena para cima
-  const [ox, oy, iw, ih] = orig;
   const imgX = px - c.L - ox, imgY = py - c.T - oy;
   const topo = Math.min(0, imgY - 6), esq = Math.min(0, imgX - 6);
   const larg = Math.max(c.W, imgX + (iw || 0) + 6) - esq, alt = Math.max(c.H, imgY + (ih || 0) + 6) - topo;
