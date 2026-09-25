@@ -65,6 +65,12 @@ a{color:var(--ouro)}
 }
 .busca::placeholder{color:#a066c8}
 .busca:focus{outline:2px solid var(--ouro);outline-offset:1px}
+/* "x" de limpar a busca, nas cores do site */
+.busca::-webkit-search-cancel-button{
+  -webkit-appearance:none;appearance:none;width:16px;height:16px;cursor:pointer;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 4l8 8M12 4l-8 8' stroke='%23ff2ee0' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.busca::-webkit-search-cancel-button:hover{filter:drop-shadow(0 0 3px #ff2ee0)}
 
 /* ---------- abas ---------- */
 .abas{max-width:1120px;margin:0 auto;padding:22px 18px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -4730,7 +4736,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftsuitcase.png", peca:"mc-5796-1408", desc:"" },
 
   // --- Balões de chat (da aba "Add Ons" da TokenTrove) ---
-  { slug:"dinheiro",         tipo:"balao", pt:"Dinheiro",         en:"Cash Money Speech Bubble",
+  { slug:"dinheiro",         tipo:"balao", pt:"Dinheiro Vivo", ptAntigo:"Dinheiro", en:"Cash Money Speech Bubble",
     img:"https://nft-tokens.habbo.com/collectibles/addons/images/chatstyle/chatstyle_money.png", desc:"" },
   { slug:"bexiga-azul",      tipo:"balao", pt:"Bexiga Azul",      en:"Blue Balloon Chat Bubble",
     img:"https://nft-tokens.habbo.com/collectibles/addons/images/chatstyle/chatstyle_1012.png", desc:"" },
