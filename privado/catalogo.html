@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" href="/favicon.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Nunito+Sans:wght@400;600;800&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Nunito+Sans:wght@400;600;800&family=Ubuntu:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
   --fundo:#150128;
@@ -97,16 +97,9 @@ a{color:var(--ouro)}
 .teste-balao-campos{display:flex;flex-wrap:wrap;gap:12px;max-width:560px;margin:0 0 6px}
 .teste-balao-campos label{flex:1 1 220px;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mudo)}
 .teste-balao-campos input{margin-top:0}
-.balao-subindo{position:absolute;transform:translateX(-50%)}
-.balao-subindo canvas{display:block;image-rendering:pixelated}
-.balao-subindo{animation:balaoSobe 4.5s ease-out infinite}
-@keyframes balaoSobe{
-  0%{opacity:0;transform:translate(-50%, 14px)}
-  8%{opacity:1;transform:translate(-50%, 0)}
-  70%{opacity:1;transform:translate(-50%, -26px)}
-  100%{opacity:0;transform:translate(-50%, -40px)}
-}
-@media (prefers-reduced-motion: reduce){.balao-subindo{animation:none}}
+.balao-pilha{position:absolute;width:0;height:0}
+.balao-item{position:absolute;left:0;bottom:0;transition:transform .35s ease-out,opacity .5s}
+.balao-item canvas{display:block;image-rendering:pixelated}
 .etiquetas-uso{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .etiqueta-uso{
   display:inline-flex;align-items:center;gap:6px;background:var(--tile);border:1px solid var(--linha);
@@ -8442,9 +8435,11 @@ const carregarImagem = src => new Promise((ok, falha) => {
 });
 
 // Desenha o balão como no jogo: fundo esticado no meio, cabecinha, "Nick: mensagem" e a setinha.
-async function desenharBalao(slug, nick, msg, urlCabeca){
+// modo: "normal", "grito" (mensagem em negrito) ou "sussurro" (mensagem em itálico), como no jogo.
+async function desenharBalao(slug, nick, msg, urlCabeca, modo = "normal"){
   const e = ESTILOS_BALAO[slug];
-  await document.fonts.load("bold 12px Ubuntu").catch(() => {});
+  const fonteMsg = modo === "grito" ? "bold 12px Ubuntu" : modo === "sussurro" ? "italic 12px Ubuntu" : "12px Ubuntu";
+  await Promise.all(["bold 12px Ubuntu", fonteMsg].map(f => document.fonts.load(f).catch(() => {})));
   const [base, ponteiro, cabeca] = await Promise.all([
     carregarImagem(`/baloes/${slug}-base.png`), carregarImagem(`/baloes/${slug}-pointer.png`),
     carregarImagem(urlCabeca).catch(() => null)
@@ -8452,7 +8447,7 @@ async function desenharBalao(slug, nick, msg, urlCabeca){
   const [bw, bh] = e.base, [fx] = e.fatia, [ml, mt, mr] = e.margens;
   const medir = document.createElement("canvas").getContext("2d");
   medir.font = "bold 12px Ubuntu"; const wNick = medir.measureText(nick + ": ").width;
-  medir.font = "12px Ubuntu"; const wMsg = medir.measureText(msg).width;
+  medir.font = fonteMsg; const wMsg = medir.measureText(msg).width;
   const largura = Math.max(bw, Math.ceil(ml + wNick + wMsg + mr));
   const altura = Math.max(bh, e.ponteiro[2] + e.ponteiro[1]);
   const c = document.createElement("canvas"); c.width = largura; c.height = altura;
@@ -8467,7 +8462,7 @@ async function desenharBalao(slug, nick, msg, urlCabeca){
   }
   g.fillStyle = e.cor; g.textBaseline = "top";
   g.font = "bold 12px Ubuntu"; g.fillText(nick + ": ", ml, mt + 1);
-  g.font = "12px Ubuntu"; g.fillText(msg, ml + wNick, mt + 1);
+  g.font = fonteMsg; g.fillText(msg, ml + wNick, mt + 1);
   // a setinha fica embaixo, no meio do balão (onde o avatar está)
   g.drawImage(ponteiro, Math.round(largura / 2 - e.ponteiro[0] / 2), e.ponteiro[2]);
   return c;
@@ -8479,7 +8474,7 @@ function blocoTesteBalao(){
       <h2>Teste o balão</h2>
       <p class="dica" style="margin:-4px 0 10px">Escreva uma mensagem e veja como ela aparece no quarto. Coloque o seu nick para ver o seu avatar falando.</p>
       <div class="teste-balao-campos">
-        <label>Mensagem<input id="balaoMsg" class="figura" maxlength="60" value="Olá, NFT-SE!"></label>
+        <label>Mensagem<input id="balaoMsg" class="figura" maxlength="60" value="No que você está pensando?"></label>
         <label>Seu nick (opcional)<span style="display:flex;gap:6px">
           <input id="balaoNick" class="figura" maxlength="30" placeholder="Nick no Habbo BR">
           <button type="button" class="opt" id="balaoNickBtn">Buscar</button></span></label>
@@ -8499,14 +8494,17 @@ function ligarTesteBalao(it){
   // avatar em pé no meio do chão
   const [ax, ay] = c.tela(1, 1);  // quadradinho do meio
   const avX = ax - c.L + 32, avY = ay - c.T + 16;   // centro do quadradinho
-  caixa.innerHTML = `<div class="cena-quarto" style="width:${c.W}px;height:${c.H + 70}px">
-    <div style="position:absolute;left:0;top:70px">${c.svg}
+  const TOPO = 110;   // espaço acima do quarto para os balões subirem
+  caixa.innerHTML = `<div class="cena-quarto" style="width:${c.W}px;height:${c.H + TOPO}px">
+    <div style="position:absolute;left:0;top:${TOPO}px">${c.svg}
       <img id="balaoAvatar" alt="Avatar" style="left:${avX - 32}px;top:${avY - 102}px">
     </div>
-    <div class="balao-subindo" id="balaoSobe" style="left:${avX}px;top:${avY + 70 - 102 - 30}px"></div></div>`;
+    <div class="balao-pilha" id="balaoPilha" style="left:${avX}px;top:${avY + TOPO - 96}px"></div></div>`;
   const cena = caixa.firstElementChild;
+  // guarda os elementos desta tela: se a página for redesenhada, a animação antiga para sozinha
+  const pilha = caixa.querySelector("#balaoPilha"), avatarImg = caixa.querySelector("#balaoAvatar");
   const ajustar = () => {
-    const fator = Math.min(2, (caixa.clientWidth - 16) / c.W, 380 / (c.H + 70));
+    const fator = Math.min(2, (caixa.clientWidth - 16) / c.W, 380 / (c.H + TOPO));
     cena.style.transform = `scale(${fator}) translate(-50%, -50%)`;
   };
   ajustar();
@@ -8518,15 +8516,47 @@ function ligarTesteBalao(it){
     const fig = figuraNick || figura({ ...prov, genero: "F" }, "");
     const q = (extra) => HOTEL + "/habbo-imaging/avatarimage?" + new URLSearchParams({
       figure: fig, gender: genero, direction: 4, head_direction: 4, gesture: "sml", ...extra });
-    document.getElementById("balaoAvatar").src = q({ size: "m", action: "std" });
-    const nick = nickAchado || "Você";
+    avatarImg.src = q({ size: "m", action: "std" });
+    const nick = nickAchado || "NFT-SE";
     const msg = campoMsg.value.trim() || "...";
-    const tela = await desenharBalao(it.slug, nick, msg, q({ size: "s", headonly: 1, direction: 2, head_direction: 2 }));
+    const cabeca = q({ size: "s", headonly: 1, direction: 2, head_direction: 2 });
+    // três balões: normal, grito (negrito) e sussurro (itálico)
+    const telas = await Promise.all(["normal", "grito", "sussurro"].map(m => desenharBalao(it.slug, nick, msg, cabeca, m)));
     if (meu !== pedido) return;
-    const sobe = document.getElementById("balaoSobe");
-    sobe.innerHTML = ""; sobe.appendChild(tela);
-    // recomeça a animação do balão subindo
-    sobe.classList.remove("balao-subindo"); void sobe.offsetWidth; sobe.classList.add("balao-subindo");
+    animarBaloes(telas);
+  }
+
+  // Os balões aparecem um de cada vez em cima do avatar e empurram os anteriores para cima,
+  // como no jogo; depois somem e a conversa recomeça.
+  let timer = null;
+  function animarBaloes(telas){
+    clearTimeout(timer);
+    pilha.innerHTML = "";
+    const itens = telas.map(t => { const d = document.createElement("div"); d.className = "balao-item"; d.appendChild(t); return d; });
+    const parado = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const posicionar = visiveis => {
+      let y = 0;
+      for (let i = visiveis - 1; i >= 0; i--) {
+        itens[i].style.transform = `translate(-50%, ${-y}px)`;
+        itens[i].style.opacity = 1;
+        y += telas[i].height - 4;
+      }
+    };
+    if (parado) { itens.forEach(d => pilha.appendChild(d)); posicionar(3); return; }
+    let passo = 0;
+    const seguir = () => {
+      if (!document.body.contains(pilha)) return;   // saiu da página ou ela foi redesenhada
+      if (passo < 3) {
+        const d = itens[passo]; d.style.opacity = 0; d.style.transform = "translate(-50%, 12px)";
+        pilha.appendChild(d); void d.offsetWidth;
+        passo++; posicionar(passo);
+        timer = setTimeout(seguir, 1500);
+      } else {
+        itens.forEach(d => { d.style.opacity = 0; });
+        timer = setTimeout(() => { pilha.innerHTML = ""; passo = 0; seguir(); }, 1800);
+      }
+    };
+    seguir();
   }
 
   async function buscarNickBalao(){
