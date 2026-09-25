@@ -99,7 +99,7 @@ a{color:var(--ouro)}
 .teste-balao-campos input{margin-top:0}
 .balao-pilha{position:absolute;width:0;height:0}
 .balao-item{position:absolute;left:0;bottom:0;transition:transform .35s ease-out,opacity .5s}
-.balao-item canvas{display:block;image-rendering:pixelated}
+.balao-item canvas{display:block}
 .etiquetas-uso{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .etiqueta-uso{
   display:inline-flex;align-items:center;gap:6px;background:var(--tile);border:1px solid var(--linha);
@@ -8436,7 +8436,9 @@ const carregarImagem = src => new Promise((ok, falha) => {
 
 // Desenha o balão como no jogo: fundo esticado no meio, cabecinha, "Nick: mensagem" e a setinha.
 // modo: "normal", "grito" (mensagem em negrito) ou "sussurro" (mensagem em itálico), como no jogo.
-async function desenharBalao(slug, nick, msg, urlCabeca, modo = "normal"){
+// escala: quantos pixels de tela por pixel do jogo (o balão é desenhado já no tamanho final,
+// para as letras saírem nítidas mesmo com o quarto ampliado).
+async function desenharBalao(slug, nick, msg, urlCabeca, modo = "normal", escala = 1){
   const e = ESTILOS_BALAO[slug];
   const fonteMsg = modo === "grito" ? "bold 12px Ubuntu" : modo === "sussurro" ? "italic 12px Ubuntu" : "12px Ubuntu";
   await Promise.all(["bold 12px Ubuntu", fonteMsg].map(f => document.fonts.load(f).catch(() => {})));
@@ -8450,8 +8452,11 @@ async function desenharBalao(slug, nick, msg, urlCabeca, modo = "normal"){
   medir.font = fonteMsg; const wMsg = medir.measureText(msg).width;
   const largura = Math.max(bw, Math.ceil(ml + wNick + wMsg + mr));
   const altura = Math.max(bh, e.ponteiro[2] + e.ponteiro[1]);
-  const c = document.createElement("canvas"); c.width = largura; c.height = altura;
-  const g = c.getContext("2d"); g.imageSmoothingEnabled = false;
+  const c = document.createElement("canvas");
+  c.width = Math.round(largura * escala); c.height = Math.round(altura * escala);
+  c.style.width = largura + "px"; c.style.height = altura + "px";
+  c.alturaBase = bh;   // altura do balão sem a setinha (para empilhar)
+  const g = c.getContext("2d"); g.imageSmoothingEnabled = false; g.scale(escala, escala);
   // esquerda, meio esticado (coluna fx) e direita
   g.drawImage(base, 0, 0, fx, bh, 0, 0, fx, bh);
   g.drawImage(base, fx, 0, 1, bh, fx, 0, largura - bw + 1, bh);
@@ -8503,9 +8508,13 @@ function ligarTesteBalao(it){
   const cena = caixa.firstElementChild;
   // guarda os elementos desta tela: se a página for redesenhada, a animação antiga para sozinha
   const pilha = caixa.querySelector("#balaoPilha"), avatarImg = caixa.querySelector("#balaoAvatar");
+  let fator = 1, escalaDesenho = 0;
   const ajustar = () => {
-    const fator = Math.min(2, (caixa.clientWidth - 16) / c.W, 380 / (c.H + TOPO));
+    fator = Math.min(2, (caixa.clientWidth - 16) / c.W, 380 / (c.H + TOPO));
     cena.style.transform = `scale(${fator}) translate(-50%, -50%)`;
+    // se o tamanho na tela mudou bastante, redesenha os balões na nova resolução
+    const nova = Math.max(1, Math.round(fator * (window.devicePixelRatio || 1) * 2) / 2);
+    if (escalaDesenho && nova !== escalaDesenho) atualizar();
   };
   ajustar();
   if (window.ResizeObserver) new ResizeObserver(ajustar).observe(caixa);
@@ -8521,7 +8530,8 @@ function ligarTesteBalao(it){
     const msg = campoMsg.value.trim() || "...";
     const cabeca = q({ size: "s", headonly: 1, direction: 2, head_direction: 2 });
     // três balões: normal, grito (negrito) e sussurro (itálico)
-    const telas = await Promise.all(["normal", "grito", "sussurro"].map(m => desenharBalao(it.slug, nick, msg, cabeca, m)));
+    escalaDesenho = Math.max(1, Math.round(fator * (window.devicePixelRatio || 1) * 2) / 2);
+    const telas = await Promise.all(["normal", "grito", "sussurro"].map(m => desenharBalao(it.slug, nick, msg, cabeca, m, escalaDesenho)));
     if (meu !== pedido) return;
     animarBaloes(telas);
   }
@@ -8539,7 +8549,7 @@ function ligarTesteBalao(it){
       for (let i = visiveis - 1; i >= 0; i--) {
         itens[i].style.transform = `translate(-50%, ${-y}px)`;
         itens[i].style.opacity = 1;
-        y += telas[i].height - 4;
+        y += telas[i].alturaBase;   // encostado no de baixo, como no jogo
       }
     };
     if (parado) { itens.forEach(d => pilha.appendChild(d)); posicionar(3); return; }
