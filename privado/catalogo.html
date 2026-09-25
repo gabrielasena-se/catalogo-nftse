@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" href="/favicon.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Nunito+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Nunito+Sans:wght@400;600;800&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --fundo:#150128;
@@ -94,6 +94,19 @@ a{color:var(--ouro)}
 .quarto-mobi .dica{padding:12px}
 .cena-quarto{position:absolute;left:50%;top:50%;transform-origin:0 0}
 .cena-quarto svg,.cena-quarto img{position:absolute;left:0;top:0;max-width:none;image-rendering:pixelated}
+.teste-balao-campos{display:flex;flex-wrap:wrap;gap:12px;max-width:560px;margin:0 0 6px}
+.teste-balao-campos label{flex:1 1 220px;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mudo)}
+.teste-balao-campos input{margin-top:0}
+.balao-subindo{position:absolute;transform:translateX(-50%)}
+.balao-subindo canvas{display:block;image-rendering:pixelated}
+.balao-subindo{animation:balaoSobe 4.5s ease-out infinite}
+@keyframes balaoSobe{
+  0%{opacity:0;transform:translate(-50%, 14px)}
+  8%{opacity:1;transform:translate(-50%, 0)}
+  70%{opacity:1;transform:translate(-50%, -26px)}
+  100%{opacity:0;transform:translate(-50%, -40px)}
+}
+@media (prefers-reduced-motion: reduce){.balao-subindo{animation:none}}
 .etiquetas-uso{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .etiqueta-uso{
   display:inline-flex;align-items:center;gap:6px;background:var(--tile);border:1px solid var(--linha);
@@ -8417,6 +8430,129 @@ async function carregarQuarto(it){
   if (window.ResizeObserver) new ResizeObserver(ajustar).observe(caixa);
 }
 
+/* ------------------- "Teste o balão": o avatar falando com o balão ------------------- */
+// Desenho de cada balão tirado do aplicativo oficial do Habbo (/baloes/<slug>-base.png e -pointer.png).
+// base: tamanho da imagem; fatia: coluna/linha de 1px que estica; ponteiro: [largura, altura, y];
+// rosto: centro da cabecinha do avatar; margens do texto: esquerda, cima, direita, baixo; cor do texto.
+const ESTILOS_BALAO = {"dinheiro":{"base":[52,32],"fatia":[34,19],"ponteiro":[9,5,31],"rosto":[22,16],"margens":[34,6,24,8],"cor":"#062100"},"bexiga-azul":{"base":[60,30],"fatia":[42,19],"ponteiro":[9,6,29],"rosto":[16,18],"margens":[39,10,12,7],"cor":"#000000"},"origami-azul":{"base":[52,31],"fatia":[33,14],"ponteiro":[9,6,26],"rosto":[11,15],"margens":[34,7,19,11],"cor":"#000000"},"chocolate":{"base":[51,24],"fatia":[30,13],"ponteiro":[10,5,23],"rosto":[13,12],"margens":[31,5,9,6],"cor":"#FAD79B"},"artefato":{"base":[59,24],"fatia":[35,11],"ponteiro":[10,5,23],"rosto":[17,12],"margens":[35,4,15,6],"cor":"#4b270c"},"pedra-de-neve":{"base":[56,29],"fatia":[32,18],"ponteiro":[13,7,27],"rosto":[16,18],"margens":[27,11,15,9],"cor":"#edefef","ponteiroMargens":[28,23]},"chocolate-branco":{"base":[51,24],"fatia":[30,13],"ponteiro":[10,5,23],"rosto":[13,12],"margens":[31,5,9,6],"cor":"#5A3620"},"congelado":{"base":[56,29],"fatia":[32,18],"ponteiro":[13,7,27],"rosto":[16,18],"margens":[27,11,15,9],"cor":"#000000","ponteiroMargens":[28,23]},"bexiga-amarela":{"base":[60,30],"fatia":[42,19],"ponteiro":[9,6,29],"rosto":[16,18],"margens":[39,10,12,7],"cor":"#000000"},"tecla":{"base":[57,24],"fatia":[29,10],"ponteiro":[9,6,23],"rosto":[13,12],"margens":[28,2,12,9],"cor":"#3a342e"},"natal-2022":{"base":[57,24],"fatia":[36,12],"ponteiro":[16,9,19],"rosto":[13,12],"margens":[28,3,14,12],"cor":"#ffffff"},"origami-amarelo":{"base":[52,31],"fatia":[33,14],"ponteiro":[9,6,26],"rosto":[11,15],"margens":[34,7,19,11],"cor":"#000000"},"aurora":{"base":[50,32],"fatia":[30,14],"ponteiro":[9,5,31],"rosto":[16,16],"margens":[28,6,12,12],"cor":"#ffbb00"},"kryptomon":{"base":[59,26],"fatia":[29,14],"ponteiro":[9,6,24],"rosto":[16,13],"margens":[32,5,13,8],"cor":"#FFFFFF"},"bobba":{"base":[59,31],"fatia":[27,13],"ponteiro":[11,6,27],"rosto":[17,16],"margens":[28,9,23,9],"cor":"#ffffff"}};
+
+const carregarImagem = src => new Promise((ok, falha) => {
+  const im = new Image();
+  im.onload = () => ok(im); im.onerror = falha; im.src = src;
+});
+
+// Desenha o balão como no jogo: fundo esticado no meio, cabecinha, "Nick: mensagem" e a setinha.
+async function desenharBalao(slug, nick, msg, urlCabeca){
+  const e = ESTILOS_BALAO[slug];
+  await document.fonts.load("bold 12px Ubuntu").catch(() => {});
+  const [base, ponteiro, cabeca] = await Promise.all([
+    carregarImagem(`/baloes/${slug}-base.png`), carregarImagem(`/baloes/${slug}-pointer.png`),
+    carregarImagem(urlCabeca).catch(() => null)
+  ]);
+  const [bw, bh] = e.base, [fx] = e.fatia, [ml, mt, mr] = e.margens;
+  const medir = document.createElement("canvas").getContext("2d");
+  medir.font = "bold 12px Ubuntu"; const wNick = medir.measureText(nick + ": ").width;
+  medir.font = "12px Ubuntu"; const wMsg = medir.measureText(msg).width;
+  const largura = Math.max(bw, Math.ceil(ml + wNick + wMsg + mr));
+  const altura = Math.max(bh, e.ponteiro[2] + e.ponteiro[1]);
+  const c = document.createElement("canvas"); c.width = largura; c.height = altura;
+  const g = c.getContext("2d"); g.imageSmoothingEnabled = false;
+  // esquerda, meio esticado (coluna fx) e direita
+  g.drawImage(base, 0, 0, fx, bh, 0, 0, fx, bh);
+  g.drawImage(base, fx, 0, 1, bh, fx, 0, largura - bw + 1, bh);
+  g.drawImage(base, fx + 1, 0, bw - fx - 1, bh, largura - (bw - fx - 1), 0, bw - fx - 1, bh);
+  if (cabeca) {
+    const [rx, ry] = e.rosto;
+    g.drawImage(cabeca, Math.round(rx - cabeca.width / 2), Math.round(ry - cabeca.height / 2));
+  }
+  g.fillStyle = e.cor; g.textBaseline = "top";
+  g.font = "bold 12px Ubuntu"; g.fillText(nick + ": ", ml, mt + 1);
+  g.font = "12px Ubuntu"; g.fillText(msg, ml + wNick, mt + 1);
+  // a setinha fica embaixo, no meio do balão (onde o avatar está)
+  g.drawImage(ponteiro, Math.round(largura / 2 - e.ponteiro[0] / 2), e.ponteiro[2]);
+  return c;
+}
+
+function blocoTesteBalao(){
+  return `
+    <section class="secao" id="secaoTesteBalao">
+      <h2>Teste o balão</h2>
+      <p class="dica" style="margin:-4px 0 10px">Escreva uma mensagem e veja como ela aparece no quarto. Coloque o seu nick para ver o seu avatar falando.</p>
+      <div class="teste-balao-campos">
+        <label>Mensagem<input id="balaoMsg" class="figura" maxlength="60" value="Olá, NFT-SE!"></label>
+        <label>Seu nick (opcional)<span style="display:flex;gap:6px">
+          <input id="balaoNick" class="figura" maxlength="30" placeholder="Nick no Habbo BR">
+          <button type="button" class="opt" id="balaoNickBtn">Buscar</button></span></label>
+      </div>
+      <p class="dica" id="balaoAviso"></p>
+      <div class="quarto-mobi" id="quartoBalao" style="height:400px"></div>
+    </section>`;
+}
+
+function ligarTesteBalao(it){
+  const caixa = document.getElementById("quartoBalao");
+  const campoMsg = document.getElementById("balaoMsg"), campoNick = document.getElementById("balaoNick");
+  const aviso = document.getElementById("balaoAviso");
+  let figuraNick = "", nickAchado = "", generoNick = "F", pedido = 0;
+
+  const n = 3, c = cenaQuarto(n, 96);
+  // avatar em pé no meio do chão
+  const [ax, ay] = c.tela(1, 1);  // quadradinho do meio
+  const avX = ax - c.L + 32, avY = ay - c.T + 16;   // centro do quadradinho
+  caixa.innerHTML = `<div class="cena-quarto" style="width:${c.W}px;height:${c.H + 70}px">
+    <div style="position:absolute;left:0;top:70px">${c.svg}
+      <img id="balaoAvatar" alt="Avatar" style="left:${avX - 32}px;top:${avY - 102}px">
+    </div>
+    <div class="balao-subindo" id="balaoSobe" style="left:${avX}px;top:${avY + 70 - 102 - 30}px"></div></div>`;
+  const cena = caixa.firstElementChild;
+  const ajustar = () => {
+    const fator = Math.min(2, (caixa.clientWidth - 16) / c.W, 380 / (c.H + 70));
+    cena.style.transform = `scale(${fator}) translate(-50%, -50%)`;
+  };
+  ajustar();
+  if (window.ResizeObserver) new ResizeObserver(ajustar).observe(caixa);
+
+  async function atualizar(){
+    const meu = ++pedido;
+    const genero = figuraNick ? generoNick : "F";
+    const fig = figuraNick || figura({ ...prov, genero: "F" }, "");
+    const q = (extra) => HOTEL + "/habbo-imaging/avatarimage?" + new URLSearchParams({
+      figure: fig, gender: genero, direction: 4, head_direction: 4, gesture: "sml", ...extra });
+    document.getElementById("balaoAvatar").src = q({ size: "m", action: "std" });
+    const nick = nickAchado || "Você";
+    const msg = campoMsg.value.trim() || "...";
+    const tela = await desenharBalao(it.slug, nick, msg, q({ size: "s", headonly: 1, direction: 2, head_direction: 2 }));
+    if (meu !== pedido) return;
+    const sobe = document.getElementById("balaoSobe");
+    sobe.innerHTML = ""; sobe.appendChild(tela);
+    // recomeça a animação do balão subindo
+    sobe.classList.remove("balao-subindo"); void sobe.offsetWidth; sobe.classList.add("balao-subindo");
+  }
+
+  async function buscarNickBalao(){
+    const nick = campoNick.value.trim();
+    if (!nick) { figuraNick = ""; nickAchado = ""; atualizar(); return; }
+    aviso.textContent = "Procurando " + nick + "...";
+    try {
+      const r = PROXY ? await apiFetch(PROXY + encodeURIComponent(nick)) : await fetch(HOTEL + "/api/public/users?name=" + encodeURIComponent(nick));
+      if (!r.ok) throw new Error("nao encontrado");
+      const dados = await r.json();
+      if (!dados.figureString) throw new Error("sem visual");
+      figuraNick = dados.figureString; nickAchado = dados.name || nick; generoNick = dados.gender || "F";
+      aviso.textContent = "";
+      atualizar();
+    } catch (err) {
+      aviso.textContent = "Não achei esse nick. Confira se está escrito igualzinho e se o perfil está público.";
+    }
+  }
+
+  let espera;
+  campoMsg.oninput = () => { clearTimeout(espera); espera = setTimeout(atualizar, 250); };
+  document.getElementById("balaoNickBtn").onclick = buscarNickBalao;
+  campoNick.onkeydown = ev => { if (ev.key === "Enter") buscarNickBalao(); };
+  atualizar();
+}
+
 function telaItem(it){
   const ehRoupa = it.tipo === "roupa" && it.peca;
   if (ehRoupa && it.genero) prov.genero = it.genero;
@@ -8465,6 +8601,7 @@ function telaItem(it){
       </div>
       ${gifs ? `<div class="linha-movimento">${gifs}</div>` : ""}
       ${ehRoupa ? blocoProvador(it) : ""}
+      ${it.tipo === "balao" && ESTILOS_BALAO[it.slug] ? blocoTesteBalao() : ""}
       ${it.tipo === "furni" && MEDIDAS_MOBIS[it.slug] ? `
       <section class="secao" id="secaoQuarto">
         <h2>No quarto</h2>
@@ -8474,6 +8611,7 @@ function telaItem(it){
     </div>`;
   if (ehRoupa) carregarCarrosselVisuais(it);
   if (it.tipo === "furni") carregarQuarto(it);
+  if (it.tipo === "balao" && ESTILOS_BALAO[it.slug]) ligarTesteBalao(it);
 
   document.getElementById("voltar").onclick = () => { location.hash = ""; };
   app.querySelectorAll("[data-tag]").forEach(b => b.onclick = () => {
