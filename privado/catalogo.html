@@ -6739,7 +6739,7 @@ function telaItem(it){
       </div>
     </section>
     <section class="secao secao-comunidade">
-      <h2>Visuais salvos pelos usuários</h2>
+      <h2 id="tituloVisuaisUsuarios">Visuais criados pelos usuários</h2>
       <div class="carrossel" id="carrosselVisuais">
         <p class="dica">Carregando visuais...</p>
       </div>
@@ -6822,6 +6822,12 @@ async function carregarCarrosselVisuais(it){
     trilho.style.maxWidth = (qtd * (LARGURA_CAIXA + ESPACO) - ESPACO) + "px";
     const cabeTudo = trilho.scrollWidth <= trilho.clientWidth + 1;
     setas.forEach(b => b.hidden = cabeTudo);
+    // O título termina junto da última caixa, não da seta →.
+    const titulo = document.getElementById("tituloVisuaisUsuarios");
+    const setaDireita = setas[1];
+    if (titulo) titulo.style.paddingRight =
+      (setaDireita && !setaDireita.hidden && getComputedStyle(setaDireita).display !== "none")
+        ? (setaDireita.offsetWidth + 8) + "px" : "";
   };
   ajustar();
   if (window.ResizeObserver) new ResizeObserver(ajustar).observe(caixa);
