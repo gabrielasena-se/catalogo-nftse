@@ -4507,6 +4507,7 @@ function ligarCliquesGrade(){
 // Ordem da grade. "preco" é a ordem do catálogo (por faixa, do mais barato ao mais caro).
 const ORDENS = [
   { id:"preco", rotulo:"Preço (menor → maior)" },
+  { id:"preco-desc", rotulo:"Preço (maior → menor)" },
   { id:"curtidos", rotulo:"Mais curtidos" },
   { id:"az", rotulo:"Ordem alfabética (A–Z)" }
 ];
@@ -4517,6 +4518,7 @@ function ordenarLista(lista){
   const pos = new Map(CATALOGO.map((it, i) => [it, i]));
   const porPreco = (a, b) => (a.faixa || 9) - (b.faixa || 9) || pos.get(a) - pos.get(b);
   if (ordem === "curtidos") return [...lista].sort((a, b) => (contagens[b.slug] || 0) - (contagens[a.slug] || 0) || porPreco(a, b));
+  if (ordem === "preco-desc") return [...lista].sort((a, b) => (b.faixa || 0) - (a.faixa || 0) || pos.get(b) - pos.get(a));
   if (ordem === "az") return [...lista].sort((a, b) => a.pt.localeCompare(b.pt, "pt-BR", { sensitivity:"base", numeric:true }));
   return [...lista].sort(porPreco);
 }
