@@ -5602,16 +5602,20 @@ function ligarCliquesGrade(){
     b.onclick = (e) => { e.stopPropagation(); toggleFavorito(b.dataset.fav); });
 }
 
-// Ordem da grade. "preco" é a ordem do catálogo (por faixa, do mais barato ao mais caro).
+// Ordem da grade. O padrão é "Mais recentes" (o que acabou de chegar no Habbo primeiro).
+// "preco" é a ordem do catálogo (por faixa, do mais barato ao mais caro).
 const ORDENS = [
+  { id:"recentes", rotulo:"Mais recentes" },
   { id:"preco", rotulo:"Preço (menor → maior)" },
   { id:"preco-desc", rotulo:"Preço (maior → menor)" },
-  { id:"recentes", rotulo:"Mais recentes" },
   { id:"curtidos", rotulo:"Mais curtidos" },
   { id:"az", rotulo:"Ordem alfabética (A–Z)" }
 ];
-let ordem = "preco";
-try { if (ORDENS.some(o => o.id === localStorage.getItem("nftse_ordem"))) ordem = localStorage.getItem("nftse_ordem"); } catch (e) {}
+// A escolha da pessoa fica guardada no navegador. A chave mudou ("_v2") quando o padrão virou
+// "Mais recentes", para todo mundo começar pelo padrão novo uma vez.
+const CHAVE_ORDEM = "nftse_ordem_v2";
+let ordem = "recentes";
+try { if (ORDENS.some(o => o.id === localStorage.getItem(CHAVE_ORDEM))) ordem = localStorage.getItem(CHAVE_ORDEM); } catch (e) {}
 
 function ordenarLista(lista){
   const pos = new Map(CATALOGO.map((it, i) => [it, i]));
@@ -5670,7 +5674,7 @@ function telaGrade(){
     b.onclick = () => { aba = b.dataset.aba; render(); });
   document.getElementById("ordemGrade").onchange = e => {
     ordem = e.target.value;
-    try { localStorage.setItem("nftse_ordem", ordem); } catch (err) {}
+    try { localStorage.setItem(CHAVE_ORDEM, ordem); } catch (err) {}
     render();
   };
   ligarCliquesGrade();
