@@ -26,7 +26,7 @@ api/
   favoritos.js  catalogo.js  habbo.js  figuredata.js
 lib/
   redis.js            # cliente do Upstash (REST), usado por tudo
-  bot/                # config, background (waitUntil), commands/, discord/, verification/, catalogo/
+  bot/                # config, background (waitUntil), commands/, discord/, verification/, catalogo/, ticket/
 public/               # site estático (entrada)
 privado/              # catálogo, só via /api/app
 scripts/
@@ -50,13 +50,15 @@ Cadastre na Vercel (Settings → Environment Variables). Para rodar os scripts l
 | `DISCORD_TOKEN` | Developer Portal → Bot |
 | `VERIFY_ROLE_IDS` | Cargos concedidos ao verificar, separados por vírgula |
 | `CATALOG_URL` | Opcional. Página que recebe o `?token=`. Padrão: a raiz deste site |
-| `DISCORD_GUILD_ID` | Só local, para o `npm run deploy-commands` |
+| `DISCORD_GUILD_ID` | ID do servidor. Liga o ticket da sacola e é usado pelo `npm run deploy-commands` |
+| `TICKET_STAFF_ROLE_IDS`, `TICKET_CATEGORY_ID` | Equipe e categoria do ticket da sacola ([`BOT-TICKET.md`](./BOT-TICKET.md)) |
 
 ## Configurar o bot no Discord
 
 1. [Developer Portal](https://discord.com/developers/applications) → a aplicação **BOT NFT-SE**.
 2. **OAuth2 → URL Generator**: scopes `bot` e `applications.commands`; permissões Ver Canais,
-   Enviar Mensagens, Inserir Links, **Gerenciar Cargos** e **Gerenciar Apelidos**. Nenhuma
+   Enviar Mensagens, Inserir Links, **Gerenciar Cargos**, **Gerenciar Apelidos** e
+   **Gerenciar Canais** (ticket da sacola). Nenhuma
    *Privileged Gateway Intent* é necessária.
 3. No servidor, arraste o cargo do bot para **acima** dos cargos que ele concede e dos membros
    comuns. Sem isso, cargo e apelido falham.

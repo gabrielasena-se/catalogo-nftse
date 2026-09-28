@@ -2,6 +2,19 @@
 
 Registro cronológico de alterações. Cada entrada: data, resumo e doc relacionado.
 
+## 2026-09-28 — Ticket automático pela sacola
+
+"Perguntar o preço", na sacola do catálogo, agora abre um canal de ticket pelo BOT NFT-SE, já com
+a lista de itens postada — a pessoa não escreve nada. O Ticket Tool (tickettool.xyz) não tem API
+nem aceita que outro bot abra ticket por ele, por isso o canal é do próprio bot.
+
+- `lib/bot/ticket/`: `abrir.js` cria o canal privado (pessoa + `TICKET_STAFF_ROLE_IDS`) na
+  categoria `TICKET_CATEGORY_ID`, ou reaproveita o ticket aberto da pessoa; `handlers.js` trata o
+  botão **Fechar ticket** (dono, equipe ou quem gerencia canais).
+- `DISCORD_GUILD_ID` passa a ser necessária na Vercel; sem ela, vale o plano B do webhook.
+- Nova permissão do bot: **Gerenciar Canais**.
+- Detalhes em [`BOT-TICKET.md`](../BOT-TICKET.md).
+
 ## 2026-09-28 — Bot e catálogo num projeto só, na Vercel
 
 O bot era um site à parte na Netlify, e o catálogo (Vercel) perguntava a ele por HTTP de quem

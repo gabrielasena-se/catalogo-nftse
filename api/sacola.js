@@ -7,14 +7,15 @@
 //   POST /api/sacola { slug }                         -> põe/tira o item    -> { naSacola, itens }
 //   POST /api/sacola { acao:"remover", slugs:[...] }  -> tira vários        -> { itens }
 //   POST /api/sacola { acao:"perguntar", itens:[{ slug, nome, nomeIngles, tipo }] }
-//        Pede ao bot do Discord para abrir um ticket com a pessoa e esses itens
-//        (veja BOT-TICKET.md). Enquanto o bot não tiver essa função, manda a lista
-//        para o canal da equipe pelo webhook e devolve o link do canal de tickets.
+//        O BOT NFT-SE abre um canal de ticket com a pessoa e posta esses itens
+//        (veja BOT-TICKET.md). Se o ticket não estiver configurado ou der erro, manda
+//        a lista para o canal da equipe pelo webhook e devolve o link do canal de tickets.
 //
-// Variáveis de ambiente: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN e
-// DISCORD_WEBHOOK_PEDIDOS (opcional; sem ela, o aviso vai para DISCORD_WEBHOOK_URL).
+// Variáveis de ambiente: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN,
+// DISCORD_GUILD_ID + TICKET_STAFF_ROLE_IDS + TICKET_CATEGORY_ID (ticket pelo bot) e
+// DISCORD_WEBHOOK_PEDIDOS (plano B; sem ela, o aviso vai para DISCORD_WEBHOOK_URL).
 
-import { abrirTicket } from "../lib/bot/ticket.js";
+import { abrirTicket } from "../lib/bot/ticket/abrir.js";
 import { exigirSessao } from "./_sessao.js";
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
@@ -47,8 +48,8 @@ async function lerSacola(chave) {
 }
 
 // Opção A: o bot abre o ticket. O bot é este mesmo projeto (lib/bot), então é uma
-// chamada de função, não HTTP. Responde null quando o bot ainda não tem essa função
-// (ou deu erro), para o site usar a opção B.
+// chamada de função, não HTTP. Responde null quando o ticket não está configurado
+// (sem DISCORD_GUILD_ID) ou deu erro, para o site usar a opção B.
 async function pedirTicketAoBot(sessao, itens) {
   try {
     const dados = await abrirTicket({

@@ -1,78 +1,51 @@
 # Bot: abrir ticket a partir da sacola do catálogo
 
 O catálogo (nft-se.com) tem uma **sacola**. Na página da sacola, a pessoa marca itens e clica em
-**"Perguntar o preço"**. O site então pede ao bot para **abrir um ticket** com essa pessoa e a lista
-de itens.
+**"Perguntar o preço"**. O **BOT NFT-SE** abre na hora um canal de ticket só dela e posta a lista
+de itens — a pessoa não precisa escrever nada. O site mostra o botão **"Ir para o ticket"**.
 
-Enquanto o bot não tiver essa função, o site usa um plano B: manda a lista para um canal da equipe
-pelo webhook e mostra à pessoa o link do canal de tickets (com a lista copiada). **Assim que a
-função abaixo responder `ok: true`, o site passa a usar o bot sozinho**, sem nenhuma mudança no
-site.
+## Por que não é o Ticket Tool
 
-## O que o bot precisa ter
+O servidor usa o Ticket Tool (tickettool.xyz) para os outros tickets, mas ele **não tem API**: um
+ticket dele só abre quando uma pessoa clica no painel ou usa o comando dele, e o Discord não deixa
+um bot apertar o botão de outro bot. Então o ticket da sacola é do próprio BOT NFT-SE. Na prática
+fica igual a um ticket comum — canal privado, pessoa + equipe —, mas não entra nos registros e
+transcrições do Ticket Tool.
 
-O bot e o site são o mesmo projeto (veja `docs/001-arquitetura.md`), então não é uma rota HTTP:
-é a função `abrirTicket(pedido)` em `lib/bot/ticket.js`, que hoje só devolve `null`.
-`api/sacola.js` a chama direto.
+## Como funciona
 
-### Pedido que o site passa
+1. `api/sacola.js` recebe o pedido e chama `abrirTicket()` (`lib/bot/ticket/abrir.js`).
+2. Se a pessoa já tem um ticket da sacola aberto, a lista nova vai para ele. Senão, o bot cria o
+   canal `ticket-<nick>` na categoria `TICKET_CATEGORY_ID`:
+   - `@everyone` não vê;
+   - a pessoa vê, escreve e anexa arquivos;
+   - os cargos de `TICKET_STAFF_ROLE_IDS` veem e gerenciam mensagens.
+3. O bot posta a lista (nome, nome em inglês, tipo e link de cada item), mencionando a pessoa e os
+   cargos da equipe, com um botão **Fechar ticket**.
+4. **Fechar ticket** pode ser usado por quem abriu, pela equipe ou por quem tem *Gerenciar
+   Canais*. O canal é apagado 5 segundos depois do aviso.
 
-```json
-{
-  "discordUserId": "123456789012345678",
-  "habboName": ".senna",
-  "motivo": "PERGUNTAR_PRECO",
-  "itens": [
-    {
-      "slug": "sofa-amor",
-      "nome": "Sofá do Amor",
-      "nomeIngles": "Love Sofa",
-      "tipo": "furni",
-      "link": "https://nft-se.com/#item/sofa-amor"
-    },
-    {
-      "slug": "calca-listrada",
-      "nome": "Calça Listrada",
-      "nomeIngles": "Striped Trousers",
-      "tipo": "roupa",
-      "link": "https://nft-se.com/#item/calca-listrada"
-    }
-  ]
-}
-```
+A sacola não deixa a mesma pessoa pedir de novo antes de 1 minuto, e vão no máximo 30 itens.
 
-- `discordUserId`: quem pediu. É o mesmo ID da sessão de login, e o site só chama a rota para
-  sessões válidas.
-- `tipo`: `"roupa"` (visual), `"furni"` (mobi) ou `"balao"` (balão de fala).
-- Vão no máximo 30 itens por pedido. O site também não deixa a mesma pessoa pedir de novo antes
-  de 1 minuto.
+## Configuração
 
-### O que o bot faz
+Variáveis na Vercel (Settings → Environment Variables):
 
-1. Cria o ticket (canal privado) para a pessoa `discordUserId`, como já faz com o sistema de
-   tickets de hoje.
-2. Posta no ticket a lista dos itens, por exemplo:
-   > **.senna** quer saber o preço de:
-   > • Sofá do Amor (Love Sofa) — https://nft-se.com/#item/sofa-amor
-   > • Calça Listrada (Striped Trousers) — https://nft-se.com/#item/calca-listrada
-3. Devolve:
+| Variável | O que é |
+|---|---|
+| `DISCORD_GUILD_ID` | ID do servidor NFT-SE. **Sem ela, o ticket fica desligado** e vale o plano B. |
+| `TICKET_STAFF_ROLE_IDS` | IDs dos cargos da equipe, separados por vírgula. |
+| `TICKET_CATEGORY_ID` | Opcional. ID da categoria onde os canais são criados (pode ser a mesma do Ticket Tool). |
 
-```json
-{ "ok": true, "link": "https://discord.com/channels/<servidor>/<canal-do-ticket>" }
-```
+Permissão nova para o cargo do bot no servidor: **Gerenciar Canais**. Se usar uma categoria, o bot
+também precisa enxergá-la.
 
-- `link` é o endereço do canal do ticket criado. O site mostra um botão **"Ir para o ticket"**
-  com ele.
-- Se a pessoa já tiver um ticket aberto, o bot pode postar a lista nele e devolver o link dele.
+Para copiar um ID: ative o Modo Desenvolvedor (Configurações → Avançado) e clique com o botão
+direito no servidor, cargo ou categoria → **Copiar ID**.
 
-### Se der errado
+## Plano B
 
-Qualquer retorno que **não** tenha `"ok": true` (inclusive `null` ou uma exceção) faz o site usar
-o plano B (lista no canal da equipe + link do canal de tickets). Então, se o bot der erro, o
-pedido não se perde.
-
-## Onde isso fica no site
-
-- `api/sacola.js`, na função `pedirTicketAoBot`: é quem chama `abrirTicket`.
-- Variável opcional `DISCORD_WEBHOOK_PEDIDOS` na Vercel: é o canal do plano B. Sem ela, o plano B
-  usa `DISCORD_WEBHOOK_URL`, que é o canal dos avisos de acesso.
+Se o ticket não estiver configurado ou der erro (falta de permissão, Discord fora do ar), nada se
+perde: o site manda a lista para o canal da equipe pelo webhook (`DISCORD_WEBHOOK_PEDIDOS`, ou
+`DISCORD_WEBHOOK_URL`) e mostra à pessoa o link do canal de tickets, com a lista copiada. O motivo
+do erro aparece nos logs da Vercel como `[sacola] bot não abriu o ticket`.

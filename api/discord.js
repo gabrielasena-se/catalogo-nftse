@@ -17,8 +17,10 @@ import { byName } from '../lib/bot/commands/index.js';
 import { ephemeral, pong } from '../lib/bot/discord/responses.js';
 import { routeComponent, routeModal } from '../lib/bot/verification/handlers.js';
 import { routeComponent as routeCatalogo } from '../lib/bot/catalogo/handlers.js';
+import { routeComponent as routeTicket } from '../lib/bot/ticket/handlers.js';
 import { PREFIX } from '../lib/bot/verification/session.js';
 import { PREFIX as PREFIX_CATALOGO } from '../lib/bot/catalogo/session.js';
+import { PREFIX as PREFIX_TICKET } from '../lib/bot/ticket/session.js';
 import { ERRO_INTERNO, NAO_ENTENDI } from '../lib/bot/verification/messages.js';
 
 export function GET() {
@@ -68,6 +70,7 @@ async function rotear(interaction, origin) {
 
     case InteractionType.MESSAGE_COMPONENT:
       if (interaction.data.custom_id.startsWith(`${PREFIX_CATALOGO}:`)) return routeCatalogo(interaction, { origin });
+      if (interaction.data.custom_id.startsWith(`${PREFIX_TICKET}:`)) return routeTicket(interaction);
       if (!interaction.data.custom_id.startsWith(`${PREFIX}:`)) return ephemeral(NAO_ENTENDI);
       return routeComponent(interaction);
 
