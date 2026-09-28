@@ -5293,7 +5293,7 @@ const CATALOGO = [
   { slug:"pele-dourada", tipo:"roupa", pt:"Pele Ouro", ptAntigo:"Pele Dourada", en:"Gold Skin",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftgoldskin.png", peca:"hd-6005-0", desc:"" },
   { slug:"pele-esmeralda-pura", tipo:"roupa", pt:"Pele de Esmeralda Pura", en:"Pure Emerald Skin",
-    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftemeraldskin.png", peca:"hd-6616-0", desc:"" },
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftemeraldskin.png", peca:"hd-6616-0", pecasIguais:["hd-6617-0"], desc:"" },
   { slug:"moletom-icones-habbo", tipo:"roupa", pt:"Moletom Ícones Habbo", en:"Habbo Icons Hoodie",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftmhoodieicons.png", peca:"cc-6427-1408", pecaF:"cc-6426-1408", desc:"" },
   { slug:"olhos-vividos-encantadores", tipo:"roupa", pt:"Olhar Vívido", ptAntigo:"Olhos Vívidos Encantadores", en:"Lovely Vivid Eyes",
@@ -5882,7 +5882,7 @@ let catalogoPorPeca = null;
 function itemDoCatalogoPorPeca(tipoId){
   if (!catalogoPorPeca) {
     catalogoPorPeca = {};
-    CATALOGO.forEach(it => [it.peca, it.pecaF].filter(Boolean).forEach(peca =>
+    CATALOGO.forEach(it => [it.peca, it.pecaF, ...(it.pecasIguais || [])].filter(Boolean).forEach(peca =>
       peca.split(".").forEach(p => {
         const chave = p.split("-").slice(0, 2).join("-");
         if (!catalogoPorPeca[chave]) catalogoPorPeca[chave] = it;
@@ -9498,7 +9498,8 @@ function telaItem(it){
 async function carregarCarrosselVisuais(it){
   const caixa = document.getElementById("carrosselVisuais");
   const semCor = peca => peca.split(".").map(p => p.split("-").slice(0, 2).join("-")).join(".");
-  const versoes = [...new Set([it.peca, it.pecaF].filter(Boolean).map(semCor))];
+  // pecasIguais: a mesma peça com outro código no Habbo (ex.: pele com duas opções de rosto)
+  const versoes = [...new Set([it.peca, it.pecaF, ...(it.pecasIguais || [])].filter(Boolean).map(semCor))];
   let visuais = [];
   try {
     const r = await apiFetch(API_BASE + "/api/visuais?item=" + encodeURIComponent(versoes.join("|")));
