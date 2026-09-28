@@ -4921,6 +4921,8 @@ function urlAvatar(fig, o = {}){
 let aba = "roupa";
 let termo = "";
 const prov = { pele:"11", dir:2, acao:"std", figLivre:"", nick:"", genero:"M" };
+// O Editor de Visuais tem o próprio avatar: carregar um nick ou visual lá não muda os provadores dos itens.
+const ed = { pele:"11", dir:2, acao:"std", figLivre:"", nick:"", genero:"M" };
 
 const app = document.getElementById("app");
 
@@ -5141,9 +5143,9 @@ function dataCurta(ms){
 }
 
 function abrirVisualNoEditor(figura, genero){
-  prov.figLivre = figura;
-  prov.genero = genero;
-  prov.nick = "";
+  ed.figLivre = figura;
+  ed.genero = genero;
+  ed.nick = "";
   editorSelecionados = {};
   location.hash = "editor";
 }
@@ -8019,10 +8021,10 @@ function removerCabeloEditor(lista){
 
 function figuraMultipla(){
   let lista;
-  if (prov.figLivre.trim()) {
-    lista = prov.figLivre.trim().split(".").filter(Boolean);
+  if (ed.figLivre.trim()) {
+    lista = ed.figLivre.trim().split(".").filter(Boolean);
   } else {
-    const base = BASE_POR_GENERO[prov.genero] || BASE_POR_GENERO.M;
+    const base = BASE_POR_GENERO[ed.genero] || BASE_POR_GENERO.M;
     lista = [base.hd, base.hr, base.ch, base.lg];
   }
   Object.entries(editorSelecionados).forEach(([tipo, sel]) => {
@@ -8039,7 +8041,7 @@ function figuraMultipla(){
 // Miniatura de uma opção: o avatar padrão do gênero vestindo só aquela peça,
 // sem acumular o que já foi escolhido (isso fica só na prévia grande).
 function figuraComCandidatoEditor(tipo, set){
-  const base = BASE_POR_GENERO[prov.genero] || BASE_POR_GENERO.M;
+  const base = BASE_POR_GENERO[ed.genero] || BASE_POR_GENERO.M;
   let lista = [base.hd, base.hr, base.ch, base.lg];
   const paleta = FIGUREDATA_COMPLETO.palettes[FIGUREDATA_COMPLETO.settypes[tipo].paletteid] || [];
   const i = lista.findIndex(p => p.split("-")[0] === tipo);
@@ -8054,7 +8056,7 @@ function figuraComCandidatoEditor(tipo, set){
 
 function urlMiniaturaEditor(tipo, set){
   const fig = figuraComCandidatoEditor(tipo, set);
-  const url = urlAvatar(fig, { dir: 2, size: "l", genero: prov.genero, acao: "std" });
+  const url = urlAvatar(fig, { dir: 2, size: "l", genero: ed.genero, acao: "std" });
   return TIPOS_CABECA_EDITOR.has(tipo) ? url + "&headonly=1" : url;
 }
 
@@ -8085,7 +8087,7 @@ function telaEditor(){
     const info = FIGUREDATA_COMPLETO.settypes[editorTipoAtivo];
     const excluidos = EXCLUIR_ITENS_EDITOR[editorTipoAtivo];
     const todos = info.sets.filter(s =>
-      (s.gender === "U" || s.gender === prov.genero) &&
+      (s.gender === "U" || s.gender === ed.genero) &&
       !(excluidos && excluidos.has(s.id))
     );
     const indiceCategoria = INDICE_ITENS_EDITOR[editorTipoAtivo] || {};
@@ -8159,7 +8161,7 @@ function telaEditor(){
   }
 
   const botoesAcoes = ACOES.map(o => `
-    <button class="opt" data-campo="acao" data-valor="${o.id}" aria-pressed="${prov.acao === o.id}">${o.rotulo}</button>`).join("");
+    <button class="opt" data-campo="acao" data-valor="${o.id}" aria-pressed="${ed.acao === o.id}">${o.rotulo}</button>`).join("");
 
   app.innerHTML = `
     <div class="envoltorio">
@@ -8198,7 +8200,7 @@ function telaEditor(){
             <div class="campo">
               <label for="nickEditor">Insira seu nick do Habbo</label>
               <div class="linha-nick">
-                <input class="figura" id="nickEditor" placeholder="Seu nick no Habbo" value="${esc(prov.nick)}">
+                <input class="figura" id="nickEditor" placeholder="Seu nick no Habbo" value="${esc(ed.nick)}">
                 <button class="opt" id="buscarNickEditor">Carregar</button>
               </div>
               <p class="dica" id="avisoNickEditor">As peças escolhidas abaixo são aplicadas por cima do seu visual.</p>
@@ -8206,13 +8208,13 @@ function telaEditor(){
             <details class="campo">
               <summary class="dica" style="cursor:pointer">Colar o visual manualmente</summary>
               <input class="figura" id="figLivreEditor" style="margin-top:8px"
-                     placeholder="hd-180-1.hr-828-45.ch-210-66..." value="${esc(prov.figLivre)}">
+                     placeholder="hd-180-1.hr-828-45.ch-210-66..." value="${esc(ed.figLivre)}">
             </details>
             <div class="campo">
               <label>Gênero</label>
               <div class="opcoes">
-                <button class="opt" data-campo="genero" data-valor="M" aria-pressed="${prov.genero === "M"}">♂ Masculino</button>
-                <button class="opt" data-campo="genero" data-valor="F" aria-pressed="${prov.genero === "F"}">♀ Feminino</button>
+                <button class="opt" data-campo="genero" data-valor="M" aria-pressed="${ed.genero === "M"}">♂ Masculino</button>
+                <button class="opt" data-campo="genero" data-valor="F" aria-pressed="${ed.genero === "F"}">♀ Feminino</button>
               </div>
             </div>
             <div class="campo">
@@ -8234,13 +8236,13 @@ function telaEditor(){
 
   function atualizarEditor(){
     document.getElementById("espelhoEditorImg").src =
-      urlAvatar(figuraMultipla(), { dir: prov.dir, acao: prov.acao, size: "l", genero: prov.genero });
+      urlAvatar(figuraMultipla(), { dir: ed.dir, acao: ed.acao, size: "l", genero: ed.genero });
   }
 
   document.getElementById("voltarEditor").onclick = () => { location.hash = ""; };
 
   app.querySelectorAll("[data-campo]").forEach(b => b.onclick = () => {
-    prov[b.dataset.campo] = b.dataset.valor;
+    ed[b.dataset.campo] = b.dataset.valor;
     telaEditor();
   });
 
@@ -8280,8 +8282,8 @@ function telaEditor(){
     app.querySelectorAll(".cores-rolagem").forEach((c, i) => { c.scrollTop = rolagens[i] || 0; });
   });
 
-  document.getElementById("girarEsqEditor").onclick = () => { prov.dir = (prov.dir + 1) % 8; atualizarEditor(); };
-  document.getElementById("girarDirEditor").onclick = () => { prov.dir = (prov.dir + 7) % 8; atualizarEditor(); };
+  document.getElementById("girarEsqEditor").onclick = () => { ed.dir = (ed.dir + 1) % 8; atualizarEditor(); };
+  document.getElementById("girarDirEditor").onclick = () => { ed.dir = (ed.dir + 7) % 8; atualizarEditor(); };
   document.getElementById("copiarCodigoEditor").onclick = async () => {
     const codigo = figuraMultipla();
     const msg = document.getElementById("copiarCodigoMsg");
@@ -8307,7 +8309,7 @@ function telaEditor(){
     const msg = document.getElementById("copiarCodigoMsg");
     msg.textContent = "Salvando...";
     const publico = document.getElementById("publicoVisualEditor").checked;
-    const resultado = await salvarVisual(campoNomeVisual.value, figuraMultipla(), prov.genero, publico);
+    const resultado = await salvarVisual(campoNomeVisual.value, figuraMultipla(), ed.genero, publico);
     if (resultado.ok) {
       formSalvar.hidden = true;
       campoNomeVisual.value = "";
@@ -8322,7 +8324,7 @@ function telaEditor(){
     if (e.key === "Escape") formSalvar.hidden = true;
   };
 
-  document.getElementById("figLivreEditor").oninput = e => { prov.figLivre = e.target.value; atualizarEditor(); };
+  document.getElementById("figLivreEditor").oninput = e => { ed.figLivre = e.target.value; atualizarEditor(); };
 
   const campoNickEditor = document.getElementById("nickEditor");
   const avisoEditor = document.getElementById("avisoNickEditor");
@@ -8339,9 +8341,9 @@ function telaEditor(){
       if (!r.ok) throw new Error("nao encontrado");
       const dados = await r.json();
       if (!dados.figureString) throw new Error("sem visual");
-      prov.figLivre = dados.figureString;
-      prov.nick = nick;
-      if (dados.gender) prov.genero = dados.gender;
+      ed.figLivre = dados.figureString;
+      ed.nick = nick;
+      if (dados.gender) ed.genero = dados.gender;
       document.getElementById("figLivreEditor").value = dados.figureString;
       avisoEditor.textContent = "Visual de " + nick + " carregado.";
       atualizarEditor();
