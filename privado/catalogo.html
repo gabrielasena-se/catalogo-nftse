@@ -65,6 +65,7 @@ a{color:var(--ouro)}
 }
 .busca::placeholder{color:#a066c8}
 .busca:focus{outline:2px solid var(--ouro);outline-offset:1px}
+.busca-favoritos{display:block;width:100%;max-width:420px;margin:0 0 16px;box-sizing:border-box}
 /* "x" de limpar a busca, nas cores do site */
 .busca::-webkit-search-cancel-button{
   -webkit-appearance:none;appearance:none;width:16px;height:16px;cursor:pointer;
@@ -4862,7 +4863,7 @@ function textoDeBusca(it){
 // Peças que o gerador de imagens do Habbo (avatarimage) ainda não desenha, ou desenha pela metade,
 // embora apareçam dentro do jogo. Vão para o fim da lista no editor e ganham um aviso.
 // Quando o Habbo atualizar o gerador, é só tirar daqui.
-const SEM_IMAGEM_HABBO = { ca:[5984], pt:[6342], sh:[5928], wa:[5674,5676,5719,5775,5778,5780,5782,5784,5786,6392,6394] };
+const SEM_IMAGEM_HABBO = { ca:[5984], ch:[5168,5202], pt:[6342], sh:[5928], wa:[5674,5676,5719,5775,5778,5780,5782,5784,5786,6392,6394] };
 const semImagemHabbo = (tipo, id) => !!(SEM_IMAGEM_HABBO[tipo] && SEM_IMAGEM_HABBO[tipo].includes(+id));
 const pecaSemImagem = peca => String(peca || "").split(".").some(p => { const [t, id] = p.split("-"); return semImagemHabbo(t, id); });
 const AVISO_SEM_IMAGEM = "Imagem temporariamente indisponível";
@@ -5051,18 +5052,40 @@ function telaGrade(){
   ligarCliquesGrade();
 }
 
+// Filtro da página de favoritos: aba (todos, visuais, mobis, balões) e busca só dentro dos favoritos.
+let favAba = "todos", favTermo = "";
+
 function telaFavoritos(){
-  const lista = CATALOGO.filter(it => meusFavoritos.has(it.slug));
+  const todos = CATALOGO.filter(it => meusFavoritos.has(it.slug));
+  const abas = [{ id:"todos", rotulo:"Todos" }, ...ABAS].map(a => {
+    const n = a.id === "todos" ? todos.length : todos.filter(it => it.tipo === a.id).length;
+    return `<button class="aba" role="tab" aria-selected="${a.id === favAba}" data-fav-aba="${a.id}">${a.rotulo} (${n})</button>`;
+  }).join("");
 
   app.innerHTML = `
     <div class="envoltorio">
       <button class="voltar" id="voltarFav">&lt; Voltar ao catálogo</button>
       <h1 style="margin:0 0 16px">Meus favoritos</h1>
-      <div class="grade">${cardsHTML(lista, "Você ainda não favoritou nenhum item. Clique no coração de um item pra guardar ele aqui.")}</div>
+      <div class="abas" role="tablist" style="padding:0;margin:0 0 12px">${abas}</div>
+      <input class="busca busca-favoritos" id="buscaFav" type="search" placeholder="Buscar nos favoritos..." value="${esc(favTermo)}">
+      <div class="grade" id="gradeFav"></div>
     </div>`;
 
+  const desenharGrade = () => {
+    const busca = semAcento(favTermo.trim());
+    const lista = todos.filter(it => (favAba === "todos" || it.tipo === favAba) && textoDeBusca(it).includes(busca));
+    const vazio = !todos.length
+      ? "Você ainda não favoritou nenhum item. Clique no coração de um item pra guardar ele aqui."
+      : favTermo.trim() ? `Nenhum favorito encontrado para “${esc(favTermo)}”.` : "Nenhum favorito nesta aba.";
+    document.getElementById("gradeFav").innerHTML = cardsHTML(lista, vazio);
+    ligarCliquesGrade();
+  };
+  desenharGrade();
+
   document.getElementById("voltarFav").onclick = () => { location.hash = ""; };
-  ligarCliquesGrade();
+  app.querySelectorAll("[data-fav-aba]").forEach(b => b.onclick = () => { favAba = b.dataset.favAba; telaFavoritos(); });
+  // só redesenha a grade, para a caixa de busca não perder o foco enquanto a pessoa digita
+  document.getElementById("buscaFav").oninput = e => { favTermo = e.target.value; desenharGrade(); };
 }
 
 /* --------------------------- visuais salvos ------------------------------ */
@@ -7987,7 +8010,8 @@ for (const tipo in INFO_ITENS_EDITOR) {
 
 // Peças de "hd" que substituem a cabeça inteira — quando uma destas está
 // selecionada, o cabelo (hr) não deve aparecer por cima, mesmo que esteja escolhido.
-const HD_SEM_CABELO_EDITOR = new Set(["6519","6520"]);
+// (O Espantalho Assustador, 6519/6520, saiu daqui: no jogo ele pode ser usado com cabelo.)
+const HD_SEM_CABELO_EDITOR = new Set([]);
 
 function removerCabeloEditor(lista){
   return lista.filter(p => p.split("-")[0] !== "hr");
