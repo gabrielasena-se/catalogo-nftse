@@ -202,6 +202,32 @@ a{color:var(--ouro)}
   font-family:var(--pixel);font-size:12px;padding:13px 20px;text-decoration:none;
 }
 .cta:active{border-bottom-width:1px;transform:translateY(2px)}
+button.cta{cursor:pointer}
+button.cta:disabled{opacity:.55;cursor:default;transform:none}
+.cta-na-sacola{background:linear-gradient(180deg,#7a3ad0,#4d1f8c);border-bottom-color:#2a0f52}
+.ver-sacola{display:inline-block;margin:18px 0 0 12px;color:var(--ouro);font-size:13px;font-weight:700;text-decoration:none}
+
+/* ---------- sacola ---------- */
+.sacola-todos{display:inline-flex;align-items:center;gap:8px;margin:0 0 10px;color:var(--mudo);font-size:13px;cursor:pointer}
+.sacola-lista{display:flex;flex-direction:column;gap:8px;max-width:720px}
+.sacola-linha{
+  display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;
+  background:var(--painel);border:1px solid var(--linha);
+}
+.sacola-marca input,.sacola-todos input{width:18px;height:18px;accent-color:#ff2ee0;cursor:pointer}
+.sacola-arte{width:56px;height:56px;flex:none;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--tile)}
+.sacola-arte img{width:100%;height:100%;object-fit:contain}
+.sacola-arte .vazio{font-size:9px;color:var(--mudo);text-align:center}
+.sacola-nome{flex:1;min-width:0;color:var(--texto);text-decoration:none;display:flex;flex-direction:column;gap:2px}
+.sacola-nome span{color:var(--mudo);font-size:12px}
+.sacola-tirar{flex:none;padding:6px 10px;font-size:11px}
+.sacola-ok{
+  margin-top:16px;max-width:720px;padding:14px 16px;border-radius:10px;
+  border:1px solid var(--ouro);background:rgba(255,46,224,.08);
+}
+.sacola-ok p{margin:0}
+.sacola-ok textarea{width:100%;margin-top:10px;box-sizing:border-box;resize:vertical}
+.sacola-ok .cta{margin-top:12px}
 
 .secao{margin-top:34px}
 .secao h2{font-family:var(--pixel);font-size:12px;color:var(--mudo);margin:0 0 12px}
@@ -344,7 +370,14 @@ a{color:var(--ouro)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* ---------- autenticação / favoritos ---------- */
-.auth-area{font-size:12px;color:var(--mudo);display:flex;align-items:center;gap:8px}
+.auth-area{font-size:12px;color:var(--mudo);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.auth-entrar{white-space:nowrap}
+.botao-sacola{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:5px 9px}
+.botao-sacola svg{width:18px;height:18px;display:block}
+.sacola-qtd{
+  position:absolute;top:-7px;right:-7px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;
+  border-radius:9px;background:#ff2ee0;color:#fff;font-size:10px;font-weight:800;line-height:17px;text-align:center;
+}
 .auth-entrar,.auth-sair{
   background:none;border:1px solid var(--topo-linha);color:var(--texto);
   border-radius:5px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:var(--corpo);
@@ -5054,6 +5087,96 @@ function telaGrade(){
   ligarCliquesGrade();
 }
 
+// Página da sacola: itens com caixinha de marcar e o botão "Perguntar o preço".
+let desmarcadosSacola = new Set();   // começa tudo marcado; guarda só o que a pessoa desmarcou
+
+function telaSacola(){
+  const itens = CATALOGO.filter(it => minhaSacola.has(it.slug))
+    .sort((a, b) => a.pt.localeCompare(b.pt, "pt-BR", { sensitivity:"base" }));
+  const rotuloTipo = t => (ABAS.find(a => a.id === t) || {}).rotulo || "";
+  const marcados = () => itens.filter(it => !desmarcadosSacola.has(it.slug));
+
+  app.innerHTML = `
+    <div class="envoltorio">
+      <button class="voltar" id="voltarSacola">&lt; Voltar ao catálogo</button>
+      <h1 style="margin:0 0 6px">Minha sacola</h1>
+      <p class="dica" style="margin:0 0 16px">Marque os itens que você quer e clique em <b>Perguntar o preço</b>: a equipe da NFT-SE recebe a sua lista.</p>
+      ${!itens.length ? `<p style="color:var(--mudo)">Sua sacola está vazia. Abra um item e clique em <b>Adicionar à sacola</b>.</p>` : `
+        <label class="sacola-todos"><input type="checkbox" id="sacolaTodos"> Marcar todos</label>
+        <div class="sacola-lista">
+          ${itens.map(it => `
+            <div class="sacola-linha">
+              <label class="sacola-marca"><input type="checkbox" data-marca="${esc(it.slug)}" ${desmarcadosSacola.has(it.slug) ? "" : "checked"}></label>
+              <a href="#item/${esc(it.slug)}" class="sacola-arte">${cardArte(it)}</a>
+              <a href="#item/${esc(it.slug)}" class="sacola-nome"><b>${esc(it.pt)}</b><span>${esc(it.en)} · ${esc(rotuloTipo(it.tipo))}</span></a>
+              <button type="button" class="opt sacola-tirar" data-tirar="${esc(it.slug)}" title="Tirar da sacola">Tirar</button>
+            </div>`).join("")}
+        </div>
+        <button type="button" class="cta" id="perguntarPreco" style="margin-top:16px"></button>
+        <div id="sacolaResultado"></div>`}
+    </div>`;
+
+  document.getElementById("voltarSacola").onclick = () => { location.hash = ""; };
+  if (!itens.length) return;
+
+  const botao = document.getElementById("perguntarPreco");
+  const todos = document.getElementById("sacolaTodos");
+  const atualizarBotao = () => {
+    const n = marcados().length;
+    botao.textContent = n ? `Perguntar o preço (${n} ${n === 1 ? "item" : "itens"})` : "Marque pelo menos um item";
+    botao.disabled = !n;
+    todos.checked = n === itens.length;
+  };
+  atualizarBotao();
+
+  app.querySelectorAll("[data-marca]").forEach(c => c.onchange = () => {
+    if (c.checked) desmarcadosSacola.delete(c.dataset.marca); else desmarcadosSacola.add(c.dataset.marca);
+    atualizarBotao();
+  });
+  todos.onchange = () => {
+    itens.forEach(it => { if (todos.checked) desmarcadosSacola.delete(it.slug); else desmarcadosSacola.add(it.slug); });
+    app.querySelectorAll("[data-marca]").forEach(c => { c.checked = todos.checked; });
+    atualizarBotao();
+  };
+  app.querySelectorAll("[data-tirar]").forEach(b => b.onclick = () => toggleSacola(b.dataset.tirar));
+
+  botao.onclick = async () => {
+    const lista = marcados();
+    const resultado = document.getElementById("sacolaResultado");
+    botao.disabled = true; botao.textContent = "Enviando...";
+    try {
+      const r = await apiFetch(API_BASE + "/api/sacola", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "perguntar", itens: lista.map(it => ({ slug: it.slug, nome: it.pt, nomeIngles: it.en, tipo: it.tipo })) })
+      });
+      const dados = await r.json();
+      if (!r.ok) { resultado.innerHTML = `<p class="aviso-sem-imagem">${esc(dados.erro || "Não consegui enviar agora. Tente de novo em instantes.")}</p>`; atualizarBotao(); return; }
+      if (dados.modo === "bot") {
+        resultado.innerHTML = `
+          <div class="sacola-ok">
+            <p><b>Pronto! Seu ticket foi aberto no Discord</b> com ${lista.length === 1 ? "o item" : `os ${lista.length} itens`} que você escolheu. A equipe vai te responder por lá.</p>
+            <a class="cta" href="${esc(dados.link)}" target="_blank" rel="noopener">Ir para o ticket</a>
+          </div>`;
+      } else {
+        // o bot ainda não abre o ticket sozinho: a lista vai para a equipe e fica copiada para a pessoa colar no ticket
+        const texto = "Quero saber o preço de:\n" + lista.map(it => `• ${it.pt} (${it.en})`).join("\n");
+        let copiou = false;
+        try { await navigator.clipboard.writeText(texto); copiou = true; } catch (e) {}
+        resultado.innerHTML = `
+          <div class="sacola-ok">
+            <p><b>Enviamos a sua lista para a equipe da NFT-SE!</b> Agora é só abrir um ticket no Discord${copiou ? " e colar a lista (ela já está copiada)" : " e colar a lista abaixo"}.</p>
+            ${copiou ? "" : `<textarea class="figura" rows="${Math.min(8, lista.length + 1)}" readonly>${esc(texto)}</textarea>`}
+            <a class="cta" href="${esc(dados.link)}" target="_blank" rel="noopener">Abrir o canal de tickets</a>
+          </div>`;
+      }
+      botao.textContent = "Pedido enviado ✓";
+    } catch (e) {
+      resultado.innerHTML = `<p class="aviso-sem-imagem">Não consegui enviar agora. Tente de novo em instantes.</p>`;
+      atualizarBotao();
+    }
+  };
+}
+
 // Filtro da página de favoritos: aba (todos, visuais, mobis, balões) e busca só dentro dos favoritos.
 let favAba = "todos", favTermo = "";
 
@@ -8626,7 +8749,6 @@ function telaItem(it){
       </div>
     </section>` : "";
 
-  const msg = encodeURIComponent(it.pt);
   app.innerHTML = `
     <div class="envoltorio">
       <button class="voltar" id="voltar">&lt; Voltar ao catálogo</button>
@@ -8644,8 +8766,10 @@ function telaItem(it){
           ${tagsDoItem(it).length ? `<div class="tags-item">${tagsDoItem(it).map(t =>
             `<button type="button" class="tag-item" data-tag="${esc(t)}" title="Buscar itens com essa tag">#${esc(t)}</button>`).join("")}</div>` : ""}
           <p class="desc">${esc(it.desc || "")}</p>
-          <a class="cta" href="${DISCORD_TICKET}" target="_blank" rel="noopener"
-             data-item="${msg}">Tenho interesse</a>
+          <button type="button" class="cta${minhaSacola.has(it.slug) ? " cta-na-sacola" : ""}" data-sacola="${esc(it.slug)}"
+            title="${minhaSacola.has(it.slug) ? "Clique para tirar da sacola" : "Guarde na sacola para perguntar o preço"}">
+            ${minhaSacola.has(it.slug) ? "✓ Na sacola" : "Adicionar à sacola"}</button>
+          ${minhaSacola.has(it.slug) ? `<a href="#sacola" class="ver-sacola">Ver sacola →</a>` : ""}
         </div>
       </div>
       ${gifs ? `<div class="linha-movimento">${gifs}</div>` : ""}
@@ -8671,6 +8795,20 @@ function telaItem(it){
   });
   const botaoFav = app.querySelector("[data-fav]");
   if (botaoFav) botaoFav.onclick = () => toggleFavorito(botaoFav.dataset.fav);
+  // sacola: troca só o botão, sem redesenhar a página (e sem voltar para o topo)
+  const botaoSacola = app.querySelector("[data-sacola]");
+  if (botaoSacola) botaoSacola.onclick = async () => {
+    botaoSacola.disabled = true;
+    await toggleSacola(it.slug, false);
+    botaoSacola.disabled = false;
+    const tem = minhaSacola.has(it.slug);
+    botaoSacola.classList.toggle("cta-na-sacola", tem);
+    botaoSacola.textContent = tem ? "✓ Na sacola" : "Adicionar à sacola";
+    botaoSacola.title = tem ? "Clique para tirar da sacola" : "Guarde na sacola para perguntar o preço";
+    const link = app.querySelector(".ver-sacola");
+    if (tem && !link) botaoSacola.insertAdjacentHTML("afterend", `<a href="#sacola" class="ver-sacola">Ver sacola →</a>`);
+    if (!tem && link) link.remove();
+  };
   if (ehRoupa) ligarProvador(it);
 }
 
@@ -8966,10 +9104,46 @@ async function toggleFavorito(slug){
   }
 }
 
+/* ------------------------------ sacola ---------------------------------- */
+// Itens que a pessoa quer perguntar o preço; ficam guardados na conta do Discord (api/sacola.js).
+let minhaSacola = new Set();
+
+async function carregarSacola(){
+  try {
+    const r = await apiFetch(API_BASE + "/api/sacola");
+    const dados = await r.json();
+    minhaSacola = new Set(dados.itens || []);
+    renderAuthArea();
+  } catch (e) {
+    // sem servidor da sacola: o site continua funcionando
+  }
+}
+
+async function toggleSacola(slug, redesenhar = true){
+  if (estadoSessao !== "ATIVA") return;
+  try {
+    const r = await apiFetch(API_BASE + "/api/sacola", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug })
+    });
+    const dados = await r.json();
+    if (!r.ok) { alert(dados.erro || "Não consegui mexer na sacola agora."); return; }
+    minhaSacola = new Set(dados.itens || []);
+    renderAuthArea();
+    if (redesenhar) render();
+  } catch (e) {
+    if (estadoSessao === "ATIVA") alert("Não consegui falar com o servidor da sacola agora.");
+  }
+}
+
 function renderAuthArea(){
   const el = document.getElementById("authArea");
   if (!sessao) { el.innerHTML = ""; return; }
-  el.innerHTML = `<a href="#favoritos" class="auth-entrar">♥ Favoritos</a>
+  const qtdSacola = minhaSacola.size;
+  el.innerHTML = `<a href="#sacola" class="auth-entrar botao-sacola" title="Sacola${qtdSacola ? ` (${qtdSacola})` : ""}" aria-label="Sacola, ${qtdSacola} ${qtdSacola === 1 ? "item" : "itens"}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 8h14l-1.2 12.1a1 1 0 0 1-1 .9H7.2a1 1 0 0 1-1-.9z"/><path d="M9 10V6.5a3 3 0 0 1 6 0V10"/></svg>
+      ${qtdSacola ? `<span class="sacola-qtd">${qtdSacola}</span>` : ""}</a>
+    <a href="#favoritos" class="auth-entrar">♥ Favoritos</a>
     <a href="#visuais" class="auth-entrar">Meus visuais</a>
     <span class="auth-nick" title="${esc(sessao.habboName)}">${esc(sessao.habboName)}</span>
     <button type="button" class="auth-sair" id="sairBtn">sair</button>`;
@@ -9336,6 +9510,7 @@ function registrarPagina(rota, entrada){
   }
   else if (rota === "favoritos") titulo = "Favoritos";
   else if (rota === "visuais") titulo = "Meus visuais";
+  else if (rota === "sacola") titulo = "Sacola";
   else if (rota === "editor") titulo = "Editor de Visuais";
   apiFetch(API_BASE + "/api/registro", {
     method: "POST", headers: { "Content-Type": "application/json" },
@@ -9363,6 +9538,7 @@ function render(){
   }
   if (rota === "favoritos") { telaFavoritos(); if (mudouDeTela) voltarPosicao(); return; }
   if (rota === "visuais") { telaVisuais(); window.scrollTo(0, 0); return; }
+  if (rota === "sacola") { telaSacola(); if (mudouDeTela) window.scrollTo(0, 0); return; }
   if (rota === "editor") { telaEditor(); window.scrollTo(0, 0); return; }
   telaGrade();
   if (mudouDeTela) voltarPosicao();
@@ -9379,7 +9555,7 @@ window.addEventListener("hashchange", render);
   if (estadoSessao !== "ATIVA") { encerrarNaTela("EXPIRADA"); return; }
   renderAuthArea();
   render();
-  await Promise.all([carregarCatalogoExtra(), carregarFavoritos()]);
+  await Promise.all([carregarCatalogoExtra(), carregarFavoritos(), carregarSacola()]);
   if (estadoSessao !== "ATIVA") return;
   montarPainelAdmin();
   render();
