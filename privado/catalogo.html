@@ -9271,21 +9271,39 @@ function montarPainelAdminCompleto(){
 
 /* ----------------------------- roteamento ------------------------------- */
 
+// Posição de rolagem das listas (catálogo e favoritos): ao abrir um item e voltar,
+// a página volta para onde a pessoa tinha parado, em vez de ir para o topo.
+const posicaoLista = {};
+let rotaAnterior = null;
+try { history.scrollRestoration = "manual"; } catch (e) {}
+const ehLista = r => r === "" || r === "favoritos";
+
 function render(){
   if (estadoSessao !== "ATIVA") return;
   const rota = location.hash.replace(/^#\/?/, "");
+  const mudouDeTela = rota !== rotaAnterior;
+  // saindo de uma lista: guarda onde estava
+  if (mudouDeTela && rotaAnterior !== null && ehLista(rotaAnterior)) posicaoLista[rotaAnterior] = window.scrollY;
+  rotaAnterior = rota;
+  const voltarPosicao = () => {
+    const y = posicaoLista[rota] || 0;
+    window.scrollTo(0, y);
+    setTimeout(() => window.scrollTo(0, y), 0);   // de novo depois que as imagens ocuparem o lugar
+  };
   if (rota.startsWith("item/")) {
     const it = CATALOGO.find(i => i.slug === rota.slice(5));
     if (it) { telaItem(it); window.scrollTo(0, 0); return; }
   }
-  if (rota === "favoritos") { telaFavoritos(); window.scrollTo(0, 0); return; }
+  if (rota === "favoritos") { telaFavoritos(); if (mudouDeTela) voltarPosicao(); return; }
   if (rota === "visuais") { telaVisuais(); window.scrollTo(0, 0); return; }
   if (rota === "editor") { telaEditor(); window.scrollTo(0, 0); return; }
   telaGrade();
+  if (mudouDeTela) voltarPosicao();
 }
 
 document.getElementById("busca").oninput = e => {
   termo = e.target.value;
+  posicaoLista[""] = 0;   // busca nova: a lista começa do topo
   if (location.hash) location.hash = ""; else render();
 };
 window.addEventListener("hashchange", render);
