@@ -95,6 +95,7 @@ a{color:var(--ouro)}
 .quarto-mobi .dica{padding:12px}
 .cena-quarto{position:absolute;left:50%;top:50%;transform-origin:0 0}
 .cena-quarto svg,.cena-quarto img{position:absolute;left:0;top:0;max-width:none;image-rendering:pixelated}
+.cena-quarto .mobi-animado{position:absolute;image-rendering:pixelated}
 .teste-balao-campos{display:flex;flex-wrap:wrap;gap:12px;max-width:560px;margin:0 0 6px}
 .teste-balao-campos label{flex:1 1 220px;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mudo)}
 .teste-balao-campos input{margin-top:0}
@@ -9189,6 +9190,40 @@ async function carregarQuarto(it){
   };
   ajustar();
   if (window.ResizeObserver) new ResizeObserver(ajustar).observe(caixa);
+
+  // Mobi que se mexe no jogo (chama, água, TV...): troca a imagem parada pela tirinha com todos os
+  // quadros e vai passando um por um. Quem pediu "menos movimento" no aparelho continua vendo a parada.
+  const anim = (await carregarAnimadosMobis())[it.slug];
+  if (!anim || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+  const [quadros, aw, ah, aox, aoy] = anim;
+  const imgParada = cena.querySelector("img");
+  const tira = new Image();
+  tira.onload = () => {
+    if (!document.body.contains(imgParada)) return;   // a pessoa já saiu da página
+    const d = document.createElement("div");
+    d.className = "mobi-animado";
+    d.setAttribute("role", "img");
+    d.setAttribute("aria-label", imgParada.alt);
+    // mesmo ponto de apoio da imagem parada
+    d.style.cssText = `left:${imgX + ox - aox}px;top:${imgY + oy - aoy}px;width:${aw}px;height:${ah}px;` +
+      `background:url("${tira.src}") 0 0/${quadros * aw}px ${ah}px no-repeat`;
+    imgParada.replaceWith(d);
+    let k = 0;
+    const timer = setInterval(() => {
+      if (!document.body.contains(d)) { clearInterval(timer); return; }
+      k = (k + 1) % quadros;
+      d.style.backgroundPosition = `${-k * aw}px 0`;
+    }, 1000 / QUADROS_POR_SEGUNDO);
+  };
+  tira.src = `/mobis/anim/${encodeURIComponent(it.slug)}.png`;
+}
+
+// Animações dos mobis: /mobis/anim/animados.json = { slug: [quadros, largura, altura, origemX, origemY] }
+const QUADROS_POR_SEGUNDO = 12;
+let animadosMobis = null;
+async function carregarAnimadosMobis(){
+  if (!animadosMobis) animadosMobis = fetch("/mobis/anim/animados.json").then(r => r.json()).catch(() => ({}));
+  return animadosMobis;
 }
 
 /* ------------------- "Teste o balão": o avatar falando com o balão ------------------- */
