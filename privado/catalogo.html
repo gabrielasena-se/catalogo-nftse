@@ -5109,7 +5109,7 @@ function telaSacola(){
               <label class="sacola-marca"><input type="checkbox" data-marca="${esc(it.slug)}" ${desmarcadosSacola.has(it.slug) ? "" : "checked"}></label>
               <a href="#item/${esc(it.slug)}" class="sacola-arte">${cardArte(it)}</a>
               <a href="#item/${esc(it.slug)}" class="sacola-nome"><b>${esc(it.pt)}</b><span>${esc(it.en)} · ${esc(rotuloTipo(it.tipo))}</span></a>
-              <button type="button" class="opt sacola-tirar" data-tirar="${esc(it.slug)}" title="Tirar da sacola">Tirar</button>
+              <button type="button" class="opt sacola-tirar" data-tirar="${esc(it.slug)}" title="Remover da sacola">Remover</button>
             </div>`).join("")}
         </div>
         <button type="button" class="cta" id="perguntarPreco" style="margin-top:16px"></button>
@@ -5164,7 +5164,7 @@ function telaSacola(){
         try { await navigator.clipboard.writeText(texto); copiou = true; } catch (e) {}
         resultado.innerHTML = `
           <div class="sacola-ok">
-            <p><b>Enviamos a sua lista para a equipe da NFT-SE!</b> Agora é só abrir um ticket no Discord${copiou ? " e colar a lista (ela já está copiada)" : " e colar a lista abaixo"}.</p>
+            <p><b>Enviamos a sua lista para o atendimento da NFT-SE!</b> Agora é só abrir um ticket no Discord${copiou ? " e colar a lista (ela já está copiada)" : " e colar a lista abaixo"}.</p>
             ${copiou ? "" : `<textarea class="figura" rows="${Math.min(8, lista.length + 1)}" readonly>${esc(texto)}</textarea>`}
             <a class="cta" href="${esc(dados.link)}" target="_blank" rel="noopener">Abrir o canal de tickets</a>
           </div>`;
@@ -8767,7 +8767,7 @@ function telaItem(it){
             `<button type="button" class="tag-item" data-tag="${esc(t)}" title="Buscar itens com essa tag">#${esc(t)}</button>`).join("")}</div>` : ""}
           <p class="desc">${esc(it.desc || "")}</p>
           <button type="button" class="cta${minhaSacola.has(it.slug) ? " cta-na-sacola" : ""}" data-sacola="${esc(it.slug)}"
-            title="${minhaSacola.has(it.slug) ? "Clique para tirar da sacola" : "Guarde na sacola para perguntar o preço"}">
+            title="${minhaSacola.has(it.slug) ? "Clique para remover da sacola" : "Guarde na sacola para perguntar o preço"}">
             ${minhaSacola.has(it.slug) ? "✓ Na sacola" : "Adicionar à sacola"}</button>
           ${minhaSacola.has(it.slug) ? `<a href="#sacola" class="ver-sacola">Ver sacola →</a>` : ""}
         </div>
@@ -8804,7 +8804,7 @@ function telaItem(it){
     const tem = minhaSacola.has(it.slug);
     botaoSacola.classList.toggle("cta-na-sacola", tem);
     botaoSacola.textContent = tem ? "✓ Na sacola" : "Adicionar à sacola";
-    botaoSacola.title = tem ? "Clique para tirar da sacola" : "Guarde na sacola para perguntar o preço";
+    botaoSacola.title = tem ? "Clique para remover da sacola" : "Guarde na sacola para perguntar o preço";
     const link = app.querySelector(".ver-sacola");
     if (tem && !link) botaoSacola.insertAdjacentHTML("afterend", `<a href="#sacola" class="ver-sacola">Ver sacola →</a>`);
     if (!tem && link) link.remove();
