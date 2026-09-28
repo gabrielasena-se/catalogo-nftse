@@ -9091,6 +9091,11 @@ function montarPainelAdminCompleto(){
     </label>
     <div id="faixaResultados" class="dica" style="margin-top:8px"></div>
 
+    <h3 style="margin-top:24px">Acessos</h3>
+    <p class="dica" style="margin:0">Quem abriu o catálogo e quais páginas viu (últimos 30 dias).</p>
+    <button type="button" class="opt" id="acessosVer" style="margin-top:8px">Ver acessos</button>
+    <div id="acessosLista" class="dica" style="margin-top:8px"></div>
+
     <h3 style="margin-top:24px">Tags de busca de um item</h3>
     <p class="dica" style="margin:0">Escreva as tags do item separadas por vírgula (ex: fofo, rosa, festa). Elas aparecem na página do item e ajudam na busca.</p>
     <label>Buscar pelo nome
@@ -9227,6 +9232,47 @@ function montarPainelAdminCompleto(){
     });
   }
   document.getElementById("tagsBuscarBtn").onclick = buscarItensTags;
+
+  /* ----- acessos: quem entrou e quais páginas viu ----- */
+
+  document.getElementById("acessosVer").onclick = async () => {
+    const lista = document.getElementById("acessosLista");
+    const adminSecret = document.getElementById("adminSecret").value;
+    if (!adminSecret) { lista.textContent = "Preencha sua senha de admin ali em cima primeiro."; return; }
+    lista.textContent = "Carregando...";
+    try {
+      const r = await apiFetch(API_BASE + "/api/registro", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "listar", adminSecret })
+      });
+      const dados = await r.json();
+      if (!r.ok) { lista.textContent = dados.erro || "Não consegui carregar."; return; }
+      const acessos = dados.acessos || [];
+      if (!acessos.length) { lista.textContent = "Nenhum acesso registrado ainda."; return; }
+      const agora = Date.now();
+      const pessoas = dias => new Set(acessos.filter(a => agora - a.t < dias * 864e5).map(a => a.id)).size;
+      const quando = t => new Date(t).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+      // agrupa em visitas: páginas seguidas da mesma pessoa com menos de 30 min entre elas
+      const visitas = [];
+      for (const a of acessos) {   // do mais novo para o mais antigo
+        const v = visitas.find(x => x.id === a.id && x.inicio - a.t < 30 * 60e3 && !x.fechada);
+        if (v) { v.paginas.unshift(a.titulo); v.inicio = a.t; }
+        else {
+          visitas.forEach(x => { if (x.id === a.id) x.fechada = true; });
+          visitas.push({ id: a.id, nick: a.nick, inicio: a.t, paginas: [a.titulo] });
+        }
+      }
+      lista.innerHTML = `
+        <p style="margin:0 0 8px">Pessoas diferentes: <b>${pessoas(1)}</b> nas últimas 24h · <b>${pessoas(7)}</b> em 7 dias · <b>${pessoas(30)}</b> em 30 dias</p>
+        ${visitas.slice(0, 100).map(v => `
+          <div style="padding:6px 0;border-bottom:1px solid var(--linha)">
+            <b>${esc(v.nick || "?")}</b> <span style="opacity:.6">${quando(v.inicio)}</span><br>
+            <span style="opacity:.85">${v.paginas.map(esc).join(" → ")}</span>
+          </div>`).join("")}`;
+    } catch (e) {
+      lista.textContent = "Não consegui carregar os acessos agora.";
+    }
+  };
   document.getElementById("tagsBusca").addEventListener("keydown", e => { if (e.key === "Enter") buscarItensTags(); });
   document.getElementById("faixaBusca").addEventListener("keydown", e => { if (e.key === "Enter") buscarItensFaixa(); });
 
@@ -9280,10 +9326,29 @@ let rotaAnterior = null;
 try { history.scrollRestoration = "manual"; } catch (e) {}
 const ehLista = r => r === "" || r === "favoritos";
 
+// Conta para o registro de acessos qual tela a pessoa abriu (o painel de admin mostra;
+// a primeira tela de uma visita também gera o aviso no Discord).
+function registrarPagina(rota, entrada){
+  let titulo = "Catálogo";
+  if (rota.startsWith("item/")) {
+    const it = CATALOGO.find(i => i.slug === rota.slice(5));
+    titulo = it ? it.pt : "Item";
+  }
+  else if (rota === "favoritos") titulo = "Favoritos";
+  else if (rota === "visuais") titulo = "Meus visuais";
+  else if (rota === "editor") titulo = "Editor de Visuais";
+  apiFetch(API_BASE + "/api/registro", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pagina: rota || "catalogo", titulo, entrada: !!entrada })
+  }).catch(() => {});
+}
+
 function render(){
   if (estadoSessao !== "ATIVA") return;
   const rota = location.hash.replace(/^#\/?/, "");
   const mudouDeTela = rota !== rotaAnterior;
+  // rotaAnterior ainda vazio = primeira tela desde que a pessoa abriu o site (gera o aviso no Discord)
+  if (mudouDeTela) registrarPagina(rota, rotaAnterior === null);
   // saindo de uma lista: guarda onde estava
   if (mudouDeTela && rotaAnterior !== null && ehLista(rotaAnterior)) posicaoLista[rotaAnterior] = window.scrollY;
   rotaAnterior = rota;
