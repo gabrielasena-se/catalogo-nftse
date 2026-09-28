@@ -6040,6 +6040,50 @@ async function carregarFiguredataCompleto(){
   }
 }
 
+// Figuredata só para as paletas do provador (sem redesenhar o editor). Reaproveita o cache do editor.
+let figuredataPromessa = null;
+function carregarFiguredataSilencioso(){
+  if (FIGUREDATA_COMPLETO) return Promise.resolve(FIGUREDATA_COMPLETO);
+  if (!figuredataPromessa) figuredataPromessa = apiFetch(API_BASE + "/api/figuredata")
+    .then(r => r.json().then(d => { if (!r.ok || d.erro) throw new Error("erro"); return d; }))
+    .then(d => { if (!FIGUREDATA_COMPLETO) FIGUREDATA_COMPLETO = d; return FIGUREDATA_COMPLETO; })
+    .catch(() => { figuredataPromessa = null; return null; });
+  return figuredataPromessa;
+}
+
+// Cores que a pessoa escolheu no provador para o item aberto (vale também no "Experimentar no Editor").
+let provCores = { slug: "", cores: [] };
+const coresDoItem = it => provCores.slug === it.slug ? provCores.cores : [];
+
+// Quantas cores a parte aceita (pelo figuredata; sem ele, pelas cores escritas na peça).
+function coresDaParte(tipo, id, escritas){
+  const info = FIGUREDATA_COMPLETO && FIGUREDATA_COMPLETO.settypes[tipo];
+  const set = info && info.sets.find(s => s.id === id);
+  if (set) return String(set.colorable) === "1" ? set.maxCor : 0;
+  return escritas.filter(c => c && c !== "0").length;
+}
+
+// Partes do item que podem mudar de cor (pele/rosto fica com o "Tom de pele").
+function partesColoriveis(peca){
+  return String(peca || "").split(".").filter(Boolean).map(p => {
+    const [tipo, id, ...cs] = p.split("-");
+    return { tipo, id, cs, n: tipo === "hd" ? 0 : coresDaParte(tipo, id, cs) };
+  }).filter(x => x.n > 0);
+}
+
+// Troca as cores da peça pelas escolhidas (a 1ª cor em todas as partes, a 2ª onde houver).
+function pecaComCores(peca, cores){
+  if (!cores || !cores.some(Boolean)) return peca;
+  return String(peca).split(".").map(p => {
+    const [tipo, id, ...cs] = p.split("-");
+    const n = tipo === "hd" ? 0 : coresDaParte(tipo, id, cs);
+    if (!n) return p;
+    const novas = [];
+    for (let i = 0; i < n; i++) { const c = cores[i] || cs[i]; if (!c) break; novas.push(c); }
+    return [tipo, id, ...novas].join("-");
+  }).join(".");
+}
+
 // "Experimentar no Editor de Visuais" (página do item): veste as partes do item no editor.
 // As peças escolhidas ficam por cima do visual base, então continuam vestidas mesmo que a
 // pessoa carregue o próprio avatar (nick) depois. Se o gênero mudar, troca para a versão do outro gênero.
@@ -6055,7 +6099,7 @@ function partesDaPeca(peca){
 function experimentarNoEditor(it){
   if (it.genero && ed.genero !== it.genero) ed.genero = it.genero;   // item de um gênero só
   editorItemExperimentado = it;
-  const partes = partesDaPeca(pecaDoItem(it, ed.genero));
+  const partes = partesDaPeca(pecaComCores(pecaDoItem(it, ed.genero), coresDoItem(it)));
   partes.forEach(p => { editorSelecionados[p.tipo] = { id: p.id, colors: p.colors }; });
   if (partes.length) editorTipoAtivo = partes[0].tipo;   // abre o editor na categoria do item
   location.hash = "editor";
@@ -6065,7 +6109,7 @@ function experimentarNoEditor(it){
 function reajustarItemExperimentado(generoAntigo){
   const it = editorItemExperimentado;
   if (!it || generoAntigo === ed.genero) return;
-  const antigas = partesDaPeca(pecaDoItem(it, generoAntigo)), novas = partesDaPeca(pecaDoItem(it, ed.genero));
+  const antigas = partesDaPeca(pecaDoItem(it, generoAntigo)), novas = partesDaPeca(pecaComCores(pecaDoItem(it, ed.genero), coresDoItem(it)));
   // só troca o que ainda é a versão do item (se a pessoa já trocou a peça, respeita a escolha dela)
   antigas.forEach(p => { const sel = editorSelecionados[p.tipo]; if (sel && sel.id === p.id) delete editorSelecionados[p.tipo]; });
   novas.forEach(p => { if (!editorSelecionados[p.tipo]) editorSelecionados[p.tipo] = { id: p.id, colors: p.colors }; });
@@ -9592,6 +9636,7 @@ function blocoProvador(it){
           <label>Tom de pele</label>
           <div class="opcoes opcoes-peles">${cores(PELES, "pele")}</div>
         </div>
+        <div class="campo" id="coresItem" hidden></div>
         <div class="campo">
           <label>Ação</label>
           <div class="opcoes">${botoes(ACOES, "acao")}</div>
@@ -9618,8 +9663,11 @@ function ligarProvador(it){
   const img = document.getElementById("espelhoImg");
   let ultimoGif = "";
 
+  if (provCores.slug !== it.slug) provCores = { slug: it.slug, cores: [] };
+  const pecaDe = g => pecaComCores(pecaDoItem(it, g), provCores.cores);
+
   function atualizar(){
-    const peca = pecaDoItem(it, prov.genero);
+    const peca = pecaDe(prov.genero);
     const fig = prov.figLivre.trim()
       ? vestirPecas(prov.figLivre.trim().split(".").filter(Boolean), peca).join(".")
       : figura(prov, peca);
@@ -9627,7 +9675,7 @@ function ligarProvador(it){
     // Animações: avatar padrão feminino acenando e masculino andando, com o tom de pele
     // do provador. Item de um gênero só, ou visual próprio carregado: os dois mostram esse avatar.
     const doisGeneros = !it.genero && !prov.figLivre.trim();
-    const figDe = g => doisGeneros ? figura({ ...prov, genero:g }, pecaDoItem(it, g)) : fig;
+    const figDe = g => doisGeneros ? figura({ ...prov, genero:g }, pecaDe(g)) : fig;
     const gAcenando = doisGeneros ? "F" : prov.genero, gAndando = doisGeneros ? "M" : prov.genero;
     const chaveGif = figDe(gAcenando) + gAcenando + figDe(gAndando) + gAndando;
     if (chaveGif === ultimoGif) return;   // só recarrega se o visual mudou
@@ -9678,6 +9726,41 @@ function ligarProvador(it){
   campoNick.onkeydown = e => { if (e.key === "Enter") buscarNick(); };
 
   atualizar();
+  montarCoresItem();
+
+  // Paleta do item: aparece só quando a peça pode mudar de cor.
+  async function montarCoresItem(){
+    const caixa = document.getElementById("coresItem");
+    if (!caixa || !partesColoriveis(pecaDoItem(it, prov.genero)).length) return;
+    const fd = await carregarFiguredataSilencioso();
+    if (!fd || !document.body.contains(caixa)) return;
+    const partes = partesColoriveis(pecaDoItem(it, prov.genero));
+    if (!partes.length) return;
+    const info = fd.settypes[partes[0].tipo];
+    const paleta = (info && fd.palettes[info.paletteid]) || [];
+    if (!paleta.length) return;
+    const slots = Math.max(...partes.map(x => x.n));
+    const atual = i => provCores.cores[i] || partes[0].cs[i];
+    const linha = i => `
+      <label${i ? ' style="margin-top:8px"' : ""}>${i ? "Segunda cor" : "Cor do item"}</label>
+      <div class="opcoes cores-rolagem">
+        ${paleta.map(c => `<button type="button" class="opt cor" data-corslot="${i}" data-corval="${c.id}"
+          style="background:${c.hex}" aria-pressed="${atual(i) === c.id}" title="Cor ${c.id}"></button>`).join("")}
+      </div>`;
+    caixa.innerHTML = [0, 1].slice(0, slots).map(linha).join("") +
+      `<button type="button" class="opt" id="coresOriginais" style="margin-top:8px">Voltar às cores originais</button>`;
+    caixa.hidden = false;
+    caixa.querySelectorAll("[data-corslot]").forEach(b => b.onclick = () => {
+      provCores.cores[Number(b.dataset.corslot)] = b.dataset.corval;
+      caixa.querySelectorAll(`[data-corslot="${b.dataset.corslot}"]`).forEach(o => o.setAttribute("aria-pressed", o === b));
+      atualizar();
+    });
+    document.getElementById("coresOriginais").onclick = () => {
+      provCores.cores = [];
+      caixa.querySelectorAll("[data-corslot]").forEach(o => o.setAttribute("aria-pressed", atual(Number(o.dataset.corslot)) === o.dataset.corval));
+      atualizar();
+    };
+  }
 }
 
 /* ------------------------- sessão do Discord ---------------------------
