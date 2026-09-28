@@ -1,5 +1,7 @@
-legacy/
-docs/
-tests/
-scripts/
-bot/
+# Com "/" no começo, cada padrão vale só para a pasta na raiz do projeto. Sem ela, "bot/"
+# também excluía lib/bot/ — o código do bot — e toda função quebrava em produção.
+/legacy/
+/docs/
+/tests/
+/scripts/
+/bot/
