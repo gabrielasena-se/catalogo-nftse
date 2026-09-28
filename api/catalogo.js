@@ -20,6 +20,7 @@ import { exigirSessao } from "./_sessao.js";
 
 const CHAVE_REDIS = "catalogo:extra";
 const CHAVE_FAIXAS = "catalogo:faixas";
+const CHAVE_TAGS = "catalogo:tags";
 
 async function lerExtras() {
   const bruto = await redis("GET", CHAVE_REDIS);
@@ -34,6 +35,18 @@ async function lerExtras() {
 
 async function lerFaixas() {
   const bruto = await redis("GET", CHAVE_FAIXAS);
+  if (!bruto) return {};
+  try {
+    const obj = JSON.parse(bruto);
+    return obj && typeof obj === "object" ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+// Tags colocadas à mão pelo painel: { slug: ["tag", ...] }
+async function lerTags() {
+  const bruto = await redis("GET", CHAVE_TAGS);
   if (!bruto) return {};
   try {
     const obj = JSON.parse(bruto);
@@ -68,14 +81,15 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const itens = await lerExtras();
     const faixas = await lerFaixas();
-    return res.status(200).json({ itens, faixas });
+    const tags = await lerTags();
+    return res.status(200).json({ itens, faixas, tags });
   }
 
   if (req.method !== "POST") {
     return res.status(405).json({ erro: "Método não permitido." });
   }
 
-  const { acao, adminSecret, item, slug, faixa } = req.body || {};
+  const { acao, adminSecret, item, slug, faixa, tags } = req.body || {};
 
   if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
     return res.status(403).json({ erro: "Senha de administrador incorreta." });
@@ -152,6 +166,18 @@ export default async function handler(req, res) {
     }
     await salvarFaixas(faixas);
     return res.status(200).json({ ok: true, faixas });
+  }
+
+  // Tags de busca de QUALQUER item (lista vazia apaga as tags daquele item)
+  if (acao === "definirTags") {
+    if (!slug) return res.status(400).json({ erro: "Informe o item." });
+    const limpas = [...new Set((Array.isArray(tags) ? tags : [])
+      .map(t => String(t).trim().replace(/\s+/g, " ").slice(0, 30))
+      .filter(Boolean))].slice(0, 20);
+    const todas = await lerTags();
+    if (limpas.length) todas[slug] = limpas; else delete todas[slug];
+    await redis("SET", CHAVE_TAGS, JSON.stringify(todas));
+    return res.status(200).json({ ok: true, tags: limpas });
   }
 
   return res.status(400).json({ erro: "Ação inválida." });

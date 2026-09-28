@@ -30,10 +30,10 @@ const CABECALHOS = {
 
 // Nomes em português de cada categoria de peça, pra exibir no editor.
 const CATEGORIAS = {
-  hr: "Cabelo", hd: "Pele/Rosto", ch: "Camisa", cc: "Casaco/Jaqueta",
-  lg: "Calça", sh: "Sapato", ha: "Chapéu", he: "Acessório de Cabeça",
-  ea: "Óculos", fa: "Acessório de Rosto", ca: "Acessório de Peito",
-  cp: "Estampa do Peito", wa: "Cintura", mc: "Item de Mão", pt: "Mascote"
+  hr: "Cabelo", hd: "Pele/Rosto", ch: "Camisa/Vestido", cc: "Casaco/Jaqueta",
+  lg: "Calça/Saia", sh: "Sapato", ha: "Chapéu", he: "Acessório de Cabeça",
+  ea: "Óculos", fa: "Acessório de Rosto", ca: "Acessório",
+  cp: "Estampa", wa: "Cinto", mc: "Diversos", pt: "Mascote"
 };
 
 function extrairPaletas(xml) {
