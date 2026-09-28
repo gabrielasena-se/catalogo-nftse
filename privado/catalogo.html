@@ -372,8 +372,10 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 /* ---------- autenticação / favoritos ---------- */
 .auth-area{font-size:12px;color:var(--mudo);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .auth-entrar{white-space:nowrap}
-.botao-sacola{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:5px 9px}
-.botao-sacola svg{width:18px;height:18px;display:block}
+/* Sacola: só o ícone branco, sem a moldura dos outros botões */
+.auth-entrar.botao-sacola{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:4px;border:none;background:none;color:#fff}
+.botao-sacola svg{width:22px;height:22px;display:block}
+.botao-sacola:hover svg{filter:drop-shadow(0 0 4px #ff2ee0)}
 .sacola-qtd{
   position:absolute;top:-7px;right:-7px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;
   border-radius:9px;background:#ff2ee0;color:#fff;font-size:10px;font-weight:800;line-height:17px;text-align:center;
@@ -9140,8 +9142,9 @@ function renderAuthArea(){
   if (!sessao) { el.innerHTML = ""; return; }
   const qtdSacola = minhaSacola.size;
   el.innerHTML = `<a href="#sacola" class="auth-entrar botao-sacola" title="Sacola${qtdSacola ? ` (${qtdSacola})` : ""}" aria-label="Sacola, ${qtdSacola} ${qtdSacola === 1 ? "item" : "itens"}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M5 8h14l-1.2 12.1a1 1 0 0 1-1 .9H7.2a1 1 0 0 1-1-.9z"/><path d="M9 10V6.5a3 3 0 0 1 6 0V10"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M8.5 8V6.5a3.5 3.5 0 0 1 7 0V8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path fill="currentColor" fill-rule="evenodd" d="M5.2 7h13.6c.6 0 1 .4 1.1 1l1 12.3c.1.9-.6 1.7-1.5 1.7H4.6c-.9 0-1.6-.8-1.5-1.7l1-12.3c.1-.6.5-1 1.1-1zM8.5 10.3a1 1 0 1 0 0 .01zm7 0a1 1 0 1 0 0 .01z"/></svg>
       ${qtdSacola ? `<span class="sacola-qtd">${qtdSacola}</span>` : ""}</a>
     <a href="#favoritos" class="auth-entrar">♥ Favoritos</a>
     <a href="#visuais" class="auth-entrar">Meus visuais</a>
