@@ -34,7 +34,7 @@ const CHAVE_PUBLICOS = "visuais:publicos";
 // Código de visual do Habbo: partes "tp-123-45-67" separadas por ponto.
 const FORMATO_FIGURA = /^[a-z]{2}-\d{1,6}(-\d{1,6}){0,2}(\.[a-z]{2}-\d{1,6}(-\d{1,6}){0,2}){0,29}$/;
 // Item pedido pelo carrossel: versões separadas por "|", cada uma com peças "tp-123" separadas por ".".
-const FORMATO_ITEM = /^[a-z]{2}-\d{1,6}(\.[a-z]{2}-\d{1,6}){0,5}(\|[a-z]{2}-\d{1,6}(\.[a-z]{2}-\d{1,6}){0,5}){0,3}$/;
+const FORMATO_ITEM = /^[a-z]{2}-\d{1,6}(\.[a-z]{2}-\d{1,6}){0,5}(\|[a-z]{2}-\d{1,6}(\.[a-z]{2}-\d{1,6}){0,5}){0,15}$/;
 
 async function redis(...args) {
   const caminho = args.map(encodeURIComponent).join("/");
