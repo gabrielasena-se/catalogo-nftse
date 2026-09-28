@@ -130,7 +130,7 @@ test('fechar: quem abriu pode, e o canal some depois do aviso', async (t) => {
 
   const r = routeComponent(clique('user-1'));
   assert.equal(r.type, 4);
-  assert.match(r.data.content, /fechado por <@user-1>/);
+  assert.match(r.data.content, /encerrada por <@user-1>/);
   assert.ok(canais.has('canal-1'), 'ainda não apagou');
 
   await new Promise(setImmediate);

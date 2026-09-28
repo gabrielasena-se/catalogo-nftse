@@ -10,7 +10,7 @@ nem aceita que outro bot abra ticket por ele, por isso o canal é do próprio bo
 
 - `lib/bot/ticket/`: `abrir.js` cria o canal privado (pessoa + `TICKET_STAFF_ROLE_IDS`) na
   categoria `TICKET_CATEGORY_ID`, ou reaproveita o ticket aberto da pessoa; `handlers.js` trata o
-  botão **Fechar ticket** (dono, equipe ou quem gerencia canais).
+  botão **Encerrar conversa** (dono, equipe ou quem gerencia canais).
 - `DISCORD_GUILD_ID` passa a ser necessária na Vercel; sem ela, vale o plano B do webhook.
 - Nova permissão do bot: **Gerenciar Canais**.
 - Detalhes em [`BOT-TICKET.md`](../BOT-TICKET.md).

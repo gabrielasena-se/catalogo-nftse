@@ -21,8 +21,8 @@ transcrições do Ticket Tool.
    - a pessoa vê, escreve e anexa arquivos;
    - os cargos de `TICKET_STAFF_ROLE_IDS` veem e gerenciam mensagens.
 3. O bot posta a lista (nome, nome em inglês, tipo e link de cada item), mencionando a pessoa e os
-   cargos da equipe, com um botão **Fechar ticket**.
-4. **Fechar ticket** pode ser usado por quem abriu, pela equipe ou por quem tem *Gerenciar
+   cargos da equipe, com um botão **Encerrar conversa**.
+4. **Encerrar conversa** pode ser usado por quem abriu, pela equipe ou por quem tem *Gerenciar
    Canais*. O canal é apagado 5 segundos depois do aviso.
 
 A sacola não deixa a mesma pessoa pedir de novo antes de 1 minuto, e vão no máximo 30 itens.
