@@ -418,6 +418,36 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .coracao-grande{font-size:16px}
 .coracao-grande .coracao-icone{font-size:22px}
 
+/* ---------- página de administração ---------- */
+.admin-periodo{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.cartoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:0 0 18px}
+.cartao-num{background:var(--painel);border:1px solid var(--linha);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.cartao-num b{font-size:26px;color:var(--texto);line-height:1.1}
+.cartao-num span{font-size:12px;color:var(--mudo)}
+.cartao-num small{font-size:11px;color:var(--mudo);opacity:.8}
+.admin-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.admin-bloco{background:var(--painel);border:1px solid var(--linha);border-radius:10px;padding:14px 16px;min-width:0}
+.admin-bloco h3{font-family:var(--pixel);font-size:11px;color:var(--mudo);margin:0 0 12px}
+.admin-bloco-largo{grid-column:1/-1}
+.grafico{display:flex;align-items:flex-end;gap:4px;height:170px;padding-top:16px}
+.barra{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;position:relative}
+.barra span{width:100%;max-width:38px;min-height:2px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#ff2ee0,#7a3ad0)}
+.barra em{font-style:normal;font-size:10px;color:var(--texto)}
+.barra small{font-size:9px;color:var(--mudo);white-space:nowrap;height:12px}
+.ranking{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.ranking li{padding-left:2px}
+.ranking li a{color:var(--texto);text-decoration:none}
+.ranking li a:hover{text-decoration:underline}
+.ranking li b{float:right;color:var(--ouro)}
+.admin-lista{display:flex;flex-direction:column;gap:8px}
+.admin-linha{background:var(--painel);border:1px solid var(--linha);border-radius:10px;padding:10px 14px}
+.admin-caminho{margin-top:4px;font-size:13px;color:var(--texto);opacity:.9;line-height:1.5}
+.admin-campo{display:block;font-size:12px;color:var(--mudo);margin-top:10px}
+.admin-campo input,.admin-campo select{width:100%;margin-top:4px;box-sizing:border-box}
+.tag-admin{display:inline-flex;align-items:center;gap:6px;border:1px solid #b800b8;color:#ff8cf0;border-radius:999px;padding:3px 4px 3px 10px;font-size:12px}
+.tag-admin button{background:rgba(255,46,224,.15);border:none;color:#ff8cf0;border-radius:50%;width:18px;height:18px;font-size:10px;line-height:18px;padding:0;cursor:pointer}
+.tag-admin button:hover{background:#ff2ee0;color:#fff}
+
 .admin-painel{
   position:fixed;bottom:16px;right:16px;background:var(--painel);
   border:1px solid var(--linha);border-radius:10px;padding:16px;width:240px;
@@ -9195,7 +9225,8 @@ function renderAuthArea(){
   if (!sessao) { el.innerHTML = ""; return; }
   const qtdSacola = minhaSacola.size;
   // sacola ao lado do nick, como nas lojas online
-  el.innerHTML = `<a href="#favoritos" class="auth-entrar">♥ Favoritos</a>
+  el.innerHTML = `${souAdmin ? `<a href="#admin" class="auth-entrar" title="Administração">⚙ Admin</a>` : ""}
+    <a href="#favoritos" class="auth-entrar">♥ Favoritos</a>
     <a href="#visuais" class="auth-entrar">Meus visuais</a>
     <span class="auth-nick" title="${esc(sessao.habboName)}">${esc(sessao.habboName)}</span>
     <a href="#sacola" class="auth-entrar botao-sacola" title="Sacola${qtdSacola ? ` (${qtdSacola})` : ""}" aria-label="Sacola, ${qtdSacola} ${qtdSacola === 1 ? "item" : "itens"}">
@@ -9221,157 +9252,344 @@ async function fazerLogout(){
   encerrarNaTela("SAIU");
 }
 
-/* --------------------------- painel de admin ------------------------------
-   Só aparece se você abrir o site com ?admin=1 no final do endereço,
-   ex: catalogo.suasite.com/?admin=1 (com uma sessão do Discord ativa).
-   É onde você cadastra itens e marca faixas de preço. */
+/* --------------------------- página de administração ---------------------------
+   Só para quem tem o cargo "Administrador" no Discord da NFT-SE: o servidor confere
+   (api/_admin.js) e o link "Admin" aparece no topo. Abre em #admin, com quatro abas:
+   Painel (números e gráficos), Acessos, Tags e Itens. */
 
-function montarPainelAdmin(){
-  if (new URLSearchParams(location.search).get("admin") !== "1") return;
+let souAdmin = false;
+let abaAdmin = "painel", diasPainel = 7;
 
-  if (sessionStorage.getItem("nftse_admin_ok") === "1") {
-    montarPainelAdminCompleto();
-    return;
-  }
+// Plano B: a senha antiga de admin (ADMIN_SECRET), guardada só nesta aba do navegador.
+const senhaAdmin = () => { try { return sessionStorage.getItem("nftse_admin_secret") || ""; } catch (e) { return ""; } };
 
-  const divLogin = document.createElement("div");
-  divLogin.className = "admin-painel";
-  divLogin.innerHTML = `
-    <h3>Painel de administração</h3>
-    <label>Senha de admin<input id="adminSenhaEntrar" type="password" class="figura"></label>
-    <button type="button" class="cta" id="adminEntrarBtn" style="margin-top:10px">Entrar</button>
-    <p class="dica" id="adminLoginMsg"></p>`;
-  document.body.appendChild(divLogin);
-
-  const entrarAdmin = async () => {
-    const adminSecret = document.getElementById("adminSenhaEntrar").value;
-    const msg = document.getElementById("adminLoginMsg");
-    if (!adminSecret) { msg.textContent = "Digite a senha."; return; }
-    msg.textContent = "Verificando...";
-    try {
-      const r = await apiFetch(API_BASE + "/api/catalogo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "verificar", adminSecret })
+async function verificarAdmin(){
+  try {
+    const r = await apiFetch(API_BASE + "/api/admin");
+    const dados = await r.json();
+    souAdmin = !!dados.admin;
+    if (!souAdmin && senhaAdmin()) {
+      const r2 = await apiFetch(API_BASE + "/api/catalogo", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "verificar", adminSecret: senhaAdmin() })
       });
-      if (!r.ok) { msg.textContent = "Senha incorreta."; return; }
-      sessionStorage.setItem("nftse_admin_ok", "1");
-      sessionStorage.setItem("nftse_admin_secret", adminSecret);
-      divLogin.remove();
-      montarPainelAdminCompleto();
-    } catch (e) {
-      if (estadoSessao === "ATIVA") msg.textContent = "Não consegui verificar agora.";
+      souAdmin = r2.ok;
     }
-  };
-  document.getElementById("adminEntrarBtn").onclick = entrarAdmin;
-  document.getElementById("adminSenhaEntrar").addEventListener("keydown", e => { if (e.key === "Enter") entrarAdmin(); });
+  } catch (e) {
+    souAdmin = false;
+  }
+  renderAuthArea();
+  // o endereço antigo do painel (?admin=1) leva para a página nova
+  if (souAdmin && new URLSearchParams(location.search).get("admin") === "1" && location.hash !== "#admin") location.hash = "admin";
 }
 
-function montarPainelAdminCompleto(){
-  const div = document.createElement("div");
-  div.className = "admin-painel";
-  div.innerHTML = `
-    <h3>Painel de administração</h3>
-    <label>Sua senha de admin<input id="adminSecret" type="password" class="figura"></label>
+const postAdmin = (url, corpo) => apiFetch(API_BASE + url, {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ ...corpo, adminSecret: senhaAdmin() || undefined })
+});
+const nomeDoSlug = slug => { const it = CATALOGO.find(i => i.slug === slug); return it ? it.pt : slug; };
 
-    <h3 style="margin-top:24px">Adicionar item ao catálogo</h3>
-    <label>Tipo
-      <select id="itemTipo" class="figura">
-        <option value="roupa">Visual (roupa)</option>
-        <option value="furni">Mobi</option>
-        <option value="balao">Balão de fala</option>
-      </select>
-    </label>
-    <label>Nome em português<input id="itemPt" class="figura"></label>
-    <label>Nome em inglês<input id="itemEn" class="figura"></label>
-    <label>Link da imagem<input id="itemImg" class="figura" placeholder="https://..."></label>
-    <div id="itemCamposRoupa">
-      <label>Código da peça (se já souber)
-        <input id="itemPeca" class="figura" placeholder="ex: cc-5621-0"></label>
-      <label>Gênero da peça
-        <select id="itemGenero" class="figura">
-          <option value="">Unissex / não sei</option>
-          <option value="M">Masculino</option>
-          <option value="F">Feminino</option>
-        </select>
-      </label>
+function telaAdmin(){
+  if (!souAdmin) {
+    app.innerHTML = `
+      <div class="envoltorio">
+        <button class="voltar" id="voltarAdmin">&lt; Voltar ao catálogo</button>
+        <h1 style="margin:0 0 10px">Administração</h1>
+        <p class="dica">Esta página é só para quem tem o cargo <b>Administrador</b> no Discord da NFT-SE.</p>
+        <details style="margin-top:14px;max-width:360px">
+          <summary class="dica" style="cursor:pointer">Entrar com a senha de admin</summary>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <input id="adminSenhaEntrar" type="password" class="figura" style="margin-top:0" placeholder="Senha de admin">
+            <button type="button" class="opt" id="adminEntrarBtn">Entrar</button>
+          </div>
+          <p class="dica" id="adminLoginMsg"></p>
+        </details>
+      </div>`;
+    document.getElementById("voltarAdmin").onclick = () => { location.hash = ""; };
+    const entrar = async () => {
+      const senha = document.getElementById("adminSenhaEntrar").value;
+      const msg = document.getElementById("adminLoginMsg");
+      if (!senha) { msg.textContent = "Digite a senha."; return; }
+      try { sessionStorage.setItem("nftse_admin_secret", senha); } catch (e) {}
+      msg.textContent = "Verificando...";
+      await verificarAdmin();
+      if (souAdmin) telaAdmin();
+      else { try { sessionStorage.removeItem("nftse_admin_secret"); } catch (e) {} msg.textContent = "Senha incorreta."; }
+    };
+    document.getElementById("adminEntrarBtn").onclick = entrar;
+    document.getElementById("adminSenhaEntrar").onkeydown = e => { if (e.key === "Enter") entrar(); };
+    return;
+  }
+  const abas = [["painel", "📊 Painel"], ["acessos", "👥 Acessos"], ["tags", "🏷️ Tags"], ["itens", "📦 Itens"]];
+  app.innerHTML = `
+    <div class="envoltorio">
+      <button class="voltar" id="voltarAdmin">&lt; Voltar ao catálogo</button>
+      <h1 style="margin:0 0 14px">Administração</h1>
+      <div class="abas" role="tablist" style="padding:0;margin:0 0 18px">
+        ${abas.map(([id, rotulo]) => `<button class="aba" role="tab" aria-selected="${id === abaAdmin}" data-aba-admin="${id}">${rotulo}</button>`).join("")}
+      </div>
+      <div id="adminConteudo"></div>
+    </div>`;
+  document.getElementById("voltarAdmin").onclick = () => { location.hash = ""; };
+  app.querySelectorAll("[data-aba-admin]").forEach(b => b.onclick = () => { abaAdmin = b.dataset.abaAdmin; telaAdmin(); });
+  const alvo = document.getElementById("adminConteudo");
+  ({ painel: adminPainel, acessos: adminAcessos, tags: adminTags, itens: adminItens })[abaAdmin](alvo);
+}
+
+/* ----- 📊 Painel ----- */
+
+async function adminPainel(alvo){
+  const periodos = `<div class="admin-periodo">${[1, 7, 30].map(d =>
+    `<button type="button" class="opt" data-dias="${d}" aria-pressed="${d === diasPainel}">${d === 1 ? "Últimas 24h" : `Últimos ${d} dias`}</button>`).join("")}</div>`;
+  alvo.innerHTML = periodos + `<p class="dica">Carregando os números...</p>`;
+  const ligarPeriodos = () => alvo.querySelectorAll("[data-dias]").forEach(b => b.onclick = () => { diasPainel = +b.dataset.dias; adminPainel(alvo); });
+  ligarPeriodos();
+
+  let d;
+  try {
+    const r = await postAdmin("/api/admin", { acao: "painel", dias: diasPainel });
+    d = await r.json();
+    if (!r.ok) throw new Error(d.erro || "erro");
+  } catch (e) {
+    alvo.innerHTML = periodos + `<p class="dica">Não consegui carregar os números agora. ${esc(e.message || "")}</p>`;
+    ligarPeriodos();
+    return;
+  }
+  if (!document.body.contains(alvo)) return;   // a pessoa já trocou de aba
+
+  const cartao = (valor, rotulo, obs = "") =>
+    `<div class="cartao-num"><b>${esc(valor)}</b><span>${esc(rotulo)}</span>${obs ? `<small>${esc(obs)}</small>` : ""}</div>`;
+  const barras = (lista, rotulo, valor, dica) => {
+    const max = Math.max(1, ...lista.map(valor));
+    return `<div class="grafico">${lista.map(x => `
+      <div class="barra" title="${esc(dica(x))}">
+        <em>${valor(x) || ""}</em>
+        <span style="height:${Math.round(valor(x) / max * 100)}%"></span>
+        <small>${esc(rotulo(x))}</small>
+      </div>`).join("")}</div>`;
+  };
+  const ranking = lista => lista && lista.length
+    ? `<ol class="ranking">${lista.map(x => `<li><a href="#item/${esc(x.slug)}">${esc(nomeDoSlug(x.slug))}</a><b>${x.qtd}</b></li>`).join("")}</ol>`
+    : `<p class="dica">Nada ainda neste período.</p>`;
+  const dataCurta = dia => dia.slice(8) + "/" + dia.slice(5, 7);
+
+  alvo.innerHTML = periodos + `
+    <div class="cartoes">
+      ${cartao(d.visitas, "visitas")}
+      ${cartao(d.pessoas, "pessoas diferentes")}
+      ${cartao(`${String(d.duracaoMediaMin).replace(".", ",")} min`, "tempo médio de visita", `${d.visitasDeUmaPagina} de 1 página só`)}
+      ${cartao(String(d.paginasPorVisita).replace(".", ","), "páginas por visita")}
+      ${cartao(d.pedidos.total, "pedidos de preço", `${d.pedidos.pessoas} ${d.pedidos.pessoas === 1 ? "pessoa" : "pessoas"}`)}
+      ${cartao(d.sacolas.pessoas, "pessoas com sacola cheia")}
+      ${cartao(d.visuaisPublicos, "visuais públicos salvos")}
     </div>
-    <label>Descrição (opcional)<input id="itemDesc" class="figura"></label>
-    <label>Faixa de preço (opcional)
-      <select id="itemFaixa" class="figura">
-        <option value="">Não marcar</option>
-        <option value="1">$ (mais barato)</option>
-        <option value="2">$$</option>
-        <option value="3">$$$</option>
-        <option value="4">$$$$ (mais caro)</option>
-      </select>
-    </label>
-    <details style="margin-top:4px">
-      <summary class="dica" style="cursor:pointer">Código (slug) manual — opcional</summary>
-      <input id="itemSlug" class="figura" style="margin-top:8px" placeholder="Deixe em branco pra gerar sozinho a partir do nome">
-    </details>
-    <button type="button" class="cta" id="itemCriar" style="margin-top:10px">Adicionar item</button>
-    <p class="dica" id="itemMsg"></p>
+    <div class="admin-grade">
+      <section class="admin-bloco admin-bloco-largo"><h3>Visitas por dia</h3>
+        ${barras(d.porDia, x => dataCurta(x.dia), x => x.visitas, x => `${dataCurta(x.dia)}: ${x.visitas} visitas · ${x.pessoas} pessoas`)}</section>
+      <section class="admin-bloco admin-bloco-largo"><h3>Horários de mais movimento</h3>
+        ${barras(d.porHora.map((v, h) => ({ v, h })), x => x.h % 3 === 0 ? x.h + "h" : "", x => x.v, x => `${x.h}h: ${x.v} visitas`)}</section>
+      <section class="admin-bloco"><h3>Itens mais vistos</h3>${ranking(d.maisVistos)}</section>
+      <section class="admin-bloco"><h3>Mais favoritados</h3>${ranking(d.maisFavoritados)}</section>
+      <section class="admin-bloco"><h3>Mais colocados na sacola</h3>${ranking(d.sacolas.itens)}</section>
+      <section class="admin-bloco"><h3>Mais pedidos pelo preço</h3>${ranking(d.pedidos.itens)}</section>
+    </div>
+    <p class="dica" style="margin-top:14px">O tempo de visita é uma estimativa: o site sabe quando a pessoa abre uma página, mas não quando fecha o site.
+      Favoritos e sacolas contam desde sempre; o resto é só do período escolhido.</p>`;
+  ligarPeriodos();
+}
 
-    <h3 style="margin-top:24px">Faixa de preço de um item já existente</h3>
-    <label>Buscar pelo nome
-      <span style="display:flex;gap:6px;margin-top:4px">
-        <input id="faixaBusca" class="figura" style="margin-top:0" placeholder="Ex: máscara de">
-        <button type="button" id="faixaBuscarBtn" class="opt" style="white-space:nowrap">Buscar</button>
-      </span>
-    </label>
-    <div id="faixaResultados" class="dica" style="margin-top:8px"></div>
+/* ----- 👥 Acessos ----- */
 
-    <h3 style="margin-top:24px">Acessos</h3>
-    <p class="dica" style="margin:0">Quem abriu o catálogo e quais páginas viu (últimos 30 dias).</p>
-    <button type="button" class="opt" id="acessosVer" style="margin-top:8px">Ver acessos</button>
-    <div id="acessosLista" class="dica" style="margin-top:8px"></div>
+async function adminAcessos(alvo){
+  alvo.innerHTML = `<p class="dica">Carregando os acessos...</p>`;
+  try {
+    const r = await postAdmin("/api/registro", { acao: "listar" });
+    const dados = await r.json();
+    if (!r.ok) { alvo.innerHTML = `<p class="dica">${esc(dados.erro || "Não consegui carregar.")}</p>`; return; }
+    const acessos = dados.acessos || [];
+    if (!acessos.length) { alvo.innerHTML = `<p class="dica">Nenhum acesso registrado ainda.</p>`; return; }
+    const agora = Date.now();
+    const pessoas = dias => new Set(acessos.filter(a => agora - a.t < dias * 864e5).map(a => a.id)).size;
+    const quando = t => new Date(t).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+    // agrupa em visitas: páginas seguidas da mesma pessoa com menos de 30 min entre elas
+    const visitas = [];
+    for (const a of acessos) {   // do mais novo para o mais antigo
+      const v = visitas.find(x => x.id === a.id && x.inicio - a.t < 30 * 60e3 && !x.fechada);
+      if (v) { v.paginas.unshift(a.titulo); v.inicio = a.t; }
+      else {
+        visitas.forEach(x => { if (x.id === a.id) x.fechada = true; });
+        visitas.push({ id: a.id, nick: a.nick, inicio: a.t, paginas: [a.titulo] });
+      }
+    }
+    if (!document.body.contains(alvo)) return;
+    alvo.innerHTML = `
+      <p style="margin:0 0 12px">Pessoas diferentes: <b>${pessoas(1)}</b> nas últimas 24h · <b>${pessoas(7)}</b> em 7 dias · <b>${pessoas(30)}</b> em 30 dias</p>
+      <div class="admin-lista">
+        ${visitas.slice(0, 150).map(v => `
+          <div class="admin-linha">
+            <div><b>${esc(v.nick || "?")}</b> <span class="dica">${quando(v.inicio)} · ${v.paginas.length} ${v.paginas.length === 1 ? "página" : "páginas"}</span></div>
+            <div class="admin-caminho">${v.paginas.map(esc).join(" → ")}</div>
+          </div>`).join("")}
+      </div>`;
+  } catch (e) {
+    alvo.innerHTML = `<p class="dica">Não consegui carregar os acessos agora.</p>`;
+  }
+}
 
-    <h3 style="margin-top:24px">Tags de busca de um item</h3>
-    <p class="dica" style="margin:0">Escreva as tags do item separadas por vírgula (ex: fofo, rosa, festa). Elas aparecem na página do item e ajudam na busca.</p>
-    <label>Buscar pelo nome
-      <span style="display:flex;gap:6px;margin-top:4px">
-        <input id="tagsBusca" class="figura" style="margin-top:0" placeholder="Ex: sofá">
-        <button type="button" id="tagsBuscarBtn" class="opt" style="white-space:nowrap">Buscar</button>
-      </span>
-    </label>
-    <div id="tagsResultados" class="dica" style="margin-top:8px"></div>
+/* ----- 🏷️ Tags: adicionar e remover ----- */
 
-    <h4 style="margin-top:20px">Itens cadastrados por aqui</h4>
-    <div id="itemLista" class="dica">Carregando...</div>`;
-  document.body.appendChild(div);
-  document.getElementById("adminSecret").value = sessionStorage.getItem("nftse_admin_secret") || "";
+let buscaTagsAdmin = "";
 
-  /* ----- cadastro de item novo ----- */
+function adminTags(alvo){
+  alvo.innerHTML = `
+    <p class="dica" style="margin:0 0 10px">Busque o item, clique no <b>✕</b> para remover uma tag ou escreva uma nova e clique em <b>Adicionar</b>.
+      As tags aparecem na página do item e ajudam na busca.</p>
+    <div style="display:flex;gap:6px;max-width:520px">
+      <input id="tagsBusca" class="figura" style="margin-top:0" placeholder="Nome do item (ex: sofá)" value="${esc(buscaTagsAdmin)}">
+      <button type="button" id="tagsBuscarBtn" class="opt" style="white-space:nowrap">Buscar</button>
+    </div>
+    <div id="tagsResultados" style="margin-top:12px"></div>`;
+  const campoBusca = document.getElementById("tagsBusca");
+  const resultados = document.getElementById("tagsResultados");
+
+  async function salvarTags(slug, tags, aviso){
+    aviso.textContent = "Salvando...";
+    try {
+      const r = await postAdmin("/api/catalogo", { acao: "definirTags", slug, tags });
+      const dados = await r.json().catch(() => ({}));
+      if (!r.ok) { aviso.textContent = dados.erro || "Erro ao salvar."; return; }
+      if (dados.tags && dados.tags.length) tagsManuais[slug] = dados.tags; else delete tagsManuais[slug];
+      buscar();
+    } catch (e) {
+      aviso.textContent = "Não consegui falar com o servidor.";
+    }
+  }
+
+  function buscar(){
+    buscaTagsAdmin = campoBusca.value;
+    const busca = semAcento(buscaTagsAdmin.trim());
+    // sem busca: mostra os itens que já têm tags
+    const achados = busca
+      ? CATALOGO.filter(it => semAcento(it.pt + " " + (it.ptAntigo || "") + " " + it.en).includes(busca)).slice(0, 20)
+      : CATALOGO.filter(it => (tagsManuais[it.slug] || []).length);
+    if (!achados.length) { resultados.innerHTML = `<p class="dica">${busca ? "Nenhum item encontrado." : "Nenhum item tem tags ainda. Busque um item para adicionar."}</p>`; return; }
+    resultados.innerHTML = (busca ? "" : `<p class="dica" style="margin:0 0 8px">Itens que já têm tags:</p>`) + `<div class="admin-lista">` +
+      achados.map(it => `
+        <div class="admin-linha" data-linha-tags="${esc(it.slug)}">
+          <div><b>${esc(it.pt)}</b> <span class="dica">${esc(it.en)} · ${esc((ABAS.find(a => a.id === it.tipo) || {}).rotulo || "")}</span></div>
+          <div class="tags-item" style="margin:8px 0">
+            ${(tagsManuais[it.slug] || []).map(t => `<span class="tag-admin">#${esc(t)}<button type="button" data-tirar-tag="${esc(t)}" title="Remover a tag ${esc(t)}" aria-label="Remover a tag ${esc(t)}">✕</button></span>`).join("")
+              || `<span class="dica">Sem tags.</span>`}
+          </div>
+          <div style="display:flex;gap:6px;max-width:520px">
+            <input class="figura" style="margin-top:0" data-nova-tag placeholder="Nova tag (pode escrever várias separadas por vírgula)">
+            <button type="button" class="opt" data-adicionar-tag style="white-space:nowrap">Adicionar</button>
+          </div>
+          <p class="dica" data-aviso-tag style="margin:6px 0 0"></p>
+        </div>`).join("") + `</div>`;
+
+    resultados.querySelectorAll("[data-linha-tags]").forEach(linha => {
+      const slug = linha.dataset.linhaTags;
+      const aviso = linha.querySelector("[data-aviso-tag]");
+      const atuais = () => tagsManuais[slug] || [];
+      linha.querySelectorAll("[data-tirar-tag]").forEach(b => b.onclick = () =>
+        salvarTags(slug, atuais().filter(t => t !== b.dataset.tirarTag), aviso));
+      const campo = linha.querySelector("[data-nova-tag]");
+      const adicionar = () => {
+        const novas = campo.value.split(",").map(t => t.trim()).filter(Boolean);
+        if (!novas.length) return;
+        salvarTags(slug, [...atuais(), ...novas], aviso);
+      };
+      linha.querySelector("[data-adicionar-tag]").onclick = adicionar;
+      campo.onkeydown = e => { if (e.key === "Enter") adicionar(); };
+    });
+  }
+
+  document.getElementById("tagsBuscarBtn").onclick = buscar;
+  campoBusca.onkeydown = e => { if (e.key === "Enter") buscar(); };
+  buscar();
+}
+
+/* ----- 📦 Itens: cadastrar, faixa de preço e itens cadastrados ----- */
+
+function adminItens(alvo){
+  alvo.innerHTML = `
+    <div class="admin-grade">
+      <section class="admin-bloco">
+        <h3>Adicionar item ao catálogo</h3>
+        <label class="admin-campo">Tipo
+          <select id="itemTipo" class="figura">
+            <option value="roupa">Visual (roupa)</option>
+            <option value="furni">Mobi</option>
+            <option value="balao">Balão de fala</option>
+          </select>
+        </label>
+        <label class="admin-campo">Nome em português<input id="itemPt" class="figura"></label>
+        <label class="admin-campo">Nome em inglês<input id="itemEn" class="figura"></label>
+        <label class="admin-campo">Link da imagem<input id="itemImg" class="figura" placeholder="https://..."></label>
+        <div id="itemCamposRoupa">
+          <label class="admin-campo">Código da peça (se já souber)<input id="itemPeca" class="figura" placeholder="ex: cc-5621-0"></label>
+          <label class="admin-campo">Gênero da peça
+            <select id="itemGenero" class="figura">
+              <option value="">Unissex / não sei</option>
+              <option value="M">Masculino</option>
+              <option value="F">Feminino</option>
+            </select>
+          </label>
+        </div>
+        <label class="admin-campo">Descrição (opcional)<input id="itemDesc" class="figura"></label>
+        <label class="admin-campo">Faixa de preço (opcional)
+          <select id="itemFaixa" class="figura">
+            <option value="">Não marcar</option>
+            <option value="1">$ (mais barato)</option>
+            <option value="2">$$</option>
+            <option value="3">$$$</option>
+            <option value="4">$$$$ (mais caro)</option>
+          </select>
+        </label>
+        <details style="margin-top:8px">
+          <summary class="dica" style="cursor:pointer">Código (slug) manual — opcional</summary>
+          <input id="itemSlug" class="figura" style="margin-top:8px" placeholder="Deixe em branco pra gerar sozinho a partir do nome">
+        </details>
+        <button type="button" class="cta" id="itemCriar" style="margin-top:12px">Adicionar item</button>
+        <p class="dica" id="itemMsg"></p>
+      </section>
+
+      <section class="admin-bloco">
+        <h3>Faixa de preço de um item já existente</h3>
+        <div style="display:flex;gap:6px">
+          <input id="faixaBusca" class="figura" style="margin-top:0" placeholder="Nome do item (ex: máscara de)">
+          <button type="button" id="faixaBuscarBtn" class="opt" style="white-space:nowrap">Buscar</button>
+        </div>
+        <div id="faixaResultados" class="dica" style="margin-top:8px"></div>
+
+        <h3 style="margin-top:24px">Itens cadastrados por aqui</h3>
+        <div id="itemLista" class="dica">Carregando...</div>
+      </section>
+    </div>`;
 
   const campoTipo = document.getElementById("itemTipo");
   const camposRoupa = document.getElementById("itemCamposRoupa");
-  const alternarCamposRoupa = () => {
-    camposRoupa.style.display = campoTipo.value === "roupa" ? "" : "none";
-  };
+  const alternarCamposRoupa = () => { camposRoupa.style.display = campoTipo.value === "roupa" ? "" : "none"; };
   campoTipo.onchange = alternarCamposRoupa;
   alternarCamposRoupa();
 
   async function listarItensPainel(){
     const listaDiv = document.getElementById("itemLista");
+    if (!listaDiv) return;
     try {
       const r = await apiFetch(API_BASE + "/api/catalogo");
       const dados = await r.json();
       const itens = dados.itens || [];
       if (!itens.length) { listaDiv.textContent = "Nenhum item cadastrado por aqui ainda."; return; }
       listaDiv.innerHTML = itens.map(it => `
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--linha)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--linha)">
           <span>${esc(it.pt)} <span style="opacity:.6">(${esc(it.tipo)})</span></span>
-          <button type="button" class="opt" data-remover-item="${esc(it.slug)}" style="padding:4px 8px;font-size:10px">Remover</button>
+          <button type="button" class="opt" data-remover-item="${esc(it.slug)}" style="padding:4px 8px;font-size:11px">Remover</button>
         </div>`).join("");
       listaDiv.querySelectorAll("[data-remover-item]").forEach(b => b.onclick = async () => {
-        const adminSecret = document.getElementById("adminSecret").value;
-        if (!adminSecret) { document.getElementById("itemMsg").textContent = "Preencha sua senha de admin ali em cima primeiro."; return; }
-        await apiFetch(API_BASE + "/api/catalogo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ acao: "remover", adminSecret, slug: b.dataset.removerItem })
-        });
+        if (!confirm("Remover este item do catálogo?")) return;
+        await postAdmin("/api/catalogo", { acao: "remover", slug: b.dataset.removerItem });
         listarItensPainel();
       });
     } catch (e) {
@@ -9380,37 +9598,29 @@ function montarPainelAdminCompleto(){
   }
   listarItensPainel();
 
-  /* ----- faixa de preço de qualquer item já existente ----- */
-
   function faixaSelectHTML(atual){
     const opcoes = [["", "Não marcar"], ["1", "$"], ["2", "$$"], ["3", "$$$"], ["4", "$$$$"]];
     return opcoes.map(([v, t]) => `<option value="${v}" ${String(atual || "") === v ? "selected" : ""}>${t}</option>`).join("");
   }
 
   function buscarItensFaixa(){
-    const termo = document.getElementById("faixaBusca").value.trim().toLowerCase();
+    const busca = semAcento(document.getElementById("faixaBusca").value.trim());
     const resultados = document.getElementById("faixaResultados");
-    if (!termo) { resultados.textContent = "Digite parte do nome pra buscar."; return; }
-    const achados = CATALOGO.filter(it => (it.pt + " " + (it.ptAntigo || "") + " " + it.en).toLowerCase().includes(termo)).slice(0, 15);
+    if (!busca) { resultados.textContent = "Digite parte do nome pra buscar."; return; }
+    const achados = CATALOGO.filter(it => semAcento(it.pt + " " + (it.ptAntigo || "") + " " + it.en).includes(busca)).slice(0, 15);
     if (!achados.length) { resultados.textContent = "Nenhum item encontrado."; return; }
     resultados.innerHTML = achados.map(it => `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--linha)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--linha)">
         <span>${esc(it.pt)}</span>
         <span style="display:flex;gap:6px;align-items:center">
           <select class="figura" style="margin-top:0;width:auto" data-faixa-slug="${esc(it.slug)}">${faixaSelectHTML(it.faixa)}</select>
-          <button type="button" class="opt" data-faixa-salvar="${esc(it.slug)}" style="padding:4px 8px;font-size:10px">Salvar</button>
+          <button type="button" class="opt" data-faixa-salvar="${esc(it.slug)}" style="padding:4px 8px;font-size:11px">Salvar</button>
         </span>
       </div>`).join("");
     resultados.querySelectorAll("[data-faixa-salvar]").forEach(b => b.onclick = async () => {
-      const adminSecret = document.getElementById("adminSecret").value;
-      if (!adminSecret) { document.getElementById("itemMsg").textContent = "Preencha sua senha de admin ali em cima primeiro."; return; }
       const slugAlvo = b.dataset.faixaSalvar;
       const select = resultados.querySelector(`select[data-faixa-slug="${CSS.escape(slugAlvo)}"]`);
-      const r = await apiFetch(API_BASE + "/api/catalogo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "definirFaixa", adminSecret, slug: slugAlvo, faixa: select.value })
-      });
+      const r = await postAdmin("/api/catalogo", { acao: "definirFaixa", slug: slugAlvo, faixa: select.value });
       if (r.ok) {
         const item = CATALOGO.find(it => it.slug === slugAlvo);
         if (item) { if (select.value) item.faixa = parseInt(select.value, 10); else delete item.faixa; }
@@ -9422,93 +9632,9 @@ function montarPainelAdminCompleto(){
     });
   }
   document.getElementById("faixaBuscarBtn").onclick = buscarItensFaixa;
-
-  /* ----- tags de busca de qualquer item ----- */
-
-  function buscarItensTags(){
-    const busca = semAcento(document.getElementById("tagsBusca").value.trim());
-    const resultados = document.getElementById("tagsResultados");
-    if (!busca) { resultados.textContent = "Digite parte do nome pra buscar."; return; }
-    const achados = CATALOGO.filter(it => semAcento(it.pt + " " + (it.ptAntigo || "") + " " + it.en).includes(busca)).slice(0, 15);
-    if (!achados.length) { resultados.textContent = "Nenhum item encontrado."; return; }
-    resultados.innerHTML = achados.map(it => `
-      <div style="padding:6px 0;border-bottom:1px solid var(--linha)">
-        <div>${esc(it.pt)} <span style="opacity:.6">(${esc(it.tipo)})</span></div>
-        <span style="display:flex;gap:6px;align-items:center">
-          <input class="figura" style="margin-top:0" data-tags-slug="${esc(it.slug)}"
-            value="${esc((tagsManuais[it.slug] || []).join(", "))}" placeholder="tags extras, separadas por vírgula">
-          <button type="button" class="opt" data-tags-salvar="${esc(it.slug)}" style="padding:4px 8px;font-size:10px">Salvar</button>
-        </span>
-      </div>`).join("");
-    resultados.querySelectorAll("[data-tags-salvar]").forEach(b => b.onclick = async () => {
-      const adminSecret = document.getElementById("adminSecret").value;
-      if (!adminSecret) { document.getElementById("itemMsg").textContent = "Preencha sua senha de admin ali em cima primeiro."; return; }
-      const slugAlvo = b.dataset.tagsSalvar;
-      const campo = resultados.querySelector(`input[data-tags-slug="${CSS.escape(slugAlvo)}"]`);
-      const tags = campo.value.split(",").map(t => t.trim()).filter(Boolean);
-      const r = await apiFetch(API_BASE + "/api/catalogo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "definirTags", adminSecret, slug: slugAlvo, tags })
-      });
-      const dados = await r.json().catch(() => ({}));
-      if (r.ok) {
-        if (dados.tags && dados.tags.length) tagsManuais[slugAlvo] = dados.tags; else delete tagsManuais[slugAlvo];
-        campo.value = (dados.tags || []).join(", ");
-        b.textContent = "Salvo!";
-        setTimeout(() => { b.textContent = "Salvar"; }, 1500);
-      } else {
-        b.textContent = "Erro";
-      }
-    });
-  }
-  document.getElementById("tagsBuscarBtn").onclick = buscarItensTags;
-
-  /* ----- acessos: quem entrou e quais páginas viu ----- */
-
-  document.getElementById("acessosVer").onclick = async () => {
-    const lista = document.getElementById("acessosLista");
-    const adminSecret = document.getElementById("adminSecret").value;
-    if (!adminSecret) { lista.textContent = "Preencha sua senha de admin ali em cima primeiro."; return; }
-    lista.textContent = "Carregando...";
-    try {
-      const r = await apiFetch(API_BASE + "/api/registro", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "listar", adminSecret })
-      });
-      const dados = await r.json();
-      if (!r.ok) { lista.textContent = dados.erro || "Não consegui carregar."; return; }
-      const acessos = dados.acessos || [];
-      if (!acessos.length) { lista.textContent = "Nenhum acesso registrado ainda."; return; }
-      const agora = Date.now();
-      const pessoas = dias => new Set(acessos.filter(a => agora - a.t < dias * 864e5).map(a => a.id)).size;
-      const quando = t => new Date(t).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
-      // agrupa em visitas: páginas seguidas da mesma pessoa com menos de 30 min entre elas
-      const visitas = [];
-      for (const a of acessos) {   // do mais novo para o mais antigo
-        const v = visitas.find(x => x.id === a.id && x.inicio - a.t < 30 * 60e3 && !x.fechada);
-        if (v) { v.paginas.unshift(a.titulo); v.inicio = a.t; }
-        else {
-          visitas.forEach(x => { if (x.id === a.id) x.fechada = true; });
-          visitas.push({ id: a.id, nick: a.nick, inicio: a.t, paginas: [a.titulo] });
-        }
-      }
-      lista.innerHTML = `
-        <p style="margin:0 0 8px">Pessoas diferentes: <b>${pessoas(1)}</b> nas últimas 24h · <b>${pessoas(7)}</b> em 7 dias · <b>${pessoas(30)}</b> em 30 dias</p>
-        ${visitas.slice(0, 100).map(v => `
-          <div style="padding:6px 0;border-bottom:1px solid var(--linha)">
-            <b>${esc(v.nick || "?")}</b> <span style="opacity:.6">${quando(v.inicio)}</span><br>
-            <span style="opacity:.85">${v.paginas.map(esc).join(" → ")}</span>
-          </div>`).join("")}`;
-    } catch (e) {
-      lista.textContent = "Não consegui carregar os acessos agora.";
-    }
-  };
-  document.getElementById("tagsBusca").addEventListener("keydown", e => { if (e.key === "Enter") buscarItensTags(); });
   document.getElementById("faixaBusca").addEventListener("keydown", e => { if (e.key === "Enter") buscarItensFaixa(); });
 
   document.getElementById("itemCriar").onclick = async () => {
-    const adminSecret = document.getElementById("adminSecret").value;
     const msg = document.getElementById("itemMsg");
     const item = {
       tipo: campoTipo.value,
@@ -9523,20 +9649,14 @@ function montarPainelAdminCompleto(){
       item.peca = document.getElementById("itemPeca").value.trim();
       item.genero = document.getElementById("itemGenero").value;
     }
-    if (!adminSecret) { msg.textContent = "Preencha sua senha de admin ali em cima."; return; }
     if (!item.pt || !item.en) { msg.textContent = "Preencha ao menos o nome em português e em inglês."; return; }
-    sessionStorage.setItem("nftse_admin_secret", adminSecret);
     try {
-      const r = await apiFetch(API_BASE + "/api/catalogo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "criar", adminSecret, item })
-      });
+      const r = await postAdmin("/api/catalogo", { acao: "criar", item });
       const dados = await r.json();
       if (!r.ok) { msg.textContent = dados.erro || "Erro ao adicionar o item."; return; }
       msg.textContent = `Item "${dados.item.pt}" adicionado! Código: ${dados.item.slug}`;
       document.getElementById("itemFaixa").value = "";
-      ["itemPt","itemEn","itemImg","itemPeca","itemDesc","itemSlug"].forEach(id => {
+      ["itemPt", "itemEn", "itemImg", "itemPeca", "itemDesc", "itemSlug"].forEach(id => {
         const campo = document.getElementById(id);
         if (campo) campo.value = "";
       });
@@ -9569,6 +9689,7 @@ function registrarPagina(rota, entrada){
   else if (rota === "visuais") titulo = "Meus visuais";
   else if (rota === "sacola") titulo = "Sacola";
   else if (rota === "editor") titulo = "Editor de Visuais";
+  else if (rota === "admin") titulo = "Administração";
   apiFetch(API_BASE + "/api/registro", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ pagina: rota || "catalogo", titulo, entrada: !!entrada })
@@ -9597,6 +9718,7 @@ function render(){
   if (rota === "visuais") { telaVisuais(); window.scrollTo(0, 0); return; }
   if (rota === "sacola") { telaSacola(); if (mudouDeTela) window.scrollTo(0, 0); return; }
   if (rota === "editor") { telaEditor(); window.scrollTo(0, 0); return; }
+  if (rota === "admin") { telaAdmin(); if (mudouDeTela) window.scrollTo(0, 0); return; }
   telaGrade();
   if (mudouDeTela) voltarPosicao();
 }
@@ -9612,9 +9734,8 @@ window.addEventListener("hashchange", render);
   if (estadoSessao !== "ATIVA") { encerrarNaTela("EXPIRADA"); return; }
   renderAuthArea();
   render();
-  await Promise.all([carregarCatalogoExtra(), carregarFavoritos(), carregarSacola()]);
+  await Promise.all([carregarCatalogoExtra(), carregarFavoritos(), carregarSacola(), verificarAdmin()]);
   if (estadoSessao !== "ATIVA") return;
-  montarPainelAdmin();
   render();
 })();
 </script>

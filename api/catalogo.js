@@ -17,6 +17,7 @@
 
 import { redis } from "../lib/redis.js";
 import { exigirSessao } from "./_sessao.js";
+import { ehAdmin } from "./_admin.js";
 
 const CHAVE_REDIS = "catalogo:extra";
 const CHAVE_FAIXAS = "catalogo:faixas";
@@ -91,8 +92,9 @@ export default async function handler(req, res) {
 
   const { acao, adminSecret, item, slug, faixa, tags } = req.body || {};
 
-  if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ erro: "Senha de administrador incorreta." });
+  // Admin = cargo "Administrador" no Discord (ou a senha antiga), veja _admin.js
+  if (!(await ehAdmin(sessao, adminSecret))) {
+    return res.status(403).json({ erro: "Só quem tem o cargo Administrador no Discord pode fazer isso." });
   }
 
   // Só confere a senha de admin (usado pra liberar o painel na tela)

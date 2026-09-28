@@ -118,6 +118,12 @@ export default async function handler(req, res) {
       return res.status(429).json({ erro: "Você acabou de fazer um pedido. Espere um minutinho antes de mandar outro." });
     }
 
+    // registro para o painel de admin (pedidos de preço e itens mais pedidos)
+    try {
+      await redis("LPUSH", "pedidos:log", JSON.stringify({ t: Date.now(), id: String(sessao.discordUserId), nick: limpar(sessao.habboName, 40), itens: itens.map(i => i.slug) }));
+      await redis("LTRIM", "pedidos:log", 0, 1999);
+    } catch {}
+
     const doBot = await pedirTicketAoBot(sessao, itens);
     if (doBot) return res.status(200).json({ ok: true, modo: "bot", link: doBot.link || CANAL_TICKETS });
 

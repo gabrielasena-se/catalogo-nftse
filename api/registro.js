@@ -3,7 +3,7 @@
 // POST /api/registro  { pagina, titulo }          (sessão do Discord)
 //   Guarda "quem abriu qual página e quando" e avisa no canal do Discord pelo
 //   webhook: entrada:true = a pessoa acabou de abrir o site; senão, abriu outra página.
-// POST /api/registro  { acao:"listar", adminSecret }  (sessão + senha de admin)
+// POST /api/registro  { acao:"listar" }  (sessão + cargo Administrador, veja _admin.js)
 //   Devolve os acessos mais recentes, para o painel de admin.
 //
 // Variáveis de ambiente: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN,
@@ -11,6 +11,7 @@
 // sem ele, o site só registra e não avisa).
 
 import { exigirSessao } from "./_sessao.js";
+import { ehAdmin } from "./_admin.js";
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -65,8 +66,8 @@ export default async function handler(req, res) {
 
   // Lista para o painel de admin
   if (corpo.acao === "listar") {
-    if (!process.env.ADMIN_SECRET || corpo.adminSecret !== process.env.ADMIN_SECRET) {
-      return res.status(403).json({ erro: "Senha de administrador incorreta." });
+    if (!(await ehAdmin(sessao, corpo.adminSecret))) {
+      return res.status(403).json({ erro: "Só quem tem o cargo Administrador no Discord pode ver isto." });
     }
     const brutos = await redis("LRANGE", CHAVE_LOG, 0, 999);
     const limite = Date.now() - DIAS_GUARDADOS * 864e5;
