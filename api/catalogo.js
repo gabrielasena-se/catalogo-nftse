@@ -15,21 +15,11 @@
 // editar o catalogo.html nem publicar de novo. O site principal busca essa
 // lista e junta com os itens que já vêm prontos no arquivo.
 
+import { redis } from "../lib/redis.js";
 import { exigirSessao } from "./_sessao.js";
 
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const CHAVE_REDIS = "catalogo:extra";
 const CHAVE_FAIXAS = "catalogo:faixas";
-
-async function redis(...args) {
-  const caminho = args.map(encodeURIComponent).join("/");
-  const r = await fetch(`${REDIS_URL}/${caminho}`, {
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
-  });
-  const dados = await r.json();
-  return dados.result;
-}
 
 async function lerExtras() {
   const bruto = await redis("GET", CHAVE_REDIS);

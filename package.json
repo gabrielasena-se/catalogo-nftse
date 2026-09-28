@@ -1,0 +1,23 @@
+{
+  "name": "nft-site",
+  "version": "1.0.0",
+  "description": "Catálogo NFT-SE e o BOT NFT-SE do Discord, num projeto só na Vercel.",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "deploy-commands": "node --env-file-if-exists=.env.local scripts/deploy-commands.js",
+    "migrar-netlify": "node --env-file-if-exists=.env.local scripts/migrar-netlify.js",
+    "test": "node --experimental-test-module-mocks --test \"tests/*.test.js\""
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.9.9",
+    "discord-interactions": "^4.4.0"
+  },
+  "devDependencies": {
+    "@netlify/blobs": "^8.2.0"
+  }
+}

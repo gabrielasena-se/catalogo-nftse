@@ -1,0 +1,27 @@
+{
+  "name": "bot-nft-se",
+  "version": "1.0.0",
+  "description": "BOT NFT-SE — bot de verificação de conta Habbo para um servidor NFT. Discord HTTP Interactions em Netlify Functions, com Netlify Blobs.",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy-commands": "node src/deploy-commands.mjs",
+    "test": "node --experimental-test-module-mocks --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "discord-interactions": "^4.1.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "discord.js": "^14.16.3",
+    "luxon": "^3.5.0",
+    "mysql2": "^3.11.5",
+    "node-cron": "^3.0.3"
+  }
+}

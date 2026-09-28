@@ -2,15 +2,14 @@
 //
 // Não é uma rota: o "_" no começo do nome faz a Vercel não publicar este
 // arquivo. Ele é usado pelas rotas de /api para descobrir de quem é o token
-// que o navegador mandou, perguntando para a API do bot.
+// que o navegador mandou.
 //
-// Variáveis de ambiente (Settings > Environment Variables na Vercel), só de
-// servidor, NUNCA com prefixo NEXT_PUBLIC_:
-//   NFT_BOT_API    URL base da API do bot (ex: https://nft-se.netlify.app/api/catalogo)
-//   NFT_BOT_TOKEN  token Bearer da API do bot
+// O bot (api/discord.js) grava a sessão no Redis quando a pessoa clica em
+// "Acessar catálogo"; aqui ela é lida do mesmo Redis (lib/bot/catalogo/repo.js).
+// Antes o bot morava na Netlify e isto era uma chamada HTTP com token Bearer —
+// agora é o mesmo projeto, então não há API nem segredo no meio.
 
-const API_URL = (process.env.NFT_BOT_API || "").replace(/\/+$/, "");
-const API_TOKEN = process.env.NFT_BOT_TOKEN || "";
+import { registrarAcesso, revoke, revokeToken } from "../lib/bot/catalogo/repo.js";
 
 // Header em que o navegador manda o token da sessão para as rotas de dados.
 const HEADER_TOKEN = "x-sessao-token";
@@ -34,20 +33,13 @@ export function tokenDaRequisicao(req) {
   return token.length <= 512 ? token : "";
 }
 
-function chamarApi(caminho, metodo, headersExtras = {}) {
-  return fetch(API_URL + caminho, {
-    method: metodo,
-    cache: "no-store",
-    headers: { Authorization: `Bearer ${API_TOKEN}`, ...headersExtras }
-  });
-}
-
 export async function encerrarSessao(token) {
-  if (!API_URL || !API_TOKEN || !token) return;
+  if (!token) return;
   try {
-    await chamarApi(`/sessao/${encodeURIComponent(token)}/encerrar`, "DELETE");
-  } catch {
+    await revokeToken(token);
+  } catch (erro) {
     // Se o encerramento falhar, a requisição continua recusada do mesmo jeito.
+    console.error("[sessao] falha ao encerrar:", erro);
   }
 }
 
@@ -55,47 +47,49 @@ export async function encerrarSessao(token) {
 //   ATIVA         liberado; vem junto discordUserId e habboName
 //   EXPIRADA      sem token, token desconhecido/encerrado, ou sem IP para conferir
 //   IP_DIFERENTE  usado de outra conexão; a sessão acabou de ser encerrada
-//   INDISPONIVEL  não deu para perguntar ao bot (configuração ou rede) — também é recusa
+//   INDISPONIVEL  não deu para ler o banco (configuração ou rede) — também é recusa
 export async function validarSessao(req) {
-  if (!API_URL || !API_TOKEN) return { estado: "INDISPONIVEL" };
-
   const token = tokenDaRequisicao(req);
   if (!token) return { estado: "EXPIRADA" };
 
+  // Sem IP não há o que comparar: recusar é mais seguro que deixar passar.
   const ip = ipDoVisitante(req);
   if (!ip) {
     await encerrarSessao(token);
     return { estado: "EXPIRADA" };
   }
 
-  let resposta, dados;
+  // O primeiro acesso fixa o IP na sessão; os seguintes precisam vir do mesmo IP.
+  let sessao;
   try {
-    resposta = await chamarApi(`/sessao/${encodeURIComponent(token)}`, "GET", { "x-catalogo-client-ip": ip });
-    dados = await resposta.json();
-  } catch {
+    sessao = await registrarAcesso(token, ip);
+  } catch (erro) {
+    console.error("[sessao] falha ao consultar:", erro);
     return { estado: "INDISPONIVEL" };
   }
 
-  if (resposta.status === 404 && dados && dados.erro === "SESSAO_INEXISTENTE") return { estado: "EXPIRADA" };
-  if (!resposta.ok || !dados || dados.ok !== true || !dados.sessao || !dados.sessao.discordUserId) {
-    return { estado: "INDISPONIVEL" };
-  }
+  if (!sessao || !sessao.discordUserId) return { estado: "EXPIRADA" };
 
-  // Só true libera. false (outro IP) e null (sem IP para comparar) encerram a sessão.
-  if (dados.ipConfere !== true) {
-    await encerrarSessao(token);
-    return { estado: dados.ipConfere === false ? "IP_DIFERENTE" : "EXPIRADA" };
+  // Encerrar derruba o token para todo mundo, inclusive o IP original: se o link vazou,
+  // o dono também precisa pedir outro no Discord.
+  if (sessao.ip !== ip) {
+    try {
+      await revoke(sessao);
+    } catch (erro) {
+      console.error("[sessao] falha ao encerrar:", erro);
+    }
+    return { estado: "IP_DIFERENTE" };
   }
 
   return {
     estado: "ATIVA",
-    discordUserId: String(dados.sessao.discordUserId),
-    habboName: String(dados.sessao.habboName || "")
+    discordUserId: String(sessao.discordUserId),
+    habboName: String(sessao.habboName || "")
   };
 }
 
 // Para as rotas de dados: devolve a sessão se estiver ativa; senão já responde
-// a recusa (só com o estado, nada da API do bot) e devolve null.
+// a recusa (só com o estado) e devolve null.
 export async function exigirSessao(req, res) {
   semCache(res);
   const sessao = await validarSessao(req);

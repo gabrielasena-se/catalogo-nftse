@@ -3,6 +3,9 @@
   "functions": {
     "api/app.js": {
       "includeFiles": "privado/**"
+    },
+    "api/discord.js": {
+      "maxDuration": 60
     }
   }
 }

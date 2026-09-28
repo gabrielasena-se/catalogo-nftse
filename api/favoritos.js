@@ -7,19 +7,8 @@
 // Os favoritos de cada pessoa ficam guardados pelo ID do Discord dela
 // (favoritos:discord:<id>), que não muda mesmo se o nick do Habbo mudar.
 
+import { redis } from "../lib/redis.js";
 import { exigirSessao } from "./_sessao.js";
-
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-async function redis(...args) {
-  const caminho = args.map(encodeURIComponent).join("/");
-  const r = await fetch(`${REDIS_URL}/${caminho}`, {
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
-  });
-  const dados = await r.json();
-  return dados.result;
-}
 
 export default async function handler(req, res) {
   const sessao = await exigirSessao(req, res);

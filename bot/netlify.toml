@@ -1,0 +1,13 @@
+# BOT NFT-SE — bot de verificação para o servidor NFT.
+# O bot não é um processo 24/7: o Discord faz POST na Interactions Endpoint URL
+# e a Netlify executa a função sob demanda.
+
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+[functions]
+  node_bundler = "esbuild"
