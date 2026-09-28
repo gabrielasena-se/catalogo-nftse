@@ -1,8 +1,8 @@
 // REGISTRO DE ACESSOS + AVISO NO DISCORD
 //
 // POST /api/registro  { pagina, titulo }          (sessão do Discord)
-//   Guarda "quem abriu qual página e quando". Com entrada:true (a pessoa acabou
-//   de abrir o site), também manda um aviso no canal do Discord pelo webhook.
+//   Guarda "quem abriu qual página e quando" e avisa no canal do Discord pelo
+//   webhook: entrada:true = a pessoa acabou de abrir o site; senão, abriu outra página.
 // POST /api/registro  { acao:"listar", adminSecret }  (sessão + senha de admin)
 //   Devolve os acessos mais recentes, para o painel de admin.
 //
@@ -32,16 +32,21 @@ async function redis(...args) {
 
 const limpar = (t, max) => String(t || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, max);
 
-async function avisarDiscord(sessao, titulo) {
+// entrada: a pessoa acabou de abrir o site; senão, só abriu outra página dentro dele.
+async function avisarDiscord(sessao, titulo, entrada) {
   if (!WEBHOOK) return;
-  const nick = limpar(sessao.habboName, 40) || "Alguém";
+  const nick = (limpar(sessao.habboName, 40) || "Alguém").replace(/[*_`~|>]/g, "");
+  const pagina = titulo.replace(/[*_`~|>]/g, "");
+  const texto = entrada
+    ? `🟣 **${nick}** (<@${sessao.discordUserId}>) acabou de entrar no catálogo — ${pagina}`
+    : `📄 **${nick}** abriu: ${pagina}`;
   try {
     await fetch(WEBHOOK, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: "Catálogo NFT-SE",
-        content: `🟣 **${nick.replace(/[*_`~|>]/g, "")}** (<@${sessao.discordUserId}>) acabou de entrar no catálogo — ${titulo}`,
+        content: texto,
         // mostra a menção sem notificar a pessoa
         allowed_mentions: { parse: [] }
       })
@@ -83,9 +88,8 @@ export default async function handler(req, res) {
   await redis("LPUSH", CHAVE_LOG, JSON.stringify(registro));
   await redis("LTRIM", CHAVE_LOG, 0, MAX_REGISTROS - 1);
 
-  // Aviso em tempo real toda vez que alguém abre o site (a primeira tela depois de carregar
-  // a página). As telas seguintes da mesma visita só ficam registradas.
-  if (corpo.entrada === true) await avisarDiscord(sessao, titulo);
+  // Aviso em tempo real: a entrada no site e cada página aberta depois dela.
+  await avisarDiscord(sessao, titulo, corpo.entrada === true);
 
   return res.status(200).json({ ok: true });
 }
