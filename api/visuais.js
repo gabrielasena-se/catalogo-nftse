@@ -14,7 +14,9 @@
 // dono fica em visuais:publicos. Quem criou nunca é mostrado.
 //
 //   GET                              lista os visuais de quem pediu (mais novos primeiro)
-//   GET    ?item=ch-6525.lg-6526|…   visuais públicos que usam o item (qualquer versão)
+//   GET    ?item=ch-6525.lg-6526|…   visuais públicos que usam o item (qualquer versão e
+//                                    qualquer parte dele: no editor as partes são escolhidas
+//                                    separadas, ex. só a argola dos Piercings de Roqueiro)
 //   POST   { nome, figura, genero, publico }   salva um visual novo
 //   PATCH  { id, publico }                     mostra/esconde o visual na página dos itens
 //   DELETE { id }                              apaga um visual
@@ -80,7 +82,7 @@ export default async function handler(req, res) {
     const membros = new Set();
     for (const versao of item.split("|")) {
       const chaves = versao.split(".").map(p => `visuais:peca:${p}`);
-      const achados = await redis("SINTER", ...chaves);
+      const achados = await redis("SUNION", ...chaves);
       (Array.isArray(achados) ? achados : []).forEach(m => membros.add(m));
     }
     if (!membros.size) return res.status(200).json({ visuais: [] });
