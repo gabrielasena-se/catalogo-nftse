@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="same-origin">
 <title>Catálogo NFT-SE</title>
+<meta name="description" content="Todos os NFTs do Habbo em um só lugar: visuais, mobis e balões de fala, com provador, editor de visuais e prévia no quarto. Exclusivo para a comunidade NFT-SE.">
+<meta property="og:title" content="Catálogo NFT-SE">
+<meta property="og:description" content="Todos os NFTs do Habbo em um só lugar. Exclusivo para a comunidade NFT-SE no Discord.">
+<meta property="og:image" content="https://nft-se.com/entrada/catalogo-mobis.jpg">
+<meta name="theme-color" content="#4a12a0">
 <link rel="icon" type="image/png" href="/favicon.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,48 +18,289 @@
 :root{
   --fundo:#150128;
   --painel:#200a3c;
+  --tile:#2b0f52;
   --linha:#6a2fc0;
+  --topo-fundo-1:#4a12a0;
+  --topo-fundo-2:#1a0338;
+  --topo-linha:#b048f0;
   --texto:#f3e9ff;
   --mudo:#c090e8;
   --ouro:#ff2ee0;
+  --azul:#5fc8f0;
   --pixel:"Silkscreen","Courier New",monospace;
   --corpo:"Nunito Sans",-apple-system,"Segoe UI",sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 body{
   background:var(--fundo);color:var(--texto);font-family:var(--corpo);
-  font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;padding:16px;
+  font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden;
 }
+img{max-width:100%}
+a{color:var(--ouro)}
+
+/* ---------- telas simples (verificando / indisponível) ---------- */
 .sessao-tela{
-  max-width:520px;margin:40px auto;background:var(--painel);border:1px solid var(--linha);
+  max-width:520px;margin:56px auto;background:var(--painel);border:1px solid var(--linha);
   border-radius:10px;padding:24px;
 }
 .sessao-tela h1{font-family:var(--pixel);font-size:18px;margin:0 0 10px}
 .sessao-tela p{margin:0 0 12px;line-height:1.5}
-.sessao-tela ol{margin:0 0 16px;padding-left:20px;line-height:1.7}
-.sessao-aviso{color:var(--ouro)}
 .cta{
-  display:inline-block;margin-top:6px;background:linear-gradient(180deg,#ff2ee0,#b800a0);border:none;
-  border-bottom:3px solid #8a0078;border-radius:7px;color:#fff;cursor:pointer;
-  font-family:var(--pixel);font-size:12px;padding:13px 20px;text-decoration:none;
+  display:inline-flex;align-items:center;gap:10px;background:linear-gradient(180deg,#ff2ee0,#b800a0);border:none;
+  border-bottom:3px solid #8a0078;border-radius:8px;color:#fff;cursor:pointer;
+  font-family:var(--pixel);font-size:13px;padding:14px 22px;text-decoration:none;
+  box-shadow:0 8px 24px rgba(255,46,224,.28);transition:transform .15s,box-shadow .15s;
 }
+.cta:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(255,46,224,.4)}
 .cta:active{border-bottom-width:1px;transform:translateY(2px)}
+.cta svg{width:22px;height:22px;flex:none}
+.cta-secundario{
+  display:inline-flex;align-items:center;gap:8px;color:var(--texto);text-decoration:none;
+  border:1px solid var(--linha);border-radius:8px;padding:13px 18px;font-weight:800;font-size:15px;
+  background:rgba(255,255,255,.03);
+}
+.cta-secundario:hover{border-color:var(--ouro)}
+
+/* ---------- topo ---------- */
+.topo{background:linear-gradient(180deg,var(--topo-fundo-1),var(--topo-fundo-2));border-bottom:2px solid var(--topo-linha)}
+.topo-int{max-width:1120px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.marca{display:flex;align-items:center;gap:10px;font-family:var(--pixel);font-size:17px;letter-spacing:.5px;color:var(--ouro);text-decoration:none;line-height:1.2}
+.marca img{width:34px;height:34px;flex-shrink:0;image-rendering:pixelated}
+.marca-sub{display:block;font-size:9px;color:var(--mudo);letter-spacing:1px;margin-top:3px}
+.topo .cta{font-size:11px;padding:10px 16px;box-shadow:none}
+.topo .cta svg{width:18px;height:18px}
+@media(max-width:520px){.topo .cta{display:none}}
+
+/* ---------- aviso da sessão ---------- */
+.aviso-sessao{
+  max-width:1120px;margin:18px auto 0;padding:12px 16px;border:1px solid var(--ouro);border-radius:10px;
+  background:rgba(255,46,224,.08);color:var(--texto);font-size:14px;width:calc(100% - 36px);
+}
+.aviso-sessao b{color:var(--ouro)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;text-align:center;padding:56px 18px 26px;overflow:hidden}
+.hero::before{
+  content:"";position:absolute;inset:-40% -10% auto;height:120%;z-index:-1;
+  background:radial-gradient(ellipse at center,rgba(176,72,240,.35),rgba(21,1,40,0) 60%);
+}
+.selo-exclusivo{
+  display:inline-block;font-family:var(--pixel);font-size:11px;letter-spacing:1px;color:var(--azul);
+  border:1px solid var(--azul);border-radius:999px;padding:5px 14px;margin:0 0 18px;background:rgba(95,200,240,.08);
+}
+.hero h1{font-size:clamp(26px,4.2vw,44px);line-height:1.12;margin:0 auto 16px;max-width:900px;font-weight:800;letter-spacing:-.5px}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,#ff2ee0,#b86bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.sub{font-size:clamp(16px,2vw,19px);color:var(--mudo);max-width:700px;text-wrap:balance;margin:0 auto 26px}
+.hero-botoes{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.numeros{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:30px auto 0;max-width:760px}
+.numero{background:var(--painel);border:1px solid var(--linha);border-radius:10px;padding:10px 18px;min-width:140px}
+.numero b{display:block;font-family:var(--pixel);font-size:22px;color:var(--ouro)}
+.numero span{font-size:13px;color:var(--mudo)}
+
+/* ---------- faixa de NFTs passando ---------- */
+.esteira{overflow:hidden;padding:14px 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.esteira-trilho{display:flex;gap:14px;width:max-content;animation:correr 70s linear infinite}
+.esteira-trilho.volta{animation-direction:reverse;animation-duration:80s}
+.esteira:hover .esteira-trilho{animation-play-state:paused}
+@keyframes correr{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.esteira-trilho{animation:none}}
+.nft{width:150px;flex:none;border-radius:10px;overflow:hidden;border:1px solid var(--linha);background:var(--tile)}
+.nft img{display:block;width:150px;height:150px;image-rendering:pixelated}
+.nft span{display:block;font-size:12px;font-weight:800;padding:7px 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:600px){.nft{width:112px}.nft img{width:112px;height:112px}}
+
+/* ---------- seções ---------- */
+.secao{max-width:1120px;margin:0 auto;padding:56px 18px 10px}
+.secao h2{font-family:var(--pixel);font-size:clamp(18px,2.6vw,24px);text-align:center;margin:0 0 8px;letter-spacing:.5px}
+.secao .intro{text-align:center;color:var(--mudo);max-width:620px;margin:0 auto 28px}
+
+/* ---------- carrossel de telas ---------- */
+.carrossel{position:relative;max-width:1000px;margin:0 auto}
+.slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;border-radius:14px;
+  border:1px solid var(--linha);background:var(--painel);scrollbar-width:none;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.slides::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;scroll-snap-align:start;margin:0}
+.slide img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top}
+.slide figcaption{padding:16px 22px 20px;border-top:1px solid var(--linha)}
+.slide figcaption b{display:block;font-family:var(--pixel);font-size:14px;color:var(--ouro);margin-bottom:4px}
+.slide figcaption span{color:var(--texto);font-size:15px}
+.seta{
+  position:absolute;top:calc(50% - 60px);width:44px;height:44px;border-radius:50%;border:1px solid var(--linha);
+  background:rgba(21,1,40,.85);color:var(--texto);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.seta:hover{border-color:var(--ouro);color:var(--ouro)}
+.seta.esq{left:-22px}.seta.dir{right:-22px}
+@media(max-width:1060px){.seta.esq{left:8px}.seta.dir{right:8px}}
+.pontos{display:flex;justify-content:center;gap:8px;margin-top:14px}
+.pontos button{width:10px;height:10px;border-radius:50%;border:none;background:var(--linha);cursor:pointer;padding:0}
+.pontos button[aria-current="true"]{background:var(--ouro);width:26px;border-radius:5px}
+
+/* ---------- vantagens ---------- */
+.vantagens{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.vantagem{background:var(--painel);border:1px solid var(--linha);border-radius:12px;padding:18px}
+.vantagem .ico{font-size:26px;line-height:1;margin-bottom:10px}
+.vantagem b{display:block;font-size:16px;margin-bottom:4px}
+.vantagem span{color:var(--mudo);font-size:14px}
+
+/* ---------- como acessar ---------- */
+.passos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;counter-reset:passo}
+.passo{position:relative;background:var(--painel);border:1px solid var(--linha);border-radius:12px;padding:22px 18px 18px}
+.passo::before{
+  counter-increment:passo;content:counter(passo);position:absolute;top:-14px;left:18px;width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(180deg,#ff2ee0,#b800a0);color:#fff;font-family:var(--pixel);font-size:14px;display:flex;align-items:center;justify-content:center;
+}
+.passo b{display:block;font-size:16px;margin:4px 0}
+.passo span{color:var(--mudo);font-size:14px}
+.nota{text-align:center;color:var(--mudo);font-size:13px;margin:18px auto 0;max-width:640px}
+.final{text-align:center;padding:40px 18px 20px}
+.final p{color:var(--mudo);margin:0 0 18px}
+
+.rodape{max-width:1120px;margin:40px auto 0;padding:22px 18px 30px;border-top:1px solid var(--linha);color:var(--mudo);font-size:12px;line-height:1.6;opacity:.85}
 </style>
 </head>
 <body>
 
 <main id="entrada"><div class="sessao-tela"><p>Verificando seu acesso...</p></div></main>
 
+<!-- Vitrine para quem ainda não tem acesso (ou cuja sessão acabou). Só aparece se /api/app recusar. -->
+<template id="vitrine">
+  <header class="topo">
+    <div class="topo-int">
+      <span class="marca"><img src="/entrada/logo.png" alt="NFT-SE">CATÁLOGO NFTs<span class="marca-sub">by NFT-SE</span></span>
+      <a class="cta" data-discord href="#" target="_blank" rel="noopener">{{DISCORD_ICONE}} Entrar no Discord</a>
+    </div>
+  </header>
+
+  <div id="avisoSessao"></div>
+
+  <section class="hero">
+    <span class="selo-exclusivo">Exclusivo para a comunidade NFT-SE</span>
+    <h1>Conheça os visuais do jogo, experimente no provador virtual e descubra os <em>NFTs do Habbo</em> em um só lugar!</h1>
+    <p class="sub">Veja cada visual e mobi de perto, teste roupas no seu próprio avatar, experimente diferentes balões de chat e descubra a faixa de preço de cada item.</p>
+    <div class="hero-botoes">
+      <a class="cta" data-discord href="#" target="_blank" rel="noopener">{{DISCORD_ICONE}} Entrar no Discord da NFT-SE</a>
+      <a class="cta-secundario" href="#como-acessar">Como acessar ↓</a>
+    </div>
+    <div class="numeros">
+      <div class="numero"><b>480+</b><span>visuais NFT</span></div>
+      <div class="numero"><b>1.400+</b><span>mobis NFT</span></div>
+      <div class="numero"><b>15</b><span>balões de fala</span></div>
+      <div class="numero"><b>280+</b><span>mobis animados</span></div>
+    </div>
+  </section>
+
+  <div class="esteira" aria-hidden="true"><div class="esteira-trilho" id="esteira1"></div></div>
+  <div class="esteira" aria-hidden="true"><div class="esteira-trilho volta" id="esteira2"></div></div>
+
+  <section class="secao">
+    <h2>Uma espiadinha lá dentro</h2>
+    <p class="intro">É assim que o catálogo funciona para quem já é da comunidade.</p>
+    <div class="carrossel">
+      <div class="slides" id="slides" tabindex="0" aria-label="Telas do catálogo">
+        <figure class="slide"><img src="/entrada/catalogo-visuais.jpg" alt="Lista de visuais NFT do catálogo" loading="lazy">
+          <figcaption><b>Todos os visuais NFT</b><span>Roupas, peles, olhos e acessórios com o nome oficial do Habbo e a faixa de preço de cada um.</span></figcaption></figure>
+        <figure class="slide"><img src="/entrada/catalogo-mobis.jpg" alt="Lista de mobis NFT do catálogo" loading="lazy">
+          <figcaption><b>Mais de 1.400 mobis</b><span>Ordene pelos lançamentos, pelo preço ou pelos mais curtidos, e ache qualquer um pela busca.</span></figcaption></figure>
+        <figure class="slide"><img src="/entrada/mobi-no-quarto.jpg" alt="Mobi animado dentro de um quarto" loading="lazy">
+          <figcaption><b>Veja o mobi no quarto</b><span>Tamanho de verdade e até a animação, do jeitinho que fica no Habbo.</span></figcaption></figure>
+        <figure class="slide"><img src="/entrada/provador.jpg" alt="Provador com avatares vestindo o item" loading="lazy">
+          <figcaption><b>Provador</b><span>Experimente qualquer roupa no avatar, troque o tom de pele e as cores, ou use o seu próprio visual pelo nick.</span></figcaption></figure>
+        <figure class="slide"><img src="/entrada/editor-de-visuais.jpg" alt="Editor de visuais" loading="lazy">
+          <figcaption><b>Editor de Visuais</b><span>Monte combinações com peças NFT e do jogo, salve seus favoritos e veja o que a comunidade criou.</span></figcaption></figure>
+        <figure class="slide"><img src="/entrada/teste-o-balao.jpg" alt="Teste do balão de fala no quarto" loading="lazy">
+          <figcaption><b>Teste o balão</b><span>Escreva uma mensagem e veja como o balão de fala aparece no quarto antes de comprar.</span></figcaption></figure>
+      </div>
+      <button class="seta esq" type="button" data-seta="-1" aria-label="Tela anterior">‹</button>
+      <button class="seta dir" type="button" data-seta="1" aria-label="Próxima tela">›</button>
+      <div class="pontos" id="pontos"></div>
+    </div>
+  </section>
+
+  <section class="secao">
+    <h2>E ainda tem mais</h2>
+    <p class="intro">Feito pra quem quer explorar, colecionar e descobrir novos itens e NFTs do Habbo.</p>
+    <div class="vantagens">
+      <div class="vantagem"><div class="ico">🛍️</div><b>Sacola + atendimento</b><span>Junte os itens que quer e peça o preço direto para o atendimento da NFT-SE.</span></div>
+      <div class="vantagem"><div class="ico">💜</div><b>Favoritos</b><span>Guarde o que gostou e acompanhe os itens mais curtidos pela comunidade.</span></div>
+      <div class="vantagem"><div class="ico">✨</div><b>Sempre atualizado</b><span>Os lançamentos entram no catálogo com os nomes oficiais em português.</span></div>
+      <div class="vantagem"><div class="ico">💲</div><b>Faixa de preço</b><span>Saiba na hora se um item é mais em conta ou mais raro, de $ a $$$$.</span></div>
+    </div>
+  </section>
+
+  <section class="secao" id="como-acessar">
+    <h2>Como acessar</h2>
+    <p class="intro">O catálogo é exclusivo para quem faz parte do servidor da NFT-SE no Discord. Leva menos de um minuto:</p>
+    <div class="passos">
+      <div class="passo"><b>Entre no servidor</b><span>Abra o convite e entre no servidor <strong>NFT-SE</strong> no Discord.</span></div>
+      <div class="passo"><b>Faça a verificação</b><span>Siga a verificação do servidor para liberar os canais.</span></div>
+      <div class="passo"><b>Peça seu acesso</b><span>No canal <strong>catálogo</strong>, clique em <strong>Acessar catálogo</strong>.</span></div>
+      <div class="passo"><b>Abra o seu link</b><span>O bot envia um link pessoal, só seu. É só clicar e aproveitar!</span></div>
+    </div>
+    <p class="nota">O acesso vale para a conexão em que o link foi aberto. Se trocar de rede ou de aparelho, é só pedir um link novo no mesmo canal.</p>
+  </section>
+
+  <section class="final">
+    <p>Pronto para ver tudo isso por dentro?</p>
+    <a class="cta" data-discord href="#" target="_blank" rel="noopener">{{DISCORD_ICONE}} Entrar no Discord da NFT-SE</a>
+  </section>
+
+  <footer class="rodape">
+    Catálogo informativo. Negociações e transferências acontecem no Discord.<br>
+    NFT-SE é um projeto independente e não possui vínculo, parceria, patrocínio ou afiliação oficial com Habbo ou Sulake.
+    Habbo e demais marcas relacionadas pertencem aos seus respectivos titulares.
+  </footer>
+</template>
+
 <script>
 /* Entrada pública do catálogo. Não tem nada do catálogo aqui: ele só vem de
    /api/app, que confere o token e o IP com o bot do Discord antes de entregar.
-   O link do bot chega como /?token=...; o token fica guardado neste navegador. */
+   O link do bot chega como /?token=...; o token fica guardado neste navegador.
+   Quem não tem acesso vê a vitrine (template "vitrine") com prints e o passo a passo. */
 (function(){
   var DISCORD = "https://discord.gg/A2DhpT2kh";   // mesmo link de privado/catalogo.html
   var CHAVE_TOKEN = "nftse_token";
   var CHAVE_MOTIVO = "nftse_motivo";               // motivo deixado pelo catálogo ao sair
   var entrada = document.getElementById("entrada");
+
+  // NFTs que passam na faixa da vitrine (imagens oficiais do Habbo)
+  var BASE = "https://nft-tokens.habbo.com/collectibles/";
+  var ESTEIRA_1 = [
+    ["Pele Ouro","clothes/images/clothing_nftgoldskin.png"],
+    ["Coroa de Ícaro","clothes/images/clothing_nfticaruscrown.gif"],
+    ["Coração Voador","clothes/images/clothing_nftflyingheart.gif"],
+    ["Amigo Passarinho","clothes/images/clothing_nftsummerbird.gif"],
+    ["Pele de Esmeralda Pura","clothes/images/clothing_nftemeraldskin.png"],
+    ["Guitarra Rock Star","clothes/images/clothing_nftrockstar.png"],
+    ["Fada das Flores de São Valentim","clothes/images/clothing_nftflowerfairy.gif"],
+    ["Dragão Sombrio Familiar","clothes/images/clothing_nftshoulderdragon2.png"],
+    ["Coroa Ano do Dragão","clothes/images/clothing_nftdragoncrown.gif"],
+    ["Mini Boneco de Neve","clothes/images/clothing_nftbabysnowman.gif"],
+    ["Sol Sorridente","clothes/images/clothing_nftsun.png"],
+    ["Maleta de Dinheiro","clothes/images/clothing_nftsuitcase.png"],
+    ["Guarda-chuva Curtindo a Chuva","clothes/images/clothing_nftumbrella.gif"],
+    ["Moletom Sapinho","clothes/images/hoodie/clothing_nftfroghoodie.png"]
+  ];
+  var ESTEIRA_2 = [
+    ["Dragão Dourado","furni/images/crafted/nft_a7_rare_dragonlamp.png"],
+    ["Frosty de Aniversário","furni/images/nft_h26_annivfrosty.png"],
+    ["Dinossauro Robô","furni/images/crafted/nft_xmas13_robotdino.png"],
+    ["Touro de Ouro","furni/images/bull/nft_h23_goldbull.png"],
+    ["Cadeira Flutuante","furni/images/crafted/nft_rare_r20_balloonchair.png"],
+    ["Infobus Dois Andares","furni/images/nft_h22_silver2decker.png"],
+    ["Carro Esportivo Vermelho","furni/images/car/nft_ff23_sportscar2.png"],
+    ["Luminária de Dragão Esmeralda","furni/images/crafted/nft_rare_colourable_dragonlamp_2.png"],
+    ["Freezer Festas Congeladas","furni/images/xmas22/nft_h22_xmas22frosty.png"],
+    ["Árvore de pirulito","furni/images/crafted/nft_cland_c15_lollytree.png"],
+    ["Fonte Trippy","furni/images/nft_h22_trippyfountain.gif"],
+    ["O Quebra-Nozes","furni/images/crafted/nft_xmas12_nutcracker.png"],
+    ["Pinguim Ouro Puro","furni/images/crafted/nft_gold_c15_arc_statue.png"],
+    ["TV Retrô-Futurista","furni/images/nft_h26_retrofuturetv.png"]
+  ];
+
+  var ICONE_DISCORD = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.2a18 18 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18a19.7 19.7 0 0 0 6 3l1.3-2a12.7 12.7 0 0 1-2-1l.5-.4a14 14 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2a19.6 19.6 0 0 0 6-3c.5-5.1-.8-9.6-3.6-13.6zM8.1 15.3c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4zm7.8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4z"/></svg>';
 
   function lerToken(){ try { return localStorage.getItem(CHAVE_TOKEN) || ""; } catch (e) { return ""; } }
   function salvarToken(t){ try { localStorage.setItem(CHAVE_TOKEN, t); } catch (e) {} }
@@ -63,6 +309,7 @@ body{
     try { var m = sessionStorage.getItem(CHAVE_MOTIVO); sessionStorage.removeItem(CHAVE_MOTIVO); return m; }
     catch (e) { return null; }
   }
+  function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); }
 
   // Login antigo (nick + senha em texto puro): não é mais usado.
   try { localStorage.removeItem("nftse_sessao"); } catch (e) {}
@@ -77,26 +324,62 @@ body{
   }
   if (doLink) salvarToken(doLink);
 
-  function telaExpirada(estado){
+  function preencherEsteira(id, lista){
+    var el = document.getElementById(id);
+    if (!el || !lista.length) return;
+    var cards = lista.map(function(n){
+      return '<div class="nft"><img src="' + BASE + n[1] + '" alt="" loading="lazy" width="150" height="150"><span>' + esc(n[0]) + '</span></div>';
+    }).join("");
+    el.innerHTML = cards + cards;   // duas vezes: a faixa roda sem emenda
+  }
+
+  function ligarCarrossel(){
+    var slides = document.getElementById("slides"), pontos = document.getElementById("pontos");
+    if (!slides) return;
+    var total = slides.children.length, atual = 0, timer = null;
+    for (var i = 0; i < total; i++) {
+      var b = document.createElement("button");
+      b.type = "button"; b.setAttribute("aria-label", "Ir para a tela " + (i + 1));
+      b.onclick = (function(n){ return function(){ ir(n); reiniciar(); }; })(i);
+      pontos.appendChild(b);
+    }
+    function marcar(){
+      for (var i = 0; i < pontos.children.length; i++) pontos.children[i].setAttribute("aria-current", i === atual ? "true" : "false");
+    }
+    function ir(n){ atual = (n + total) % total; slides.scrollTo({ left: slides.clientWidth * atual }); marcar(); }
+    function reiniciar(){
+      clearInterval(timer);
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) timer = setInterval(function(){ ir(atual + 1); }, 5500);
+    }
+    document.querySelectorAll("[data-seta]").forEach(function(b){ b.onclick = function(){ ir(atual + Number(b.dataset.seta)); reiniciar(); }; });
+    slides.addEventListener("scroll", function(){
+      var n = Math.round(slides.scrollLeft / slides.clientWidth);
+      if (n !== atual) { atual = n; marcar(); }
+    }, { passive: true });
+    slides.addEventListener("mouseenter", function(){ clearInterval(timer); });
+    slides.addEventListener("mouseleave", reiniciar);
+    slides.addEventListener("keydown", function(e){
+      if (e.key === "ArrowRight") { ir(atual + 1); reiniciar(); }
+      if (e.key === "ArrowLeft") { ir(atual - 1); reiniciar(); }
+    });
+    marcar(); reiniciar();
+  }
+
+  function telaVitrine(estado){
     var avisos = {
-      IP_DIFERENTE: "Sua sessão foi encerrada porque foi acessada de outra conexão.",
-      SAIU: "Você saiu do catálogo."
+      IP_DIFERENTE: "<b>Sua sessão foi encerrada</b> porque o catálogo foi aberto de outra conexão. Peça um link novo no canal <b>catálogo</b> do Discord.",
+      SAIU: "<b>Você saiu do catálogo.</b> Para voltar, peça um link novo no canal <b>catálogo</b> do Discord.",
+      EXPIRADA: "<b>Sua sessão expirou.</b> Para voltar, peça um link novo no canal <b>catálogo</b> do Discord."
     };
-    entrada.innerHTML =
-      '<div class="sessao-tela">' +
-        '<h1>Sessão expirada</h1>' +
-        (avisos[estado] ? '<p class="sessao-aviso">' + avisos[estado] + '</p>' : '') +
-        '<p>O acesso ao catálogo é liberado pelo Discord e vale para a conexão em que foi aberto. ' +
-          'Trocar de rede ou de aparelho encerra a sessão.</p>' +
-        '<p>Para entrar de novo:</p>' +
-        '<ol>' +
-          '<li>Abra o servidor do Discord <strong>NFT-SE</strong>.</li>' +
-          '<li>Vá ao canal <strong>catálogo</strong>.</li>' +
-          '<li>Clique em <strong>Acessar catálogo</strong>.</li>' +
-          '<li>Use o link que o bot enviar. Ele é pessoal e só seu.</li>' +
-        '</ol>' +
-        '<a class="cta" href="' + DISCORD + '" target="_blank" rel="noopener">Abrir o Discord</a>' +
-      '</div>';
+    var html = document.getElementById("vitrine").innerHTML.split("{{DISCORD_ICONE}}").join(ICONE_DISCORD);
+    entrada.innerHTML = html;
+    entrada.querySelectorAll("[data-discord]").forEach(function(a){ a.href = DISCORD; });
+    // Quem já teve acesso (sessão encerrada) vê o motivo no topo; quem nunca entrou, só a vitrine.
+    var aviso = jaEntrou ? avisos[estado] : null;
+    if (aviso) document.getElementById("avisoSessao").innerHTML = '<div class="aviso-sessao">' + aviso + '</div>';
+    preencherEsteira("esteira1", ESTEIRA_1);
+    preencherEsteira("esteira2", ESTEIRA_2);
+    ligarCarrossel();
   }
 
   function telaIndisponivel(){
@@ -112,12 +395,13 @@ body{
   function recusar(estado){
     if (estado === "INDISPONIVEL") { telaIndisponivel(); return; }
     apagarToken();
-    telaExpirada(estado);
+    telaVitrine(estado);
   }
 
   var motivo = lerMotivo();
   var token = lerToken();
-  if (!token) { recusar(motivo || "EXPIRADA"); return; }
+  var jaEntrou = !!token || !!motivo;   // tinha um link guardado: a sessão dela acabou
+  if (!token) { recusar(motivo || "NOVO"); return; }
 
   fetch("/api/app", { cache: "no-store", headers: { "x-sessao-token": token } })
     .then(function(r){
