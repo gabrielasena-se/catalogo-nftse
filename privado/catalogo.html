@@ -10027,7 +10027,7 @@ function telaAdmin(){
 // Preço final = valor dos NFTs + reserva operacional (% do valor + custo fixo por pedido)
 //             + taxa NFT-SE (em cada item: % do valor, com mínimo por item). Os números ficam salvos neste navegador.
 const CHAVE_CALC = "nftse_calc_v2";
-const CALC_PADRAO = { cotacao: 5.20, reserva: 6, fixo: 0.07, taxa: 25, minimo: 1.00, arredondar: false };
+const CALC_PADRAO = { cotacao: 5.20, cotacaoAuto: true, negocio: 0, reserva: 6, fixo: 0.07, taxa: 25, minimo: 1.00, arredondar: false };
 // Formatos de dinheiro do admin
 const fmtUs = v => "US$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtRs = v => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -10050,6 +10050,19 @@ function adminCalculadora(alvo){
     <div class="admin-grade">
       <section class="admin-bloco">
         <h3>Itens do pedido</h3>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin:0 0 14px">
+          <label class="admin-campo" style="margin-top:0">Dólar (R$)
+            <span style="display:flex;gap:6px;margin-top:4px">
+              <input class="figura" data-cfg="cotacao" inputmode="decimal" style="margin-top:0;width:90px" value="${String(cfg.cotacao).replace(".", ",")}">
+              <button type="button" class="opt" id="calcCotacaoHoje">Cotação de agora</button>
+            </span>
+            <span class="dica" id="calcCotacaoMsg" style="display:block;margin-top:2px">${cfg.cotacaoAuto ? "" : "Valor digitado por você."}</span>
+          </label>
+          <label class="admin-campo" style="margin-top:0">Custos do negócio (%)
+            <input class="figura" data-cfg="negocio" inputmode="decimal" style="margin-top:4px;width:90px" value="${String(cfg.negocio).replace(".", ",")}">
+            <span class="dica" style="display:block;margin-top:2px">Claude, domínio... Entra no seu custo.</span>
+          </label>
+        </div>
         <p class="dica" style="margin:0 0 4px">Coloque o valor de cada NFT no TokenTrove, em dólar.</p>
         <datalist id="calcNomes">${CATALOGO.map(it => `<option value="${esc(it.pt)}">`).join("")}</datalist>
         <div id="calcItens"></div>
@@ -10067,9 +10080,6 @@ function adminCalculadora(alvo){
           <summary style="cursor:pointer"><b>Configurações da conta</b> <span class="dica">(clique para ver ou mudar)</span></summary>
           <div class="admin-grade" style="margin-top:6px">
             <div>
-              ${campoCfg("cotacao", "Cotação do dólar (R$)")}
-              <button type="button" class="opt" id="calcCotacaoHoje" style="margin-top:6px">Usar a cotação de agora</button>
-              <span class="dica" id="calcCotacaoMsg"></span>
               <label class="admin-campo" style="display:flex;gap:8px;align-items:center">
                 <input type="checkbox" id="calcArredondar" ${cfg.arredondar ? "checked" : ""}> Arredondar o preço em reais para cima (valor inteiro)
               </label>
@@ -10122,12 +10132,14 @@ function adminCalculadora(alvo){
     // Em cada item: reserva (% do valor + parte do custo fixo) e taxa NFT-SE (% do valor ou o mínimo, o que for maior)
     const itens = validos.map(l => {
       const reserva = l.usd * cfg.reserva / 100 + cfg.fixo / n;
+      const negocio = l.usd * cfg.negocio / 100;   // custos do negócio (Claude, domínio...)
       const pct = l.usd * cfg.taxa / 100;
       const taxa = Math.max(pct, cfg.minimo);
-      return { ...l, reserva, taxa, minimo: pct < cfg.minimo, preco: l.usd + reserva + taxa };
+      return { ...l, reserva, negocio, taxa, minimo: pct < cfg.minimo, preco: l.usd + reserva + negocio + taxa };
     });
     const soma = k => itens.reduce((s, l) => s + l[k], 0);
-    const subtotal = soma("usd"), reserva = soma("reserva"), taxa = soma("taxa"), custo = subtotal + reserva;
+    const subtotal = soma("usd"), reserva = soma("reserva"), negocio = soma("negocio"), taxa = soma("taxa");
+    const custo = subtotal + reserva + negocio;
     const finalUsd = custo + taxa;
     const exato = finalUsd * cfg.cotacao;
     const finalRs = cfg.arredondar ? Math.ceil(exato - 1e-9) : exato;
@@ -10144,6 +10156,7 @@ function adminCalculadora(alvo){
       <table class="calc-tabela">
         <tr><td>Valor dos NFTs (${n} ${n === 1 ? "item" : "itens"})</td><td>${us(subtotal)}</td><td>${rs(subtotal * cfg.cotacao)}</td></tr>
         <tr><td>Reserva operacional (${cfg.reserva}% + ${us(cfg.fixo)})</td><td>${us(reserva)}</td><td>${rs(reserva * cfg.cotacao)}</td></tr>
+        ${cfg.negocio > 0 ? `<tr><td>Custos do negócio (${cfg.negocio}%)</td><td>${us(negocio)}</td><td>${rs(negocio * cfg.cotacao)}</td></tr>` : ""}
         <tr><td><b>Seu custo</b></td><td><b>${us(custo)}</b></td><td><b>${rs(custo * cfg.cotacao)}</b></td></tr>
         <tr><td>Taxa NFT-SE (seu lucro)${cfg.arredondar && finalRs > exato + 0.004 ? " + arredondamento" : ""}</td><td>${us(taxa)}</td><td>${rs(lucroRs)}</td></tr>
         <tr class="calc-total"><td>Preço final</td><td>${us(finalUsd)}</td><td>${rs(finalRs)}</td></tr>
@@ -10177,24 +10190,33 @@ function adminCalculadora(alvo){
     };
   }
 
-  alvo.querySelectorAll("[data-cfg]").forEach(c => c.oninput = () => { cfg[c.dataset.cfg] = num(c.value); salvar(); calcular(); });
+  alvo.querySelectorAll("[data-cfg]").forEach(c => c.oninput = () => {
+    cfg[c.dataset.cfg] = num(c.value);
+    if (c.dataset.cfg === "cotacao") { cfg.cotacaoAuto = false; document.getElementById("calcCotacaoMsg").textContent = "Valor digitado por você."; }
+    salvar(); calcular();
+  });
   document.getElementById("calcArredondar").onchange = e => { cfg.arredondar = e.target.checked; salvar(); calcular(); };
   document.getElementById("calcMais").onclick = () => { calcItens.push({ nome: "", usd: "" }); desenharItens(); lista.querySelector(`[data-nome="${calcItens.length - 1}"]`).focus(); };
   document.getElementById("calcLimpar").onclick = () => { calcItens = [{ nome: "", usd: "" }]; desenharItens(); calcular(); };
-  document.getElementById("calcPadrao").onclick = () => { cfg = { ...CALC_PADRAO, cotacao: cfg.cotacao }; salvar(); adminCalculadora(alvo); };
-  document.getElementById("calcCotacaoHoje").onclick = async () => {
+  document.getElementById("calcPadrao").onclick = () => {
+    cfg = { ...CALC_PADRAO, cotacao: cfg.cotacao, cotacaoAuto: cfg.cotacaoAuto, negocio: cfg.negocio }; salvar(); adminCalculadora(alvo);
+  };
+  // Cotação de agora: busca ao abrir a calculadora, a não ser que a pessoa tenha digitado um valor.
+  const buscarCotacao = async () => {
     const msg = document.getElementById("calcCotacaoMsg");
-    msg.textContent = " Buscando...";
+    msg.textContent = "Buscando...";
     try {
       const d = await (await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")).json();
       const v = Math.round(parseFloat(d.USDBRL.ask) * 100) / 100;
       if (!v) throw new Error("sem valor");
-      cfg.cotacao = v; salvar();
+      cfg.cotacao = v; cfg.cotacaoAuto = true; salvar();
       alvo.querySelector('[data-cfg="cotacao"]').value = String(v).replace(".", ",");
-      msg.textContent = " Atualizada.";
+      msg.textContent = "Cotação de agora (" + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) + ").";
       calcular();
-    } catch (e) { msg.textContent = " Não consegui buscar agora. Digite a cotação à mão."; }
+    } catch (e) { msg.textContent = "Não consegui buscar agora. Digite o valor à mão."; }
   };
+  document.getElementById("calcCotacaoHoje").onclick = buscarCotacao;
+  if (cfg.cotacaoAuto) buscarCotacao();
   desenharItens();
   calcular();
 }
