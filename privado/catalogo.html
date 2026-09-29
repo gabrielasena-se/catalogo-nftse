@@ -85,6 +85,11 @@ a{color:var(--ouro)}
   opacity:.75;text-align:right;
 }
 @media(max-width:760px){.aviso-legal{margin-left:0;max-width:100%;text-align:left}}
+/* Barra das abas da lista presa logo abaixo do topo (--altura-topo é medida pelo script) */
+.barra-abas{position:sticky;top:var(--altura-topo,0px);z-index:15;background:var(--fundo);padding-bottom:10px;box-shadow:0 8px 10px -8px rgba(0,0,0,.6)}
+.barra-abas .abas{padding-top:14px}
+.aviso-legal-celular{display:none}
+@media(max-width:760px){.barra-abas .aviso-legal{display:none}.aviso-legal-celular{display:block;margin:0 0 12px}}
 .linha-info-grade{
   display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px;
 }
@@ -144,7 +149,10 @@ a{color:var(--ouro)}
   border-radius:8px;padding:0;text-align:left;overflow:hidden;
   display:flex;flex-direction:column;
 }
+.card[data-slug]{cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s,background .15s}
 .card:hover,.card:focus-visible{background:var(--tile-alto);outline:none;border-color:var(--ouro)}
+.card[data-slug]:hover{transform:translateY(-3px);box-shadow:0 8px 18px rgba(255,46,224,.25)}
+@media(prefers-reduced-motion:reduce){.card[data-slug]:hover{transform:none}}
 .card:focus-visible{outline:2px solid var(--ouro);outline-offset:2px}
 .palco{
   aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;
@@ -480,6 +488,14 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .admin-painel label input{width:100%;margin-top:4px}
 
 .opcoes-itens{display:grid;grid-template-columns:repeat(auto-fill,104px);gap:8px;justify-content:center}
+/* Grade de itens do editor com rolagem própria: as categorias ficam sempre à mão */
+.grade-editor-rolagem{
+  max-height:max(320px, calc(100vh - var(--altura-topo,0px) - 140px));overflow-y:auto;
+  padding:6px;border:1px solid var(--linha);border-radius:10px;background:rgba(0,0,0,.12);
+  scrollbar-width:thin;scrollbar-color:var(--linha) transparent;text-align:center;
+}
+.grade-editor-rolagem::-webkit-scrollbar{width:8px}
+.grade-editor-rolagem::-webkit-scrollbar-thumb{background:var(--linha);border-radius:4px}
 @media(max-width:520px){.opcoes-itens{grid-template-columns:repeat(auto-fill,80px)}}
 .sem-imagem{
   position:absolute;left:4px;right:4px;bottom:4px;padding:3px 4px;border-radius:5px;
@@ -5658,12 +5674,18 @@ function telaGrade(){
 
   const rotuloAba = (ABAS.find(a => a.id === aba) || {}).rotulo || "";
 
+  const aviso = `NFT-SE é um projeto independente e não possui vínculo, parceria, patrocínio ou afiliação oficial com Habbo ou Sulake.<br>Habbo e demais marcas relacionadas pertencem aos seus respectivos titulares.`;
+
+  // A barra com Visuais/Mobis/Balões fica presa no topo: dá para trocar de aba sem subir a página.
   app.innerHTML = `
-    <div class="abas" role="tablist">
-      ${abas}
-      <p class="aviso-legal">NFT-SE é um projeto independente e não possui vínculo, parceria, patrocínio ou afiliação oficial com Habbo ou Sulake.<br>Habbo e demais marcas relacionadas pertencem aos seus respectivos titulares.</p>
+    <div class="barra-abas">
+      <div class="abas" role="tablist">
+        ${abas}
+        <p class="aviso-legal">${aviso}</p>
+      </div>
     </div>
     <div class="envoltorio">
+      <p class="aviso-legal aviso-legal-celular">${aviso}</p>
       <div class="linha-info-grade">
         <p class="contador-itens">${esc(rotuloAba)}: ${lista.length} ${lista.length === 1 ? "item exibido" : "itens exibidos"}</p>
         <label class="ordenar">Ordenar por
@@ -5688,13 +5710,14 @@ function telaGrade(){
     </div>`;
 
   app.querySelectorAll("[data-aba]").forEach(b =>
-    b.onclick = () => { aba = b.dataset.aba; render(); });
+    b.onclick = () => { aba = b.dataset.aba; render(); window.scrollTo(0, 0); });   // a lista nova começa do início
   document.getElementById("ordemGrade").onchange = e => {
     ordem = e.target.value;
     try { localStorage.setItem(CHAVE_ORDEM, ordem); } catch (err) {}
     render();
   };
   ligarCliquesGrade();
+  medirAlturaTopo();
 }
 
 // Página da sacola: itens com caixinha de marcar e o botão "Perguntar o preço".
@@ -8877,6 +8900,8 @@ function medirAlturaTopo(){
 }
 addEventListener("resize", medirAlturaTopo);
 
+let editorTipoRolagem = null;   // categoria cuja rolagem da grade está guardada
+
 function telaEditor(){
   if (estadoSessao !== "ATIVA") return;
   if (!FIGUREDATA_COMPLETO && !editorCarregando && !editorErroCarregar) carregarFiguredataCompleto();
@@ -8917,6 +8942,7 @@ function telaEditor(){
 
     grade = `
       <p class="contador-itens" style="text-align:center;margin:0 0 8px">${esc(info.rotulo)}: ${todos.length} ${todos.length === 1 ? "item" : "itens"}</p>
+      <div class="grade-editor-rolagem" id="gradeEditorRolagem">
       <div class="opcoes-itens" id="gradeEditor">
         ${semNenhum ? "" : `
           <button type="button" class="item-mini" data-remover="${editorTipoAtivo}"
@@ -8943,6 +8969,7 @@ function telaEditor(){
         <button type="button" class="opt" id="carregarMaisEditor" style="margin-top:8px">
           Carregar mais (${todos.length - qtd} restantes)
         </button>` : ""}
+      </div>
     `;
 
     // Fica na coluna da esquerda, embaixo do avatar, e acompanha a rolagem junto com ele.
@@ -8972,6 +8999,12 @@ function telaEditor(){
 
   const botoesAcoes = ACOES.map(o => `
     <button class="opt" data-campo="acao" data-valor="${o.id}" aria-pressed="${ed.acao === o.id}">${o.rotulo}</button>`).join("");
+
+  // A grade de itens rola por dentro; redesenhar a tela a faria voltar ao topo, então guarda
+  // a posição (só na mesma categoria: trocar de categoria começa do início).
+  const rolagemGrade = document.getElementById("gradeEditorRolagem");
+  const posicaoGrade = rolagemGrade && editorTipoRolagem === editorTipoAtivo ? rolagemGrade.scrollTop : 0;
+  editorTipoRolagem = editorTipoAtivo;
 
   app.innerHTML = `
     <div class="envoltorio">
@@ -9043,6 +9076,8 @@ function telaEditor(){
     </div>`;
 
   medirAlturaTopo();
+  const novaRolagemGrade = document.getElementById("gradeEditorRolagem");
+  if (novaRolagemGrade) novaRolagemGrade.scrollTop = posicaoGrade;
 
   function atualizarEditor(){
     document.getElementById("espelhoEditorImg").src =
