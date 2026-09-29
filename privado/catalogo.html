@@ -300,7 +300,7 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
   background:var(--painel);border:1px solid var(--linha);border-radius:10px;
   display:grid;grid-template-columns:230px minmax(0,1fr);overflow:hidden;
 }
-@media(max-width:700px){.provador{grid-template-columns:1fr}}
+@media(max-width:700px){.provador{grid-template-columns:minmax(0,1fr)}}
 .espelho{
   background:
     linear-gradient(180deg,#3a1670,#200a3c);
@@ -488,16 +488,14 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .admin-painel label input{width:100%;margin-top:4px}
 
 .opcoes-itens{display:grid;grid-template-columns:repeat(auto-fill,104px);gap:8px;justify-content:center}
-/* Grade de itens do editor com rolagem própria: as categorias ficam sempre à mão.
-   O espaço de cima e dos lados é para a etiqueta com o nome da peça não ficar cortada. */
-.grade-editor-rolagem{
-  max-height:max(320px, calc(100vh - var(--altura-topo,0px) - 140px));overflow-y:auto;overflow-x:hidden;
-  padding:32px 20px 10px;border:1px solid var(--linha);border-radius:10px;background:rgba(0,0,0,.12);
-  scrollbar-width:thin;scrollbar-color:var(--linha) transparent;text-align:center;
+/* Categorias do editor presas logo abaixo do topo: dá para trocar de categoria sem subir a página */
+.categorias-fixas{position:sticky;top:var(--altura-topo,0px);z-index:6;background:var(--painel);margin:0 -18px;padding:10px 18px;box-shadow:0 8px 10px -8px rgba(0,0,0,.6)}
+/* No celular, uma fileira só que desliza para o lado (para a barra não tomar a tela) */
+@media(max-width:700px){
+  .categorias-fixas > label{display:none}
+  .categorias-fixas .opcoes{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--linha) transparent;padding-bottom:4px}
+  .categorias-fixas .opcoes .opt{flex:none}
 }
-.grade-editor-rolagem::-webkit-scrollbar{width:8px}
-.grade-editor-rolagem .item-mini::after{white-space:normal;width:max-content;max-width:140px;text-align:center;line-height:1.25;top:auto;bottom:calc(100% + 4px)}
-.grade-editor-rolagem::-webkit-scrollbar-thumb{background:var(--linha);border-radius:4px}
 @media(max-width:520px){.opcoes-itens{grid-template-columns:repeat(auto-fill,80px)}}
 .sem-imagem{
   position:absolute;left:4px;right:4px;bottom:4px;padding:3px 4px;border-radius:5px;
@@ -8902,8 +8900,6 @@ function medirAlturaTopo(){
 }
 addEventListener("resize", medirAlturaTopo);
 
-let editorTipoRolagem = null;   // categoria cuja rolagem da grade está guardada
-
 function telaEditor(){
   if (estadoSessao !== "ATIVA") return;
   if (!FIGUREDATA_COMPLETO && !editorCarregando && !editorErroCarregar) carregarFiguredataCompleto();
@@ -8944,7 +8940,6 @@ function telaEditor(){
 
     grade = `
       <p class="contador-itens" style="text-align:center;margin:0 0 8px">${esc(info.rotulo)}: ${todos.length} ${todos.length === 1 ? "item" : "itens"}</p>
-      <div class="grade-editor-rolagem" id="gradeEditorRolagem">
       <div class="opcoes-itens" id="gradeEditor">
         ${semNenhum ? "" : `
           <button type="button" class="item-mini" data-remover="${editorTipoAtivo}"
@@ -8971,7 +8966,6 @@ function telaEditor(){
         <button type="button" class="opt" id="carregarMaisEditor" style="margin-top:8px">
           Carregar mais (${todos.length - qtd} restantes)
         </button>` : ""}
-      </div>
     `;
 
     // Fica na coluna da esquerda, embaixo do avatar, e acompanha a rolagem junto com ele.
@@ -9001,12 +8995,6 @@ function telaEditor(){
 
   const botoesAcoes = ACOES.map(o => `
     <button class="opt" data-campo="acao" data-valor="${o.id}" aria-pressed="${ed.acao === o.id}">${o.rotulo}</button>`).join("");
-
-  // A grade de itens rola por dentro; redesenhar a tela a faria voltar ao topo, então guarda
-  // a posição (só na mesma categoria: trocar de categoria começa do início).
-  const rolagemGrade = document.getElementById("gradeEditorRolagem");
-  const posicaoGrade = rolagemGrade && editorTipoRolagem === editorTipoAtivo ? rolagemGrade.scrollTop : 0;
-  editorTipoRolagem = editorTipoAtivo;
 
   app.innerHTML = `
     <div class="envoltorio">
@@ -9066,7 +9054,7 @@ function telaEditor(){
               <label>Ação</label>
               <div class="opcoes">${botoesAcoes}</div>
             </div>
-            <div class="campo">
+            <div class="campo categorias-fixas" id="categoriasEditor">
               <label>Categoria</label>
               <div class="opcoes">${abasCategoria || '<p class="dica">Carregando categorias...</p>'}</div>
             </div>
@@ -9078,8 +9066,6 @@ function telaEditor(){
     </div>`;
 
   medirAlturaTopo();
-  const novaRolagemGrade = document.getElementById("gradeEditorRolagem");
-  if (novaRolagemGrade) novaRolagemGrade.scrollTop = posicaoGrade;
 
   function atualizarEditor(){
     document.getElementById("espelhoEditorImg").src =
@@ -9098,6 +9084,13 @@ function telaEditor(){
   app.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
     editorTipoAtivo = b.dataset.cat;
     telaEditor();
+    // se a barra de categorias estava presa (página rolada), mostra a grade nova desde o começo
+    const barra = document.getElementById("categoriasEditor"), gradeNova = document.getElementById("gradeEditor");
+    if (barra && gradeNova) {
+      const limite = barra.getBoundingClientRect().bottom + 8;
+      const topoGrade = gradeNova.getBoundingClientRect().top;
+      if (topoGrade < limite) window.scrollBy(0, topoGrade - limite - 30);
+    }
   });
 
   const btnMais = document.getElementById("carregarMaisEditor");
