@@ -488,13 +488,15 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .admin-painel label input{width:100%;margin-top:4px}
 
 .opcoes-itens{display:grid;grid-template-columns:repeat(auto-fill,104px);gap:8px;justify-content:center}
-/* Grade de itens do editor com rolagem própria: as categorias ficam sempre à mão */
+/* Grade de itens do editor com rolagem própria: as categorias ficam sempre à mão.
+   O espaço de cima e dos lados é para a etiqueta com o nome da peça não ficar cortada. */
 .grade-editor-rolagem{
-  max-height:max(320px, calc(100vh - var(--altura-topo,0px) - 140px));overflow-y:auto;
-  padding:6px;border:1px solid var(--linha);border-radius:10px;background:rgba(0,0,0,.12);
+  max-height:max(320px, calc(100vh - var(--altura-topo,0px) - 140px));overflow-y:auto;overflow-x:hidden;
+  padding:32px 20px 10px;border:1px solid var(--linha);border-radius:10px;background:rgba(0,0,0,.12);
   scrollbar-width:thin;scrollbar-color:var(--linha) transparent;text-align:center;
 }
 .grade-editor-rolagem::-webkit-scrollbar{width:8px}
+.grade-editor-rolagem .item-mini::after{white-space:normal;width:max-content;max-width:140px;text-align:center;line-height:1.25;top:auto;bottom:calc(100% + 4px)}
 .grade-editor-rolagem::-webkit-scrollbar-thumb{background:var(--linha);border-radius:4px}
 @media(max-width:520px){.opcoes-itens{grid-template-columns:repeat(auto-fill,80px)}}
 .sem-imagem{
