@@ -87,9 +87,10 @@ a{color:var(--ouro)}
 @media(max-width:760px){.aviso-legal{margin-left:0;max-width:100%;text-align:left}}
 /* Barra das abas da lista presa logo abaixo do topo (--altura-topo é medida pelo script) */
 .barra-abas{position:sticky;top:var(--altura-topo,0px);z-index:15;background:var(--fundo);padding-bottom:10px;box-shadow:0 8px 10px -8px rgba(0,0,0,.6)}
-.barra-abas .abas{padding-top:14px}
+.barra-abas .abas{padding-top:22px}
+.barra-abas + .envoltorio{padding-top:8px}   /* 18px de sempre menos os 10px de baixo da barra: tudo no mesmo lugar de antes */
 .aviso-legal-celular{display:none}
-@media(max-width:760px){.barra-abas .aviso-legal{display:none}.aviso-legal-celular{display:block;margin:0 0 12px}}
+@media(max-width:760px){.barra-abas .aviso-legal{display:none}.aviso-legal-celular{display:block;margin:1px 0 29px}}
 .linha-info-grade{
   display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px;
 }
