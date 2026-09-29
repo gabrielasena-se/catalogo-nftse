@@ -457,6 +457,13 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .admin-arte img{width:100%;height:100%;object-fit:cover}
 .admin-arte .vazio{font-size:10px;color:var(--mudo);text-align:center;padding:4px}
 .admin-caminho{margin-top:4px;font-size:13px;color:var(--texto);opacity:.9;line-height:1.5}
+.calc-linha{display:grid;grid-template-columns:1fr 130px 34px;gap:6px;align-items:center;margin-top:6px}
+.calc-linha .figura{margin-top:0}
+.calc-tabela{width:100%;border-collapse:collapse;font-size:14px}
+.calc-tabela td{padding:6px 4px;border-bottom:1px solid var(--linha)}
+.calc-tabela td:not(:first-child){text-align:right;white-space:nowrap}
+.calc-tabela tr.calc-total td{font-weight:700;font-size:17px;color:var(--texto);border-bottom:none}
+.calc-destaque{font-size:26px;font-weight:700;margin:4px 0}
 .admin-campo{display:block;font-size:12px;color:var(--mudo);margin-top:10px}
 .admin-campo input,.admin-campo select{width:100%;margin-top:4px;box-sizing:border-box}
 .tag-admin{display:inline-flex;align-items:center;gap:6px;border:1px solid #b800b8;color:#ff8cf0;border-radius:999px;padding:3px 4px 3px 10px;font-size:12px}
@@ -10000,7 +10007,7 @@ function telaAdmin(){
     document.getElementById("adminSenhaEntrar").onkeydown = e => { if (e.key === "Enter") entrar(); };
     return;
   }
-  const abas = [["painel", "📊 Painel"], ["acessos", "👥 Acessos"], ["tags", "🏷️ Tags"], ["itens", "📦 Itens"]];
+  const abas = [["painel", "📊 Painel"], ["acessos", "👥 Acessos"], ["tags", "🏷️ Tags"], ["itens", "📦 Itens"], ["calculadora", "🧮 Calculadora"], ["financas", "💰 Finanças"]];
   app.innerHTML = `
     <div class="envoltorio">
       <button class="voltar" id="voltarAdmin">&lt; Voltar ao catálogo</button>
@@ -10013,7 +10020,315 @@ function telaAdmin(){
   document.getElementById("voltarAdmin").onclick = () => { location.hash = ""; };
   app.querySelectorAll("[data-aba-admin]").forEach(b => b.onclick = () => { abaAdmin = b.dataset.abaAdmin; telaAdmin(); });
   const alvo = document.getElementById("adminConteudo");
-  ({ painel: adminPainel, acessos: adminAcessos, tags: adminTags, itens: adminItens })[abaAdmin](alvo);
+  ({ painel: adminPainel, acessos: adminAcessos, tags: adminTags, itens: adminItens, calculadora: adminCalculadora, financas: adminFinancas })[abaAdmin](alvo);
+}
+
+/* ----- 🧮 Calculadora de preço ----- */
+// Preço final = valor dos NFTs + reserva operacional (% do valor + custo fixo por pedido)
+//             + taxa NFT-SE (em cada item: % do valor, com mínimo por item). Os números ficam salvos neste navegador.
+const CHAVE_CALC = "nftse_calc_v2";
+const CALC_PADRAO = { cotacao: 5.20, reserva: 6, fixo: 0.07, taxa: 25, minimo: 1.00, arredondar: false };
+// Formatos de dinheiro do admin
+const fmtUs = v => "US$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtRs = v => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const lerNumero = v => { const n = parseFloat(String(v).replace(/\s/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".")); return isFinite(n) ? n : 0; };
+const hojeISO = () => { const d = new Date(Date.now() - 3 * 3600e3); return d.toISOString().slice(0, 10); };
+let calcItens = [{ nome: "", usd: "" }];
+
+function adminCalculadora(alvo){
+  let cfg = { ...CALC_PADRAO };
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem(CHAVE_CALC) || "{}")); } catch (e) {}
+  const salvar = () => { try { localStorage.setItem(CHAVE_CALC, JSON.stringify(cfg)); } catch (e) {} };
+  const num = lerNumero, us = fmtUs, rs = fmtRs;
+  const campoCfg = (id, rotulo, dica, extraId) => `
+    <label class="admin-campo">${rotulo}
+      <input class="figura" data-cfg="${id}" inputmode="decimal" value="${String(cfg[id]).replace(".", ",")}">
+      ${dica ? `<span class="dica" style="display:block;margin-top:2px"${extraId ? ` id="${extraId}"` : ""}>${dica}</span>` : ""}
+    </label>`;
+
+  alvo.innerHTML = `
+    <div class="admin-grade">
+      <section class="admin-bloco">
+        <h3>Itens do pedido</h3>
+        <p class="dica" style="margin:0 0 4px">Coloque o valor de cada NFT no TokenTrove, em dólar.</p>
+        <datalist id="calcNomes">${CATALOGO.map(it => `<option value="${esc(it.pt)}">`).join("")}</datalist>
+        <div id="calcItens"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button type="button" class="opt" id="calcMais">+ Adicionar item</button>
+          <button type="button" class="opt" id="calcLimpar">Limpar</button>
+        </div>
+      </section>
+      <section class="admin-bloco">
+        <h3>Resultado</h3>
+        <div id="calcResultado"></div>
+      </section>
+      <section class="admin-bloco admin-bloco-largo">
+        <details>
+          <summary style="cursor:pointer"><b>Configurações da conta</b> <span class="dica">(clique para ver ou mudar)</span></summary>
+          <div class="admin-grade" style="margin-top:6px">
+            <div>
+              ${campoCfg("cotacao", "Cotação do dólar (R$)")}
+              <button type="button" class="opt" id="calcCotacaoHoje" style="margin-top:6px">Usar a cotação de agora</button>
+              <span class="dica" id="calcCotacaoMsg"></span>
+              <label class="admin-campo" style="display:flex;gap:8px;align-items:center">
+                <input type="checkbox" id="calcArredondar" ${cfg.arredondar ? "checked" : ""}> Arredondar o preço em reais para cima (valor inteiro)
+              </label>
+            </div>
+            <div>
+              ${campoCfg("reserva", "Reserva operacional (% do valor dos NFTs)", "Coinbase, variação do ETH e uma folga.", "calcDicaReserva")}
+              ${campoCfg("fixo", "Custo fixo por pedido (US$)", "Envio da Coinbase para a MetaMask (LayerSwap).")}
+            </div>
+            <div>
+              ${campoCfg("taxa", "Taxa NFT-SE (% do valor de cada item)")}
+              ${campoCfg("minimo", "Taxa mínima por item (US$)")}
+              <button type="button" class="opt" id="calcPadrao" style="margin-top:10px">Voltar aos valores sugeridos</button>
+            </div>
+          </div>
+        </details>
+      </section>
+    </div>`;
+
+  const lista = document.getElementById("calcItens");
+  const resultado = document.getElementById("calcResultado");
+
+  // Perda média nas compras de ETH (aba Finanças), para ajudar a escolher a reserva.
+  postAdmin("/api/admin", { acao: "financas" }).then(r => r.json()).then(d => {
+    const compras = (d.registros || []).filter(x => x.tipo === "compra-eth" && x.valor > 0);
+    const pago = compras.reduce((s, x) => s + x.valor, 0), perdido = compras.reduce((s, x) => s + Math.max(0, x.valor - x.recebido), 0);
+    const dica = document.getElementById("calcDicaReserva");
+    if (dica && pago > 0) dica.textContent += ` Nas suas compras de ETH, a perda média foi de ${(perdido / pago * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%.`;
+  }).catch(() => {});
+
+  function desenharItens(){
+    lista.innerHTML = calcItens.map((l, i) => `
+      <div class="calc-linha">
+        <input class="figura" list="calcNomes" data-nome="${i}" placeholder="Nome (opcional)" value="${esc(l.nome)}">
+        <input class="figura" data-usd="${i}" inputmode="decimal" placeholder="US$ 0,00" value="${esc(l.usd)}">
+        <button type="button" class="opt" data-tirar="${i}" title="Remover" aria-label="Remover item" style="padding:6px 0">✕</button>
+      </div>`).join("");
+    lista.querySelectorAll("[data-nome]").forEach(c => c.oninput = () => { calcItens[+c.dataset.nome].nome = c.value; calcular(); });
+    lista.querySelectorAll("[data-usd]").forEach(c => c.oninput = () => { calcItens[+c.dataset.usd].usd = c.value; calcular(); });
+    lista.querySelectorAll("[data-tirar]").forEach(b => b.onclick = () => {
+      calcItens.splice(+b.dataset.tirar, 1);
+      if (!calcItens.length) calcItens.push({ nome: "", usd: "" });
+      desenharItens(); calcular();
+    });
+  }
+
+  function calcular(){
+    const validos = calcItens.map(l => ({ nome: l.nome.trim(), usd: num(l.usd) })).filter(l => l.usd > 0);
+    if (!validos.length) { resultado.innerHTML = `<p class="dica">Coloque o valor de pelo menos um item.</p>`; return; }
+    const n = validos.length;
+    // Em cada item: reserva (% do valor + parte do custo fixo) e taxa NFT-SE (% do valor ou o mínimo, o que for maior)
+    const itens = validos.map(l => {
+      const reserva = l.usd * cfg.reserva / 100 + cfg.fixo / n;
+      const pct = l.usd * cfg.taxa / 100;
+      const taxa = Math.max(pct, cfg.minimo);
+      return { ...l, reserva, taxa, minimo: pct < cfg.minimo, preco: l.usd + reserva + taxa };
+    });
+    const soma = k => itens.reduce((s, l) => s + l[k], 0);
+    const subtotal = soma("usd"), reserva = soma("reserva"), taxa = soma("taxa"), custo = subtotal + reserva;
+    const finalUsd = custo + taxa;
+    const exato = finalUsd * cfg.cotacao;
+    const finalRs = cfg.arredondar ? Math.ceil(exato - 1e-9) : exato;
+    const lucroRs = finalRs - custo * cfg.cotacao;           // taxa NFT-SE (+ o arredondamento)
+    itens.forEach(l => { l.rs = finalRs * l.preco / finalUsd; });
+    const minimos = itens.filter(l => l.minimo).length;
+    calcUltimo = { descricao: itens.map((l, i) => l.nome || "Item " + (i + 1)).join(", "), valor: finalRs, custo: subtotal * cfg.cotacao };
+    resultado.innerHTML = `
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div><p class="dica" style="margin:0">Preço final para o cliente</p><p class="calc-destaque">${rs(finalRs)}</p></div>
+        <div><p class="dica" style="margin:0">Seu lucro</p><p class="calc-destaque" style="color:#7ee2a8">${rs(lucroRs)}</p></div>
+      </div>
+      <p class="dica" style="margin:0 0 12px">${us(finalUsd)} · dólar a R$ ${cfg.cotacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+      <table class="calc-tabela">
+        <tr><td>Valor dos NFTs (${n} ${n === 1 ? "item" : "itens"})</td><td>${us(subtotal)}</td><td>${rs(subtotal * cfg.cotacao)}</td></tr>
+        <tr><td>Reserva operacional (${cfg.reserva}% + ${us(cfg.fixo)})</td><td>${us(reserva)}</td><td>${rs(reserva * cfg.cotacao)}</td></tr>
+        <tr><td><b>Seu custo</b></td><td><b>${us(custo)}</b></td><td><b>${rs(custo * cfg.cotacao)}</b></td></tr>
+        <tr><td>Taxa NFT-SE (seu lucro)${cfg.arredondar && finalRs > exato + 0.004 ? " + arredondamento" : ""}</td><td>${us(taxa)}</td><td>${rs(lucroRs)}</td></tr>
+        <tr class="calc-total"><td>Preço final</td><td>${us(finalUsd)}</td><td>${rs(finalRs)}</td></tr>
+      </table>
+      ${minimos ? `<p class="dica" style="margin:6px 0 0">${n === 1 ? "Neste item" : `Em ${minimos} ${minimos === 1 ? "item" : "itens"}`}, os ${cfg.taxa}% dariam menos de ${us(cfg.minimo)}, então entrou a taxa mínima.</p>` : ""}
+      ${n > 1 ? `
+        <h3 style="margin:16px 0 4px;font-size:14px">Cada item</h3>
+        <table class="calc-tabela">
+          <tr class="dica"><td>Item</td><td>NFT</td><td>Taxa</td><td>Preço</td></tr>
+          ${itens.map((l, i) => `<tr><td>${esc(l.nome || "Item " + (i + 1))}</td><td>${us(l.usd)}</td><td>${us(l.taxa)}</td><td>${rs(l.rs)}</td></tr>`).join("")}
+        </table>` : ""}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center">
+        <button type="button" class="opt" id="calcCopiar">Copiar orçamento</button>
+        <button type="button" class="opt" id="calcRegistrar">Registrar venda no Finanças</button>
+        <span class="dica" id="calcAviso"></span>
+      </div>`;
+    const aviso = document.getElementById("calcAviso");
+    document.getElementById("calcCopiar").onclick = async () => {
+      const linhas = n > 1 ? itens.map((l, i) => `• ${l.nome || "Item " + (i + 1)}: ${rs(l.rs)}`) : [`• ${itens[0].nome || "Item"}: ${rs(finalRs)}`];
+      const texto = ["Orçamento NFT-SE", ...linhas, `Total: ${rs(finalRs)}`, "Valor válido por 15 minutos (o preço dos NFTs muda com o ETH)."].join("\n");
+      try { await navigator.clipboard.writeText(texto); aviso.textContent = "Copiado!"; }
+      catch (e) { aviso.textContent = "Não consegui copiar."; }
+    };
+    document.getElementById("calcRegistrar").onclick = async () => {
+      aviso.textContent = "Registrando...";
+      try {
+        const r = await postAdmin("/api/admin", { acao: "financas-salvar", registro: { tipo: "venda", data: hojeISO(), ...calcUltimo } });
+        if (!r.ok) throw new Error("erro");
+        aviso.textContent = "Venda registrada no Finanças (dá para editar lá).";
+      } catch (e) { aviso.textContent = "Não consegui registrar agora."; }
+    };
+  }
+
+  alvo.querySelectorAll("[data-cfg]").forEach(c => c.oninput = () => { cfg[c.dataset.cfg] = num(c.value); salvar(); calcular(); });
+  document.getElementById("calcArredondar").onchange = e => { cfg.arredondar = e.target.checked; salvar(); calcular(); };
+  document.getElementById("calcMais").onclick = () => { calcItens.push({ nome: "", usd: "" }); desenharItens(); lista.querySelector(`[data-nome="${calcItens.length - 1}"]`).focus(); };
+  document.getElementById("calcLimpar").onclick = () => { calcItens = [{ nome: "", usd: "" }]; desenharItens(); calcular(); };
+  document.getElementById("calcPadrao").onclick = () => { cfg = { ...CALC_PADRAO, cotacao: cfg.cotacao }; salvar(); adminCalculadora(alvo); };
+  document.getElementById("calcCotacaoHoje").onclick = async () => {
+    const msg = document.getElementById("calcCotacaoMsg");
+    msg.textContent = " Buscando...";
+    try {
+      const d = await (await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")).json();
+      const v = Math.round(parseFloat(d.USDBRL.ask) * 100) / 100;
+      if (!v) throw new Error("sem valor");
+      cfg.cotacao = v; salvar();
+      alvo.querySelector('[data-cfg="cotacao"]').value = String(v).replace(".", ",");
+      msg.textContent = " Atualizada.";
+      calcular();
+    } catch (e) { msg.textContent = " Não consegui buscar agora. Digite a cotação à mão."; }
+  };
+  desenharItens();
+  calcular();
+}
+let calcUltimo = null;
+
+/* ----- 💰 Finanças: compras de ETH, outras despesas e vendas ----- */
+// Fica no servidor (Redis, financas:registros), então aparece em qualquer aparelho do admin.
+const TIPOS_FIN = { "compra-eth": "Compra de ETH", venda: "Venda", despesa: "Outra despesa" };
+let finPeriodo = "mes", finEditando = null;
+
+function periodoFin(p){
+  const hoje = hojeISO(), [a, m] = hoje.split("-").map(Number);
+  const mes = (ano, mes) => `${ano}-${String(mes).padStart(2, "0")}`;
+  if (p === "mes") return x => x.data.startsWith(mes(a, m));
+  if (p === "anterior") return x => x.data.startsWith(m === 1 ? mes(a - 1, 12) : mes(a, m - 1));
+  if (p === "ano") return x => x.data.startsWith(String(a));
+  return () => true;
+}
+
+async function adminFinancas(alvo){
+  alvo.innerHTML = `<p class="dica">Carregando...</p>`;
+  let registros = [];
+  try {
+    const r = await postAdmin("/api/admin", { acao: "financas" });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || "erro");
+    registros = d.registros || [];
+  } catch (e) { alvo.innerHTML = `<p class="dica">Não consegui carregar agora. Tente de novo em instantes.</p>`; return; }
+
+  const doPeriodo = registros.filter(periodoFin(finPeriodo));
+  const soma = (tipo, f) => doPeriodo.filter(x => x.tipo === tipo).reduce((s, x) => s + f(x), 0);
+  const pagoEth = soma("compra-eth", x => x.valor), perdaEth = soma("compra-eth", x => Math.max(0, x.valor - x.recebido));
+  const despesas = soma("despesa", x => x.valor);
+  const vendas = soma("venda", x => x.valor), custoVendas = soma("venda", x => x.custo);
+  const lucroVendas = vendas - custoVendas;
+  const resultadoFin = lucroVendas - perdaEth - despesas;
+  const pct = (a, b) => b > 0 ? (a / b * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "–";
+  const form = finEditando || { tipo: "compra-eth", data: hojeISO(), descricao: "", valor: "", recebido: "", custo: "", eth: "" };
+  const valorCampo = v => v === "" || v == null ? "" : String(v).replace(".", ",");
+  const periodos = [["mes", "Este mês"], ["anterior", "Mês passado"], ["ano", "Este ano"], ["tudo", "Tudo"]];
+
+  alvo.innerHTML = `
+    <div class="admin-periodo">${periodos.map(([id, rot]) => `<button type="button" class="opt" data-fin-periodo="${id}" aria-pressed="${id === finPeriodo}">${rot}</button>`).join("")}</div>
+    <div class="admin-grade">
+      <section class="admin-bloco">
+        <h3>Resumo</h3>
+        <table class="calc-tabela">
+          <tr><td>Compras de ETH</td><td>${fmtRs(pagoEth)}</td></tr>
+          <tr><td>Perdido nas compras de ETH</td><td>${fmtRs(perdaEth)} <span class="dica">(${pct(perdaEth, pagoEth)})</span></td></tr>
+          <tr><td>Outras despesas</td><td>${fmtRs(despesas)}</td></tr>
+          <tr><td>Vendas</td><td>${fmtRs(vendas)}</td></tr>
+          <tr><td>Custo dos NFTs vendidos</td><td>${fmtRs(custoVendas)}</td></tr>
+          <tr><td>Lucro das vendas</td><td>${fmtRs(lucroVendas)}</td></tr>
+          <tr class="calc-total"><td>Resultado</td><td style="color:${resultadoFin < 0 ? "#ff8a8a" : "#7ee2a8"}">${fmtRs(resultadoFin)}</td></tr>
+        </table>
+        <p class="dica" style="margin:8px 0 0">Resultado = lucro das vendas − perdas nas compras de ETH − outras despesas.</p>
+      </section>
+      <section class="admin-bloco">
+        <h3>${finEditando ? "Editar registro" : "Novo registro"}</h3>
+        <label class="admin-campo">Tipo
+          <select id="finTipo" class="figura">${Object.entries(TIPOS_FIN).map(([id, rot]) => `<option value="${id}" ${form.tipo === id ? "selected" : ""}>${rot}</option>`).join("")}</select>
+        </label>
+        <label class="admin-campo">Data<input id="finData" type="date" class="figura" value="${esc(form.data)}"></label>
+        <div id="finCampos"></div>
+        <label class="admin-campo">Descrição (opcional)<input id="finDescricao" class="figura" value="${esc(form.descricao)}" maxlength="300"></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+          <button type="button" class="opt" id="finSalvar">${finEditando ? "Salvar alterações" : "Adicionar"}</button>
+          ${finEditando ? `<button type="button" class="opt" id="finCancelar">Cancelar</button>` : ""}
+          <span class="dica" id="finAviso"></span>
+        </div>
+      </section>
+      <section class="admin-bloco admin-bloco-largo">
+        <h3>Registros (${doPeriodo.length})</h3>
+        ${doPeriodo.length ? `
+        <div style="overflow-x:auto">
+        <table class="calc-tabela">
+          <tr class="dica"><td>Data</td><td>Tipo</td><td>Descrição</td><td>Valor</td><td>Resultado</td><td></td></tr>
+          ${doPeriodo.map(x => {
+            const [ano, mes, dia] = x.data.split("-");
+            let valorTxt = fmtRs(x.valor), res = "";
+            if (x.tipo === "compra-eth") { valorTxt = `pagou ${fmtRs(x.valor)}<br><span class="dica">entrou ${fmtRs(x.recebido)}${x.eth ? ` · ${x.eth.toLocaleString("pt-BR", { maximumFractionDigits: 6 })} ETH` : ""}</span>`; res = `<span style="color:#ff8a8a">− ${fmtRs(Math.max(0, x.valor - x.recebido))}</span> <span class="dica">(${pct(Math.max(0, x.valor - x.recebido), x.valor)})</span>`; }
+            else if (x.tipo === "venda") { valorTxt = `${fmtRs(x.valor)}<br><span class="dica">custo ${fmtRs(x.custo)}</span>`; res = `<span style="color:#7ee2a8">+ ${fmtRs(x.valor - x.custo)}</span>`; }
+            else res = `<span style="color:#ff8a8a">− ${fmtRs(x.valor)}</span>`;
+            return `<tr><td>${dia}/${mes}/${ano}</td><td>${TIPOS_FIN[x.tipo]}</td><td style="text-align:left;white-space:normal">${esc(x.descricao)}</td><td>${valorTxt}</td><td>${res}</td>
+              <td><button type="button" class="opt" data-fin-editar="${x.id}" style="padding:4px 8px">Editar</button>
+                  <button type="button" class="opt" data-fin-apagar="${x.id}" style="padding:4px 8px" title="Apagar" aria-label="Apagar">✕</button></td></tr>`;
+          }).join("")}
+        </table></div>` : `<p class="dica">Nenhum registro neste período.</p>`}
+      </section>
+    </div>`;
+
+  const camposPorTipo = {
+    "compra-eth": [["valor", "Quanto você pagou (R$)"], ["recebido", "Quanto entrou na carteira (R$)", "O valor em reais que apareceu depois das taxas."], ["eth", "ETH recebido (opcional)"]],
+    venda: [["valor", "Valor cobrado do cliente (R$)"], ["custo", "Custo dos NFTs (R$)", "Quanto os NFTs custaram (sem a sua taxa)."]],
+    despesa: [["valor", "Valor (R$)"]]
+  };
+  const desenharCampos = () => {
+    const tipo = document.getElementById("finTipo").value;
+    document.getElementById("finCampos").innerHTML = camposPorTipo[tipo].map(([id, rot, dica]) => `
+      <label class="admin-campo">${rot}<input class="figura" data-fin="${id}" inputmode="decimal" value="${esc(valorCampo(form[id]))}">
+      ${dica ? `<span class="dica" style="display:block;margin-top:2px">${dica}</span>` : ""}</label>`).join("");
+  };
+  desenharCampos();
+  document.getElementById("finTipo").onchange = desenharCampos;
+
+  alvo.querySelectorAll("[data-fin-periodo]").forEach(b => b.onclick = () => { finPeriodo = b.dataset.finPeriodo; adminFinancas(alvo); });
+  document.getElementById("finSalvar").onclick = async () => {
+    const aviso = document.getElementById("finAviso");
+    const registro = { ...(finEditando || {}), tipo: document.getElementById("finTipo").value, data: document.getElementById("finData").value,
+      descricao: document.getElementById("finDescricao").value, valor: 0, recebido: 0, custo: 0, eth: 0 };
+    alvo.querySelectorAll("[data-fin]").forEach(c => { registro[c.dataset.fin] = lerNumero(c.value); });
+    if (!registro.data) { aviso.textContent = "Coloque a data."; return; }
+    if (!(registro.valor > 0)) { aviso.textContent = "Coloque o valor."; return; }
+    aviso.textContent = "Salvando...";
+    try {
+      const r = await postAdmin("/api/admin", { acao: "financas-salvar", registro });
+      if (!r.ok) throw new Error("erro");
+      finEditando = null;
+      adminFinancas(alvo);
+    } catch (e) { aviso.textContent = "Não consegui salvar agora."; }
+  };
+  const cancelar = document.getElementById("finCancelar");
+  if (cancelar) cancelar.onclick = () => { finEditando = null; adminFinancas(alvo); };
+  alvo.querySelectorAll("[data-fin-editar]").forEach(b => b.onclick = () => {
+    finEditando = registros.find(x => x.id === b.dataset.finEditar) || null;
+    adminFinancas(alvo);
+  });
+  alvo.querySelectorAll("[data-fin-apagar]").forEach(b => b.onclick = async () => {
+    const x = registros.find(y => y.id === b.dataset.finApagar);
+    if (!x || !confirm(`Apagar este registro (${TIPOS_FIN[x.tipo]}, ${fmtRs(x.valor)})?`)) return;
+    try { await postAdmin("/api/admin", { acao: "financas-apagar", id: x.id }); } catch (e) {}
+    if (finEditando && finEditando.id === x.id) finEditando = null;
+    adminFinancas(alvo);
+  });
 }
 
 /* ----- 📊 Painel ----- */

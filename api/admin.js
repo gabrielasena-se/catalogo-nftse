@@ -2,6 +2,9 @@
 //
 //   GET  /api/admin                            -> { admin: true|false }  (para mostrar o link "Admin")
 //   POST /api/admin { acao:"painel", dias }    -> números do painel (só admin)
+//   POST /api/admin { acao:"financas" }                  -> { registros }  controle financeiro (só admin)
+//   POST /api/admin { acao:"financas-salvar", registro } -> grava (novo ou editado)
+//   POST /api/admin { acao:"financas-apagar", id }       -> apaga um registro
 //
 // Admin = cargo "Administrador" no Discord (veja _admin.js).
 // Os números saem do que o site já guarda no Redis: acessos:log (páginas abertas),
@@ -90,6 +93,35 @@ async function painel(dias) {
   };
 }
 
+// ----- Controle financeiro: compras de ETH, outras despesas e vendas (valores em R$) -----
+const CHAVE_FINANCAS = "financas:registros";   // hash id -> JSON
+const TIPOS_FINANCAS = ["compra-eth", "despesa", "venda"];
+const valor = v => { const n = Number(v); return isFinite(n) && n >= 0 && n < 1e9 ? Math.round(n * 1e6) / 1e6 : 0; };
+const texto = (v, max) => String(v || "").trim().slice(0, max);
+
+async function listarFinancas() {
+  const bruto = (await redis("HGETALL", CHAVE_FINANCAS)) || [];
+  const registros = [];
+  for (let i = 1; i < bruto.length; i += 2) { try { registros.push(JSON.parse(bruto[i])); } catch {} }
+  return registros.sort((a, b) => (b.data || "").localeCompare(a.data || "") || (b.criadoEm || 0) - (a.criadoEm || 0));
+}
+
+function limparRegistro(r) {
+  if (!r || !TIPOS_FINANCAS.includes(r.tipo)) return null;
+  const data = /^\d{4}-\d{2}-\d{2}$/.test(r.data) ? r.data : null;
+  if (!data) return null;
+  const id = /^[a-z0-9]{6,20}$/.test(r.id || "") ? r.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  return {
+    id, tipo: r.tipo, data,
+    descricao: texto(r.descricao, 300),
+    valor: valor(r.valor),          // compra-eth: quanto pagou | despesa: valor | venda: quanto cobrou
+    recebido: valor(r.recebido),    // compra-eth: quanto entrou (em R$)
+    custo: valor(r.custo),          // venda: quanto custaram os NFTs (em R$)
+    eth: valor(r.eth),              // compra-eth: ETH recebido (opcional)
+    criadoEm: Number(r.criadoEm) || Date.now()
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method === "GET") {
     const sessao = await exigirSessao(req, res);
@@ -104,6 +136,18 @@ export default async function handler(req, res) {
   if (corpo.acao === "painel") {
     const dias = [1, 7, 30].includes(Number(corpo.dias)) ? Number(corpo.dias) : 7;
     return res.status(200).json(await painel(dias));
+  }
+  if (corpo.acao === "financas") return res.status(200).json({ registros: await listarFinancas() });
+  if (corpo.acao === "financas-salvar") {
+    const reg = limparRegistro(corpo.registro);
+    if (!reg) return res.status(400).json({ erro: "Confira o tipo e a data." });
+    await redis("HSET", CHAVE_FINANCAS, reg.id, JSON.stringify(reg));
+    return res.status(200).json({ registro: reg });
+  }
+  if (corpo.acao === "financas-apagar") {
+    if (!/^[a-z0-9]{6,20}$/.test(String(corpo.id || ""))) return res.status(400).json({ erro: "Registro inválido." });
+    await redis("HDEL", CHAVE_FINANCAS, corpo.id);
+    return res.status(200).json({ ok: true });
   }
   return res.status(400).json({ erro: "Ação inválida." });
 }
