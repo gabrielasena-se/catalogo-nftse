@@ -10058,10 +10058,6 @@ function adminCalculadora(alvo){
             </span>
             <span class="dica" id="calcCotacaoMsg" style="display:block;margin-top:2px">${cfg.cotacaoAuto ? "" : "Valor digitado por você."}</span>
           </label>
-          <label class="admin-campo" style="margin-top:0">Custos do negócio (%)
-            <input class="figura" data-cfg="negocio" inputmode="decimal" style="margin-top:4px;width:90px" value="${String(cfg.negocio).replace(".", ",")}">
-            <span class="dica" style="display:block;margin-top:2px">Claude, domínio... Entra no seu custo.</span>
-          </label>
         </div>
         <p class="dica" style="margin:0 0 4px">Coloque o valor de cada NFT no TokenTrove, em dólar.</p>
         <datalist id="calcNomes">${CATALOGO.map(it => `<option value="${esc(it.pt)}">`).join("")}</datalist>
@@ -10080,8 +10076,9 @@ function adminCalculadora(alvo){
           <summary style="cursor:pointer"><b>Configurações da conta</b> <span class="dica">(clique para ver ou mudar)</span></summary>
           <div class="admin-grade" style="margin-top:6px">
             <div>
-              <label class="admin-campo" style="display:flex;gap:8px;align-items:center">
-                <input type="checkbox" id="calcArredondar" ${cfg.arredondar ? "checked" : ""}> Arredondar o preço em reais para cima (valor inteiro)
+              ${campoCfg("negocio", "Custos do negócio (% do valor dos NFTs)", "Mensalidade do Claude, domínio... Entra no seu custo.")}
+              <label class="admin-campo" style="display:flex;gap:8px;align-items:flex-start">
+                <input type="checkbox" id="calcArredondar" style="width:auto;flex:none;margin:2px 0 0" ${cfg.arredondar ? "checked" : ""}> Arredondar o preço em reais para cima (valor inteiro)
               </label>
             </div>
             <div>
