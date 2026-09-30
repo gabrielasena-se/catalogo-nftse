@@ -463,6 +463,11 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .ranking li a:hover{text-decoration:underline}
 .ranking li b{float:right;color:var(--ouro)}
 .admin-lista{display:flex;flex-direction:column;gap:8px}
+.tags-filtros{display:flex;gap:10px 18px;flex-wrap:wrap}
+.tags-prog-linha{display:grid;grid-template-columns:120px 1fr auto;gap:10px;align-items:center;font-size:13px;margin-top:6px}
+.tags-barra{height:10px;background:var(--tile);border:1px solid var(--linha);border-radius:6px;overflow:hidden}
+.tags-barra div{height:100%;background:linear-gradient(90deg,#b800b8,#ff2ee0)}
+@media(max-width:560px){.tags-prog-linha{grid-template-columns:1fr;gap:4px}}
 .admin-linha{background:var(--painel);border:1px solid var(--linha);border-radius:10px;padding:10px 14px}
 .admin-linha-com-arte{display:flex;gap:14px;align-items:center}
 .admin-linha-corpo{flex:1;min-width:0}
@@ -10506,41 +10511,99 @@ async function adminAcessos(alvo){
 
 let buscaTagsAdmin = "";
 
+// Filtros da aba Tags: situação (sem/com/todos), tipo e quantos mostrar. A lista é "congelada"
+// ao filtrar: salvar uma tag não tira o item da tela na hora (só no próximo filtro/busca).
+let filtroTagsAdmin = "sem", tipoTagsAdmin = "todos", qtdTagsAdmin = 20, listaTagsAdmin = null;
+
 function adminTags(alvo){
+  const temTag = it => (tagsManuais[it.slug] || []).length > 0;
+  const lancamento = it => it._extra ? Infinity : (ORDEM_LANCAMENTO[it.slug] || 0);
+
   alvo.innerHTML = `
-    <p class="dica" style="margin:0 0 10px">Busque o item, clique no <b>✕</b> para remover uma tag ou escreva uma nova e clique em <b>Adicionar</b>.
-      As tags aparecem na página do item e ajudam na busca.</p>
-    <div style="display:flex;gap:6px;max-width:520px">
-      <input id="tagsBusca" class="figura" style="margin-top:0" placeholder="Nome do item (ex: sofá)" value="${esc(buscaTagsAdmin)}">
+    <div id="tagsProgresso"></div>
+    <p class="dica" style="margin:14px 0 10px">Escreva as tags e aperte <b>Enter</b> (ou <b>Adicionar</b>); dá para escrever várias separadas por vírgula.
+      Depois de adicionar, o cursor já pula para o próximo item. Clique no <b>✕</b> para remover uma tag.</p>
+    <div class="tags-filtros">
+      <div class="admin-periodo" style="margin:0">
+        ${[["sem", "Sem tags"], ["com", "Com tags"], ["todos", "Todos"]].map(([id, rot]) =>
+          `<button type="button" class="opt" data-filtro-tags="${id}" aria-pressed="${id === filtroTagsAdmin}">${rot}</button>`).join("")}
+      </div>
+      <div class="admin-periodo" style="margin:0">
+        ${[["todos", "Todos os tipos"], ...ABAS.map(a => [a.id, a.rotulo])].map(([id, rot]) =>
+          `<button type="button" class="opt" data-tipo-tags="${id}" aria-pressed="${id === tipoTagsAdmin}">${rot}</button>`).join("")}
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;max-width:520px;margin-top:10px">
+      <input id="tagsBusca" class="figura" style="margin-top:0" placeholder="Buscar pelo nome (opcional)" value="${esc(buscaTagsAdmin)}">
       <button type="button" id="tagsBuscarBtn" class="opt" style="white-space:nowrap">Buscar</button>
     </div>
     <div id="tagsResultados" style="margin-top:12px"></div>`;
   const campoBusca = document.getElementById("tagsBusca");
   const resultados = document.getElementById("tagsResultados");
 
-  async function salvarTags(slug, tags, aviso){
+  // Contador: quantos itens já têm tag, no total e por tipo
+  function desenharProgresso(){
+    const linha = (rotulo, lista) => {
+      const com = lista.filter(temTag).length, total = lista.length, pct = total ? Math.round(com / total * 100) : 0;
+      return `<div class="tags-prog-linha"><span>${esc(rotulo)}</span>
+        <div class="tags-barra"><div style="width:${pct}%"></div></div>
+        <span><b>${com}</b> de ${total} · faltam <b>${total - com}</b></span></div>`;
+    };
+    const com = CATALOGO.filter(temTag).length, total = CATALOGO.length;
+    document.getElementById("tagsProgresso").innerHTML = `
+      <div class="admin-bloco">
+        <h3 style="margin:0 0 6px">Progresso das tags</h3>
+        <p style="margin:0 0 10px;font-size:15px">Faltam <b style="color:var(--ouro)">${total - com}</b> itens sem tag
+          <span class="dica">(${com} de ${total} já têm, ${total ? Math.round(com / total * 100) : 0}%)</span></p>
+        ${ABAS.map(a => linha(a.rotulo, CATALOGO.filter(it => it.tipo === a.id))).join("")}
+      </div>`;
+  }
+
+  async function salvarTags(slug, tags, aviso, proximo){
     aviso.textContent = "Salvando...";
     try {
       const r = await postAdmin("/api/catalogo", { acao: "definirTags", slug, tags });
       const dados = await r.json().catch(() => ({}));
       if (!r.ok) { aviso.textContent = dados.erro || "Erro ao salvar."; return; }
       if (dados.tags && dados.tags.length) tagsManuais[slug] = dados.tags; else delete tagsManuais[slug];
-      buscar();
+      desenharProgresso();
+      desenharLista();
+      if (proximo) {   // pula para o campo do próximo item da lista
+        const campos = [...resultados.querySelectorAll("[data-nova-tag]")];
+        const i = campos.findIndex(c => c.closest("[data-linha-tags]").dataset.linhaTags === slug);
+        const alvoCampo = campos[i + 1] || campos[i];
+        if (alvoCampo) { alvoCampo.focus(); alvoCampo.scrollIntoView({ block: "center", behavior: "smooth" }); }
+      }
     } catch (e) {
       aviso.textContent = "Não consegui falar com o servidor.";
     }
   }
 
-  function buscar(){
+  // Monta a lista pelos filtros (e congela até o próximo filtro/busca)
+  function filtrar(){
     buscaTagsAdmin = campoBusca.value;
     const busca = semAcento(buscaTagsAdmin.trim());
-    // sem busca: mostra os itens que já têm tags
-    const achados = busca
-      ? CATALOGO.filter(it => semAcento(it.pt + " " + (it.ptAntigo || "") + " " + it.en).includes(busca)).slice(0, 20)
-      : CATALOGO.filter(it => (tagsManuais[it.slug] || []).length);
-    if (!achados.length) { resultados.innerHTML = `<p class="dica">${busca ? "Nenhum item encontrado." : "Nenhum item tem tags ainda. Busque um item para adicionar."}</p>`; return; }
-    resultados.innerHTML = (busca ? "" : `<p class="dica" style="margin:0 0 8px">Itens que já têm tags:</p>`) + `<div class="admin-lista">` +
-      achados.map(it => `
+    listaTagsAdmin = CATALOGO
+      .filter(it => tipoTagsAdmin === "todos" || it.tipo === tipoTagsAdmin)
+      .filter(it => filtroTagsAdmin === "todos" || (filtroTagsAdmin === "com" ? temTag(it) : !temTag(it)))
+      .filter(it => !busca || semAcento(it.pt + " " + (it.ptAntigo || "") + " " + it.en).includes(busca))
+      .sort((a, b) => lancamento(b) - lancamento(a))   // mais recentes primeiro
+      .map(it => it.slug);
+    qtdTagsAdmin = 20;
+    desenharLista();
+  }
+
+  function desenharLista(){
+    const porSlug = new Map(CATALOGO.map(it => [it.slug, it]));
+    const lista = (listaTagsAdmin || []).map(s => porSlug.get(s)).filter(Boolean);
+    if (!lista.length) {
+      resultados.innerHTML = `<p class="dica">${filtroTagsAdmin === "sem" && !buscaTagsAdmin.trim() ? "Todos os itens deste filtro já têm tags! 🎉" : "Nenhum item encontrado."}</p>`;
+      return;
+    }
+    const visiveis = lista.slice(0, qtdTagsAdmin);
+    resultados.innerHTML = `<p class="dica" style="margin:0 0 8px">${lista.length} ${lista.length === 1 ? "item" : "itens"} neste filtro, dos mais recentes para os mais antigos.</p>
+      <div class="admin-lista">` +
+      visiveis.map(it => `
         <div class="admin-linha admin-linha-com-arte" data-linha-tags="${esc(it.slug)}">
           <a class="admin-arte" href="#item/${esc(it.slug)}" title="Abrir a página do item">${cardArte(it)}</a>
           <div class="admin-linha-corpo">
@@ -10555,28 +10618,42 @@ function adminTags(alvo){
           </div>
           <p class="dica" data-aviso-tag style="margin:6px 0 0"></p>
           </div>
-        </div>`).join("") + `</div>`;
+        </div>`).join("") + `</div>` +
+      (lista.length > qtdTagsAdmin ? `<button type="button" class="opt" id="tagsMais" style="margin-top:10px">Mostrar mais (${lista.length - qtdTagsAdmin} restantes)</button>` : "");
 
     resultados.querySelectorAll("[data-linha-tags]").forEach(linha => {
       const slug = linha.dataset.linhaTags;
       const aviso = linha.querySelector("[data-aviso-tag]");
       const atuais = () => tagsManuais[slug] || [];
       linha.querySelectorAll("[data-tirar-tag]").forEach(b => b.onclick = () =>
-        salvarTags(slug, atuais().filter(t => t !== b.dataset.tirarTag), aviso));
+        salvarTags(slug, atuais().filter(t => t !== b.dataset.tirarTag), aviso, false));
       const campo = linha.querySelector("[data-nova-tag]");
       const adicionar = () => {
         const novas = campo.value.split(",").map(t => t.trim()).filter(Boolean);
         if (!novas.length) return;
-        salvarTags(slug, [...atuais(), ...novas], aviso);
+        salvarTags(slug, [...atuais(), ...novas], aviso, true);
       };
       linha.querySelector("[data-adicionar-tag]").onclick = adicionar;
       campo.onkeydown = e => { if (e.key === "Enter") adicionar(); };
     });
+    const mais = document.getElementById("tagsMais");
+    if (mais) mais.onclick = () => { qtdTagsAdmin += 20; desenharLista(); };
   }
 
-  document.getElementById("tagsBuscarBtn").onclick = buscar;
-  campoBusca.onkeydown = e => { if (e.key === "Enter") buscar(); };
-  buscar();
+  alvo.querySelectorAll("[data-filtro-tags]").forEach(b => b.onclick = () => {
+    filtroTagsAdmin = b.dataset.filtroTags;
+    alvo.querySelectorAll("[data-filtro-tags]").forEach(o => o.setAttribute("aria-pressed", o === b));
+    filtrar();
+  });
+  alvo.querySelectorAll("[data-tipo-tags]").forEach(b => b.onclick = () => {
+    tipoTagsAdmin = b.dataset.tipoTags;
+    alvo.querySelectorAll("[data-tipo-tags]").forEach(o => o.setAttribute("aria-pressed", o === b));
+    filtrar();
+  });
+  document.getElementById("tagsBuscarBtn").onclick = filtrar;
+  campoBusca.onkeydown = e => { if (e.key === "Enter") filtrar(); };
+  desenharProgresso();
+  filtrar();
 }
 
 /* ----- 📦 Itens: cadastrar, faixa de preço e itens cadastrados ----- */
