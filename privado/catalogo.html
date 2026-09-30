@@ -80,6 +80,10 @@ a{color:var(--ouro)}
   border-radius:6px;padding:9px 16px;font-family:var(--pixel);font-size:11px;color:var(--mudo);
 }
 .aba[aria-selected="true"]{background:var(--ouro);color:#3a0050;border-color:#b800b8}
+/* Aba temporária de tema (Halloween): laranja */
+.aba-tema{color:#ffa94d;border-color:#c25a00;background:#2e1406}
+.aba-tema:hover{border-color:#ff8a1f}
+.aba-tema[aria-selected="true"]{background:linear-gradient(180deg,#ffa23a,#ff7a00);color:#2a0f00;border-color:#a34400}
 .aviso-legal{
   margin-left:auto;max-width:640px;font-size:11px;line-height:1.5;color:var(--mudo);
   opacity:.75;text-align:right;
@@ -5407,6 +5411,11 @@ const ABAS = [
   { id:"balao", rotulo:"Balões de Fala" }
 ];
 
+// Aba temporária de tema, ao lado de Balões de Fala: mostra os itens (de qualquer tipo) com a tag.
+// Para tirar do ar depois da data, troque por:  const ABA_TEMA = null;
+const ABA_TEMA = { id:"tema", rotulo:"Halloween", icone:"🎃", tag:"halloween" };
+const itemDoTema = it => ABA_TEMA && tagsDoItem(it).some(t => semAcento(t) === ABA_TEMA.tag);
+
 // Traduz o "tipo" do figure string (as duas letrinhas no começo do código
 // da peça, tipo "ha" em "ha-1012-1339") pro nome da categoria em português.
 const CATEGORIAS_PECA = {
@@ -5666,14 +5675,19 @@ function ordenarLista(lista){
 
 function telaGrade(){
   const busca = semAcento(termo.trim());
-  const lista = ordenarLista(CATALOGO.filter(it => it.tipo === aba && textoDeBusca(it).includes(busca)));
+  if (aba !== "roupa" && !ABAS.some(a => a.id === aba) && !(ABA_TEMA && aba === ABA_TEMA.id)) aba = "roupa";
+  const naAba = ABA_TEMA && aba === ABA_TEMA.id ? itemDoTema : (it => it.tipo === aba);
+  const lista = ordenarLista(CATALOGO.filter(it => naAba(it) && textoDeBusca(it).includes(busca)));
 
   const abas = ABAS.map(a => `
     <button class="aba" role="tab" aria-selected="${a.id===aba}" data-aba="${a.id}">
       ${a.rotulo}
-    </button>`).join("");
+    </button>`).join("") + (ABA_TEMA ? `
+    <button class="aba aba-tema" role="tab" aria-selected="${ABA_TEMA.id===aba}" data-aba="${ABA_TEMA.id}">
+      ${ABA_TEMA.icone} ${ABA_TEMA.rotulo}
+    </button>` : "");
 
-  const rotuloAba = (ABAS.find(a => a.id === aba) || {}).rotulo || "";
+  const rotuloAba = ABA_TEMA && aba === ABA_TEMA.id ? ABA_TEMA.rotulo : ((ABAS.find(a => a.id === aba) || {}).rotulo || "");
 
   const aviso = `NFT-SE é um projeto independente e não possui vínculo, parceria, patrocínio ou afiliação oficial com Habbo ou Sulake.<br>Habbo e demais marcas relacionadas pertencem aos seus respectivos titulares.`;
 
@@ -9549,6 +9563,13 @@ function telaItem(it){
 
   document.getElementById("voltar").onclick = () => { location.hash = ""; };
   app.querySelectorAll("[data-tag]").forEach(b => b.onclick = () => {
+    // a tag do tema abre a aba do tema (ex.: #Halloween -> aba Halloween)
+    if (ABA_TEMA && semAcento(b.dataset.tag) === ABA_TEMA.tag) {
+      termo = ""; aba = ABA_TEMA.id;
+      document.getElementById("busca").value = "";
+      location.hash = "";
+      return;
+    }
     termo = b.dataset.tag;
     aba = it.tipo;
     document.getElementById("busca").value = termo;
