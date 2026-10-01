@@ -195,6 +195,11 @@ a{color:var(--ouro)}
 .visual-item-nft{list-style:none;margin-left:-16px;display:flex;align-items:center;gap:4px}
 .visual-item-nft img{width:13px;height:13px;flex:none;margin-left:1px}
 .visual-item-nft a,.visual-item-nft{font-weight:600}
+/* Editor: peças do visual carregado pelo nick */
+.pecas-nick{margin-top:10px;background:var(--tile);border:1px solid var(--linha);border-radius:8px;padding:10px 14px}
+.pecas-nick > b{font-size:13px}
+.pecas-nick .visual-itens{font-size:13px;margin-bottom:0;columns:2 220px;column-gap:24px}
+.pecas-nick .visual-itens li{break-inside:avoid}
 .visual-acoes{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .visual-acoes .opt{padding:5px 8px;font-size:12px}
 .visual-excluir:hover{border-color:#ff5a5a;color:#ff9a9a}
@@ -9057,6 +9062,7 @@ function telaEditor(){
                 <button class="opt" id="buscarNickEditor">Carregar</button>
               </div>
               <p class="dica" id="avisoNickEditor">As peças escolhidas abaixo são aplicadas por cima do seu visual.</p>
+              <div id="pecasDoNick"></div>
             </div>
             <details class="campo">
               <summary class="dica" style="cursor:pointer">Colar o visual manualmente</summary>
@@ -9187,7 +9193,21 @@ function telaEditor(){
     if (e.key === "Escape") formSalvar.hidden = true;
   };
 
-  document.getElementById("figLivreEditor").oninput = e => { ed.figLivre = e.target.value; atualizarEditor(); };
+  document.getElementById("figLivreEditor").oninput = e => { ed.figLivre = e.target.value; atualizarEditor(); desenharPecasDoNick(); };
+
+  // Nomes das peças do visual carregado (pelo nick ou colado): ajuda a descobrir o nome
+  // de um item que a pessoa viu em alguém. NFTs do catálogo viram link para a página do item.
+  function desenharPecasDoNick(){
+    const caixa = document.getElementById("pecasDoNick");
+    if (!caixa) return;
+    const fig = ed.figLivre.trim();
+    caixa.innerHTML = fig ? `
+      <div class="pecas-nick">
+        <b>Peças que ${ed.nick ? esc(ed.nick) + " está" : "este visual está"} usando</b>
+        ${itensDoVisualHTML(fig)}
+      </div>` : "";
+  }
+  desenharPecasDoNick();
 
   const campoNickEditor = document.getElementById("nickEditor");
   const avisoEditor = document.getElementById("avisoNickEditor");
@@ -9212,6 +9232,7 @@ function telaEditor(){
       avisoEditor.textContent = "Visual de " + nick + " carregado.";
       if (ed.genero !== generoAntigo) { reajustarItemExperimentado(generoAntigo); telaEditor(); return; }
       atualizarEditor();
+      desenharPecasDoNick();
     } catch (e) {
       avisoEditor.textContent = "Não achei esse nick. Confira se está escrito igualzinho e se o perfil está público.";
     }
