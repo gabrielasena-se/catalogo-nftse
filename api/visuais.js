@@ -27,7 +27,7 @@ import { exigirSessao } from "./_sessao.js";
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-const LIMITE_VISUAIS = 60;
+const LIMITE_VISUAIS = 100;
 const LIMITE_CARROSSEL = 30;
 const TAMANHO_NOME = 40;
 const CHAVE_PUBLICOS = "visuais:publicos";
