@@ -198,8 +198,12 @@ a{color:var(--ouro)}
 /* Editor: peças do visual carregado pelo nick */
 .pecas-nick{margin-top:10px;background:var(--tile);border:1px solid var(--linha);border-radius:8px;padding:10px 14px}
 .pecas-nick > b{font-size:13px}
-.pecas-nick .visual-itens{font-size:13px;margin-bottom:0;columns:3 170px;column-gap:20px}
-.pecas-nick .visual-itens li{break-inside:avoid}
+/* nomes por extenso, separados por vírgula */
+.pecas-nick .visual-itens{font-size:13px;margin:4px 0 0;padding:0;list-style:none;line-height:1.6}
+.pecas-nick .visual-itens li{display:inline;margin:0}
+.pecas-nick .visual-itens li.visual-item-nft img{display:inline-block;width:13px;height:13px;vertical-align:-1px;margin:0 3px 0 0}
+.pecas-nick .visual-itens li:not(:last-child):not(:has(+ .visual-itens-basicas))::after{content:", "}
+.pecas-nick .visual-itens li.visual-itens-basicas{display:block;margin-top:2px}
 .visual-acoes{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .visual-acoes .opt{padding:5px 8px;font-size:12px}
 .visual-excluir:hover{border-color:#ff5a5a;color:#ff9a9a}
@@ -5964,10 +5968,7 @@ function itensDoVisualHTML(figura){
     else if (CATEGORIAS_PECA[tipo] && !basicas.includes(CATEGORIAS_PECA[tipo])) basicas.push(CATEGORIAS_PECA[tipo]);
   }
   return `<ul class="visual-itens">
-      ${itens.map(i => `<li${i.nft ? ' class="visual-item-nft"' : ""}>
-        ${i.nft ? `<img src="${CUBO_NFT_B64}" alt="NFT" title="NFT">` : ""}
-        ${i.slug ? `<a href="#item/${esc(i.slug)}">${esc(i.nome)}</a>` : esc(i.nome)}
-      </li>`).join("")}
+      ${itens.map(i => `<li${i.nft ? ' class="visual-item-nft"' : ""}>${i.nft ? `<img src="${CUBO_NFT_B64}" alt="NFT" title="NFT">` : ""}${i.slug ? `<a href="#item/${esc(i.slug)}">${esc(i.nome)}</a>` : esc(i.nome)}</li>`).join(" ")}
       ${basicas.length ? `<li class="visual-itens-basicas">Básicas: ${esc(basicas.join(", "))}</li>` : ""}
     </ul>`;
 }
