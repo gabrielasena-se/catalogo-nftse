@@ -90,9 +90,11 @@ a{color:var(--ouro)}
 }
 @media(max-width:760px){.aviso-legal{margin-left:0;max-width:100%;text-align:left}}
 /* Barra das abas da lista presa logo abaixo do topo (--altura-topo é medida pelo script) */
-.barra-abas{position:sticky;top:var(--altura-topo,0px);z-index:15;background:var(--fundo);padding-bottom:10px;box-shadow:0 8px 10px -8px rgba(0,0,0,.6)}
+.barra-abas{position:sticky;top:var(--altura-topo,0px);z-index:15;background:var(--fundo);padding-bottom:10px}
 .barra-abas .abas{padding-top:22px}
 .barra-abas + .envoltorio{padding-top:8px}   /* 18px de sempre menos os 10px de baixo da barra: tudo no mesmo lugar de antes */
+/* sombra só quando a barra está presa no topo (classe colocada pelo script ao rolar) */
+.barra-abas.presa,.categorias-fixas.presa{box-shadow:0 8px 10px -8px rgba(0,0,0,.6)}
 .aviso-legal-celular{display:none}
 @media(max-width:760px){.barra-abas .aviso-legal{display:none}.aviso-legal-celular{display:block;margin:1px 0 29px}}
 .linha-info-grade{
@@ -514,7 +516,7 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .busca-editor-campo{display:flex;gap:6px}
 .busca-editor .figura{margin-top:0;padding:8px 10px;font-size:14px}
 .busca-editor .opt{padding:6px 10px}
-.categorias-fixas{position:sticky;top:var(--altura-topo,0px);z-index:6;background:var(--painel);margin:0 -18px;padding:10px 18px;box-shadow:0 8px 10px -8px rgba(0,0,0,.6)}
+.categorias-fixas{position:sticky;top:var(--altura-topo,0px);z-index:6;background:var(--painel);margin:0 -18px;padding:10px 18px}
 /* No celular, uma fileira só que desliza para o lado (para a barra não tomar a tela) */
 @media(max-width:700px){
   .categorias-fixas > label{display:none}
@@ -8967,8 +8969,20 @@ function urlMiniaturaEditor(tipo, set){
 function medirAlturaTopo(){
   const topo = document.querySelector("header.topo");
   document.documentElement.style.setProperty("--altura-topo", (topo ? topo.offsetHeight : 0) + "px");
+  marcarBarrasPresas();   // a tela foi redesenhada: a barra pode já estar presa
 }
 addEventListener("resize", medirAlturaTopo);
+
+// Barras presas no topo (abas da lista, categorias do editor): marca "presa" só quando
+// estão grudadas no topo, para a sombra não aparecer com a página parada lá em cima.
+function marcarBarrasPresas(){
+  const topo = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--altura-topo")) || 0;
+  document.querySelectorAll(".barra-abas, .categorias-fixas").forEach(b => {
+    const presa = window.scrollY > 0 && b.getBoundingClientRect().top <= topo + 1;
+    b.classList.toggle("presa", presa);
+  });
+}
+addEventListener("scroll", marcarBarrasPresas, { passive: true });
 
 function telaEditor(){
   if (estadoSessao !== "ATIVA") return;
