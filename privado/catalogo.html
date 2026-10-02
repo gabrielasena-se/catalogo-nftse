@@ -508,6 +508,8 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 
 .opcoes-itens{display:grid;grid-template-columns:repeat(auto-fill,104px);gap:8px;justify-content:center}
 /* Categorias do editor presas logo abaixo do topo: dá para trocar de categoria sem subir a página */
+.busca-editor{display:flex;gap:6px;margin:0 0 10px}
+.busca-editor .figura{margin-top:0}
 .categorias-fixas{position:sticky;top:var(--altura-topo,0px);z-index:6;background:var(--painel);margin:0 -18px;padding:10px 18px;box-shadow:0 8px 10px -8px rgba(0,0,0,.6)}
 /* No celular, uma fileira só que desliza para o lado (para a barra não tomar a tela) */
 @media(max-width:700px){
@@ -6062,6 +6064,7 @@ let editorCarregando = false;
 let editorErroCarregar = "";
 let editorTipoAtivo = null;        // categoria (tipo de duas letras) selecionada nas abas
 let editorQtdMostrada = {};        // tipo -> quantos itens já exibidos (carregar mais)
+let editorBusca = "", editorBuscaTimer = null, editorBuscaComFoco = false;   // busca de peças pelo nome
 
 const TIPOS_MANDATORIOS_EDITOR = ["hd", "ch", "lg"];
 const TIPOS_CABECA_EDITOR = new Set(["hd", "hr", "ha", "he", "ea", "fa"]);
@@ -8930,6 +8933,26 @@ function figuraComCandidatoEditor(tipo, set){
   return lista.join(".");
 }
 
+// Botão de uma peça na grade do editor (usado na categoria aberta e nos resultados da busca)
+function botaoItemEditor(tipo, s){
+  const infoItem = (INDICE_ITENS_EDITOR[tipo] || {})[s.id];
+  const rotuloBotao = infoItem && infoItem.nome ? infoItem.nome : (tipo + "-" + s.id);
+  const ehDoJogo = !!(infoItem && !infoItem.nome && !infoItem.origem);
+  const zona = ZONA_MINIATURA_EDITOR[tipo];
+  const classeImg = zona === "corpo" ? "mini-zoom-corpo" : (zona ? "mini-zoom mini-zoom-" + zona : "");
+  const sel = editorSelecionados[tipo];
+  const imgMiniatura = `<img src="${esc(urlMiniaturaEditor(tipo, s))}" alt="${esc(rotuloBotao)}" loading="lazy"
+      class="${classeImg}"
+      onerror="this.closest('button').style.display='none'">`;
+  return `
+  <button type="button" class="item-mini" data-tipo="${tipo}" data-id="${s.id}" data-cor="${s.maxCor}"
+    data-codigo="${esc(rotuloBotao)}" aria-pressed="${!!(sel && sel.id === s.id)}">
+    ${seloEditorHTML(ehDoJogo ? "H" : (infoItem && infoItem.origem))}
+    ${zona === "corpo" ? `<span class="recorte-corpo">${imgMiniatura}</span>` : (zona ? `<span class="recorte">${imgMiniatura}</span>` : imgMiniatura)}
+    ${semImagemHabbo(tipo, s.id) ? `<span class="sem-imagem">${AVISO_SEM_IMAGEM}</span>` : ""}
+  </button>`;
+}
+
 function urlMiniaturaEditor(tipo, set){
   const fig = figuraComCandidatoEditor(tipo, set);
   const url = urlAvatar(fig, { dir: 2, size: "l", genero: ed.genero, acao: "std" });
@@ -8959,6 +8982,32 @@ function telaEditor(){
 
   let grade = "";
   let painelCores = "";
+  const termoBusca = semAcento(editorBusca.trim());
+  if (FIGUREDATA_COMPLETO && termoBusca) {
+    // Busca pelo nome em todas as categorias (peças sem nome entram pelo código, ex.: ch-3030)
+    const achados = [];
+    for (const tipo of tiposOrdem) {
+      const excluidos = EXCLUIR_ITENS_EDITOR[tipo];
+      const indice = INDICE_ITENS_EDITOR[tipo] || {};
+      FIGUREDATA_COMPLETO.settypes[tipo].sets
+        .filter(s => (s.gender === "U" || s.gender === ed.genero) && !(excluidos && excluidos.has(s.id)))
+        .filter(s => {
+          const nome = indice[s.id] && indice[s.id].nome;
+          return (nome && semAcento(nome).includes(termoBusca)) || (tipo + "-" + s.id) === termoBusca;
+        })
+        .sort((a, b) => (indice[a.id] ? indice[a.id].ordem : Infinity) - (indice[b.id] ? indice[b.id].ordem : Infinity))
+        .forEach(s => achados.push({ tipo, s }));
+    }
+    const qtd = editorQtdMostrada.__busca || 48;
+    grade = `
+      <p class="contador-itens" style="text-align:center;margin:0 0 8px">Busca “${esc(editorBusca.trim())}”: ${achados.length} ${achados.length === 1 ? "item" : "itens"}</p>
+      ${achados.length ? `<div class="opcoes-itens" id="gradeEditor">${achados.slice(0, qtd).map(a => botaoItemEditor(a.tipo, a.s)).join("")}</div>`
+        : `<p class="dica" style="text-align:center">Nenhuma peça com esse nome. Confira a escrita ou tente só uma parte do nome.</p>`}
+      ${achados.length > qtd ? `
+        <button type="button" class="opt" id="carregarMaisEditor" style="margin-top:8px">
+          Carregar mais (${achados.length - qtd} restantes)
+        </button>` : ""}`;
+  }
   if (FIGUREDATA_COMPLETO && editorTipoAtivo) {
     const info = FIGUREDATA_COMPLETO.settypes[editorTipoAtivo];
     const excluidos = EXCLUIR_ITENS_EDITOR[editorTipoAtivo];
@@ -8981,29 +9030,13 @@ function telaEditor(){
     const semNenhum = TIPOS_MANDATORIOS_EDITOR.includes(editorTipoAtivo);
     const paleta = FIGUREDATA_COMPLETO.palettes[info.paletteid] || [];
 
-    grade = `
-      <p class="contador-itens" style="text-align:center;margin:0 0 8px">${esc(info.rotulo)}: ${todos.length} ${todos.length === 1 ? "item" : "itens"}</p>
+    if (!termoBusca) grade = `
+      <p class="contador-itens" style="text-align:center;margin:0 0 8px">${esc(info.rotulo)}:${todos.length} ${todos.length === 1 ? "item" : "itens"}</p>
       <div class="opcoes-itens" id="gradeEditor">
         ${semNenhum ? "" : `
           <button type="button" class="item-mini" data-remover="${editorTipoAtivo}"
             aria-pressed="${!selAtual}" title="Nenhum">Nenhum</button>`}
-        ${visiveis.map(s => {
-          const infoItem = indiceCategoria[s.id];
-          const rotuloBotao = infoItem && infoItem.nome ? infoItem.nome : (editorTipoAtivo + "-" + s.id);
-          const ehDoJogo = !!(infoItem && !infoItem.nome && !infoItem.origem);
-          const zona = ZONA_MINIATURA_EDITOR[editorTipoAtivo];
-          const classeImg = zona === "corpo" ? "mini-zoom-corpo" : (zona ? "mini-zoom mini-zoom-" + zona : "");
-          const imgMiniatura = `<img src="${esc(urlMiniaturaEditor(editorTipoAtivo, s))}" alt="${esc(rotuloBotao)}" loading="lazy"
-              class="${classeImg}"
-              onerror="this.closest('button').style.display='none'">`;
-          return `
-          <button type="button" class="item-mini" data-tipo="${editorTipoAtivo}" data-id="${s.id}" data-cor="${s.maxCor}"
-            data-codigo="${esc(rotuloBotao)}" aria-pressed="${!!(selAtual && selAtual.id === s.id)}">
-            ${seloEditorHTML(ehDoJogo ? "H" : (infoItem && infoItem.origem))}
-            ${zona === "corpo" ? `<span class="recorte-corpo">${imgMiniatura}</span>` : (zona ? `<span class="recorte">${imgMiniatura}</span>` : imgMiniatura)}
-            ${semImagemHabbo(editorTipoAtivo, s.id) ? `<span class="sem-imagem">${AVISO_SEM_IMAGEM}</span>` : ""}
-          </button>`;
-        }).join("")}
+        ${visiveis.map(s => botaoItemEditor(editorTipoAtivo, s)).join("")}
       </div>
       ${todos.length > qtd ? `
         <button type="button" class="opt" id="carregarMaisEditor" style="margin-top:8px">
@@ -9099,6 +9132,10 @@ function telaEditor(){
               <div class="opcoes">${botoesAcoes}</div>
             </div>
             <div class="campo categorias-fixas" id="categoriasEditor">
+              <div class="busca-editor">
+                <input type="search" class="figura" id="buscaEditor" placeholder="Buscar peça pelo nome (ex.: jaqueta, coroa, neon)" value="${esc(editorBusca)}" autocomplete="off">
+                ${editorBusca ? `<button type="button" class="opt" id="limparBuscaEditor">Limpar busca</button>` : ""}
+              </div>
               <label>Categoria</label>
               <div class="opcoes">${abasCategoria || '<p class="dica">Carregando categorias...</p>'}</div>
             </div>
@@ -9125,8 +9162,31 @@ function telaEditor(){
     telaEditor();
   });
 
+  // Busca de peças: redesenha a grade enquanto a pessoa digita, sem perder o cursor do campo
+  const campoBuscaEditor = document.getElementById("buscaEditor");
+  if (campoBuscaEditor) {
+    if (editorBuscaComFoco) {
+      campoBuscaEditor.focus();
+      const fim = campoBuscaEditor.value.length;
+      campoBuscaEditor.setSelectionRange(fim, fim);
+    }
+    campoBuscaEditor.oninput = () => {
+      clearTimeout(editorBuscaTimer);
+      editorBuscaTimer = setTimeout(() => {
+        editorBusca = campoBuscaEditor.value;
+        editorQtdMostrada.__busca = 48;
+        editorBuscaComFoco = true;
+        telaEditor();
+        editorBuscaComFoco = false;
+      }, 250);
+    };
+  }
+  const limparBusca = document.getElementById("limparBuscaEditor");
+  if (limparBusca) limparBusca.onclick = () => { editorBusca = ""; telaEditor(); };
+
   app.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
     editorTipoAtivo = b.dataset.cat;
+    editorBusca = "";   // escolher uma categoria sai da busca
     telaEditor();
     // se a barra de categorias estava presa (página rolada), mostra a grade nova desde o começo
     const barra = document.getElementById("categoriasEditor"), gradeNova = document.getElementById("gradeEditor");
@@ -9139,7 +9199,8 @@ function telaEditor(){
 
   const btnMais = document.getElementById("carregarMaisEditor");
   if (btnMais) btnMais.onclick = () => {
-    editorQtdMostrada[editorTipoAtivo] = (editorQtdMostrada[editorTipoAtivo] || 48) + 48;
+    const chave = editorBusca.trim() ? "__busca" : editorTipoAtivo;
+    editorQtdMostrada[chave] = (editorQtdMostrada[chave] || 48) + 48;
     telaEditor();
   };
 
@@ -9150,6 +9211,7 @@ function telaEditor(){
 
   app.querySelectorAll("[data-tipo][data-id]").forEach(b => b.onclick = () => {
     const tipo = b.dataset.tipo, id = b.dataset.id, maxCor = parseInt(b.dataset.cor, 10) || 0;
+    editorTipoAtivo = tipo;   // na busca, a peça pode ser de outra categoria (as cores seguem ela)
     const paleta = FIGUREDATA_COMPLETO.palettes[FIGUREDATA_COMPLETO.settypes[tipo].paletteid] || [];
     const corPadrao = (paleta[0] || { id: "1" }).id;
     // mantém a última cor escolhida nesta categoria (trocar de jaqueta não volta para a cor padrão)
