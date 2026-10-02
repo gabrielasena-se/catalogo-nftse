@@ -508,8 +508,12 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 
 .opcoes-itens{display:grid;grid-template-columns:repeat(auto-fill,104px);gap:8px;justify-content:center}
 /* Categorias do editor presas logo abaixo do topo: dá para trocar de categoria sem subir a página */
-.busca-editor{display:flex;gap:6px;margin:0 0 10px}
-.busca-editor .figura{margin-top:0}
+/* Ação à esquerda e busca de peças, menor, à direita */
+.linha-acao-busca{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 18px;flex-wrap:wrap}
+.busca-editor{width:240px;max-width:100%}
+.busca-editor-campo{display:flex;gap:6px}
+.busca-editor .figura{margin-top:0;padding:8px 10px;font-size:14px}
+.busca-editor .opt{padding:6px 10px}
 .categorias-fixas{position:sticky;top:var(--altura-topo,0px);z-index:6;background:var(--painel);margin:0 -18px;padding:10px 18px;box-shadow:0 8px 10px -8px rgba(0,0,0,.6)}
 /* No celular, uma fileira só que desliza para o lado (para a barra não tomar a tela) */
 @media(max-width:700px){
@@ -1673,7 +1677,7 @@ const CATALOGO = [
   { slug:"boina-tangerina", tipo:"roupa", pt:"Boina Tangerina", en:"Tangerine Beret",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nfttangeberet.png", peca:"ha-5443-1408", desc:"" },
   { slug:"coroa-de-sangue", tipo:"roupa", pt:"Coroa de Sangue", en:"Blood Crown",
-    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/crafted/clothing_nftbloodycrown.png", peca:"hd-5798-1", desc:"" },
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/crafted/clothing_nftbloodycrown.png", peca:"ha-5704-0", desc:"" },
   { slug:"colete-cropped-grafite", tipo:"roupa", pt:"Top Grafite", ptAntigo:"Colete Cropped Grafite", en:"Graffiti Crop Vest",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftgraffiticroptop.png", peca:"ch-5588-1408", pecaF:"ch-5587-1408", desc:"" },
   { slug:"mascara-selva-prata", tipo:"roupa", pt:"Máscara de Prata Selva", ptAntigo:"Máscara da Selva Prata", en:"Silver Jungle Mask",
@@ -2030,8 +2034,8 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nfts25glasses1.png", peca:"ea-6152-1408", desc:"" },
   { slug:"pingente-caveira-mistico", tipo:"roupa", pt:"Pingente Caveira Mística", ptAntigo:"Pingente de Caveira Místico", en:"Mystic Skull Pendant",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftskullpendant.gif", peca:"ca-5757-1408", desc:"" },
-  { slug:"olhos-sangrentos", tipo:"roupa", pt:"Coroa de Sangue", ptAntigo:"Olhos Sangrentos", en:"Bloody Eyes",
-    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftbloody.png", peca:"hd-5799-14", desc:"" },
+  { slug:"olhos-sangrentos", tipo:"roupa", pt:"Olhos Sangrentos", en:"Bloody Eyes",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftbloody.png", peca:"hd-5799-14", pecasIguais:["hd-5798-0"], desc:"" },
   { slug:"capa-chuva-translucida-azul", tipo:"roupa", pt:"Moletom Translúcido Azul", ptAntigo:"Capa de Chuva Translúcida Azul", en:"Blue Translucent Anorak",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/raincoats/clothing_nftblueraincoat.png", peca:"cc-5323-1408.ha-5326-1408", desc:"" },
   { slug:"camisa-girassol", tipo:"roupa", pt:"Camisa Girassol", ptAntigo:"Camisa de Girassol", en:"Sunflower Shirt",
@@ -2668,7 +2672,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/keys/imx_nft_h22_keychair_o.png", desc:"" },
   { slug:"balao-elefante-azul", tipo:"furni", pt:"Balão-Elefante Azul", ptAntigo:"Balão de Elefante Azul", en:"Blue Elephant Balloon",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/bday23/nft_h23_bday_balloonelephant2.png", desc:"" },
-  { slug:"cacto-vaso-3", tipo:"furni", pt:"Eco Cacto", ptAntigo:"Cacto em Vaso 3", en:"Potted Cactus 3",
+  { slug:"cacto-vaso-3", tipo:"furni", pt:"Eco Cacto 3", ptAntigo:"Cacto em Vaso 3", en:"Potted Cactus 3",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_cactus3.png", desc:"" },
   { slug:"pilha-cenouras", tipo:"furni", pt:"Montinho de Cenouras", ptAntigo:"Pilha de Cenouras", en:"Pile of Carrots",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_u24_carrots_small.png", desc:"" },
@@ -2772,7 +2776,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h24_cefalu_gardenchair.png", desc:"" },
   { slug:"ladrilho-biscoito", tipo:"furni", pt:"Piso Biscoito", ptAntigo:"Ladrilho de Biscoito", en:"Biscuit Tile",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h23_xmas_bisquittile.gif", desc:"" },
-  { slug:"luminaria-eco-2", tipo:"furni", pt:"Eco Lâmpada", ptAntigo:"Luminária Eco 2", en:"Eco Lamp 2",
+  { slug:"luminaria-eco-2", tipo:"furni", pt:"Eco Lâmpada 2", ptAntigo:"Luminária Eco 2", en:"Eco Lamp 2",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_lamp2.png", desc:"" },
   { slug:"miniatura-habbo-finlandia", tipo:"furni", pt:"Miniatura Habbo.FI", ptAntigo:"Miniatura Habbo Finlândia", en:"Miniature Habbo Finland",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_sc24_hotelfi.png", desc:"" },
@@ -2790,7 +2794,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/collabs/metakey/imx_metakeylogo2.png", desc:"" },
   { slug:"interruptor-circo", tipo:"furni", pt:"Alavanca de Circo", ptAntigo:"Interruptor de Circo", en:"Circus Switch",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h24_circusswitch.png", desc:"" },
-  { slug:"cacto-vaso-1", tipo:"furni", pt:"Eco Cacto", ptAntigo:"Cacto em Vaso 1", en:"Potted Cactus 1",
+  { slug:"cacto-vaso-1", tipo:"furni", pt:"Eco Cacto 1", ptAntigo:"Cacto em Vaso 1", en:"Potted Cactus 1",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_cactus1.png", desc:"" },
   { slug:"piranha-collectible-dourada", tipo:"furni", pt:"Placa Piranha de Ouro", ptAntigo:"Piranha Collectible Dourada", en:"Gold Collectible Piranha",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h25_goldpiranha.png", desc:"" },
@@ -3012,7 +3016,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h25_monkeybzn_pond.png", desc:"" },
   { slug:"alienigena", tipo:"furni", pt:"Espécie Alienígena", ptAntigo:"Alienígena", en:"Alien",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_matic_cont_alien.png", desc:"" },
-  { slug:"luminaria-eco-1", tipo:"furni", pt:"Eco Lâmpada", ptAntigo:"Luminária Eco 1", en:"Eco Lamp 1",
+  { slug:"luminaria-eco-1", tipo:"furni", pt:"Eco Lâmpada 1", ptAntigo:"Luminária Eco 1", en:"Eco Lamp 1",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_lamp1.png", desc:"" },
   { slug:"carrinho-bebidas", tipo:"furni", pt:"Carrinho de Bebidas", en:"Drinks Trolley",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_a0_hc_trll.png", desc:"" },
@@ -3020,7 +3024,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_jungleplant1.png", desc:"" },
   { slug:"porta-nave-azul", tipo:"furni", pt:"Porta de Nave Azul", en:"Blue Spaceship Door",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_a9_scifidoor.png", desc:"" },
-  { slug:"banquinho-eco-2", tipo:"furni", pt:"Eco Banqueta", ptAntigo:"Banquinho Eco 2", en:"Eco Stool 2",
+  { slug:"banquinho-eco-2", tipo:"furni", pt:"Eco Banqueta 2", ptAntigo:"Banquinho Eco 2", en:"Eco Stool 2",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_chair2.png", desc:"" },
   { slug:"bau-legal", tipo:"furni", pt:"Baú Cool Cats", ptAntigo:"Baú Legal", en:"Cool Chest",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/coolcats/nft_c22_cc_coolchest.png", desc:"" },
@@ -3050,7 +3054,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_st_wildwest_buffalo.png", desc:"" },
   { slug:"incubadora-cyberkongz", tipo:"furni", pt:"Incubadora CyberKongz", en:"CyberKongz Incubator",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/birthday/cyberkongzincubator.gif", desc:"" },
-  { slug:"banquinho-eco-3", tipo:"furni", pt:"Eco Banqueta", ptAntigo:"Banquinho Eco 3", en:"Eco Stool 3",
+  { slug:"banquinho-eco-3", tipo:"furni", pt:"Eco Banqueta 3", ptAntigo:"Banquinho Eco 3", en:"Eco Stool 3",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_chair3.png", desc:"" },
   { slug:"pato-nevado", tipo:"furni", pt:"Pato Nevado", en:"Snowy Duck",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h24_xmas_snowduck.png", desc:"" },
@@ -3058,7 +3062,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_curtains2.png", desc:"" },
   { slug:"rato-robo", tipo:"furni", pt:"Ratobô", ptAntigo:"Rato Robô", en:"Robo Rat",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_cpunk15_roborat.png", desc:"" },
-  { slug:"mesa-cafe-eco-2", tipo:"furni", pt:"Eco Mesa de Café", ptAntigo:"Mesa de Café Eco 2", en:"Eco Coffee Table 2",
+  { slug:"mesa-cafe-eco-2", tipo:"furni", pt:"Eco Mesa de Café 2", ptAntigo:"Mesa de Café Eco 2", en:"Eco Coffee Table 2",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_table2.png", desc:"" },
   { slug:"carro-antigo", tipo:"furni", pt:"Hot Rod", ptAntigo:"Carro Antigo", en:"Hot Rod",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/xmas22/nft_h22_xmas22hotrod.png", desc:"" },
@@ -3092,7 +3096,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_matic_probe.png", desc:"" },
   { slug:"cadeira-refrigerante-bolhas", tipo:"furni", pt:"Cadeira Fábrica Bubblejuice", ptAntigo:"Cadeira de Refrigerante com Bolhas", en:"Bubblejuice Chair",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h24_bbchair.png", desc:"" },
-  { slug:"poltrona-eco-2", tipo:"furni", pt:"Eco Cadeira", ptAntigo:"Poltrona Eco 2", en:"Eco Armchair 2",
+  { slug:"poltrona-eco-2", tipo:"furni", pt:"Eco Cadeira 2", ptAntigo:"Poltrona Eco 2", en:"Eco Armchair 2",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_sofa2.png", desc:"" },
   { slug:"pato-catacumba", tipo:"furni", pt:"Pato das Catacumbas", ptAntigo:"Pato Catacumba", en:"Catacomb Duck",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h24_catacombduck.png", desc:"" },
@@ -3108,9 +3112,9 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_a0_hc_rntgn.png", desc:"" },
   { slug:"trono-tubarao-noel", tipo:"furni", pt:"Trono do Papai Tubarel", ptAntigo:"Trono do Tubarão Noel", en:"Shark Santa Throne",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_xmas14_sharkthrone.png", desc:"" },
-  { slug:"cesta-frutas-1", tipo:"furni", pt:"Cesto de Frutas", ptAntigo:"Cesta de Frutas 1", en:"Fruit Bowl 1",
+  { slug:"cesta-frutas-1", tipo:"furni", pt:"Cesto de Frutas 1", ptAntigo:"Cesta de Frutas 1", en:"Fruit Bowl 1",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_fruits1.png", desc:"" },
-  { slug:"luz-eco-1", tipo:"furni", pt:"Eco Lustre", ptAntigo:"Luz Eco 1", en:"Eco Light 1",
+  { slug:"luz-eco-1", tipo:"furni", pt:"Eco Lustre 1", ptAntigo:"Luz Eco 1", en:"Eco Light 1",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_light1.png", desc:"" },
   { slug:"holograma-metakey", tipo:"furni", pt:"Holograma Metakey", en:"Metakey Hologram",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/collabs/metakey/imx_metakeyhologram.png", desc:"" },
@@ -3158,7 +3162,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_a2_scifirocket.png", desc:"" },
   { slug:"sofa-clube", tipo:"furni", pt:"Sofá Clube", en:"Club Sofa",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_a0_clubsofa.png", desc:"" },
-  { slug:"mesa-cafe-eco-3", tipo:"furni", pt:"Eco Mesa de Café", ptAntigo:"Mesa de Café Eco 3", en:"Eco Coffee Table 3",
+  { slug:"mesa-cafe-eco-3", tipo:"furni", pt:"Eco Mesa de Café 3", ptAntigo:"Mesa de Café Eco 3", en:"Eco Coffee Table 3",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_table3.png", desc:"" },
   { slug:"estatua-campeao-snowboard", tipo:"furni", pt:"Estátua Ás do Snowboarding", ptAntigo:"Estátua Campeão de Snowboard", en:"Snowboarding Ace Statue",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_winter15_snowboard.png", desc:"" },
@@ -3202,7 +3206,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_hween13_rose.png", desc:"" },
   { slug:"cenouras-em-conserva", tipo:"furni", pt:"Cenouras em Conserva", en:"Pickled Carrots",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_u24_carrots_jar.png", desc:"" },
-  { slug:"luminaria-eco-3", tipo:"furni", pt:"Eco Lâmpada", ptAntigo:"Luminária Eco 3", en:"Eco Lamp 3",
+  { slug:"luminaria-eco-3", tipo:"furni", pt:"Eco Lâmpada 3", ptAntigo:"Luminária Eco 3", en:"Eco Lamp 3",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_lamp3.png", desc:"" },
   { slug:"dvd-prata", tipo:"furni", pt:"DVD Prata", en:"Silver DVD",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_silverdvd.png", desc:"" },
@@ -3272,7 +3276,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h24_statueofliberty.png", desc:"" },
   { slug:"urso-pelucia-2-aniversario", tipo:"furni", pt:"Ursinho Teddy Aniversário 2 Anos", ptAntigo:"Ursinho de Pelúcia 2º Aniversário", en:"2nd Anniversary Teddy Bear",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/bday23/nft_h23_bday_teddy.png", desc:"" },
-  { slug:"luz-eco-2", tipo:"furni", pt:"Eco Lustre", ptAntigo:"Luz Eco 2", en:"Eco Light 2",
+  { slug:"luz-eco-2", tipo:"furni", pt:"Eco Lustre 2", ptAntigo:"Luz Eco 2", en:"Eco Light 2",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_light2.png", desc:"" },
   { slug:"guarda-sol-azul-celeste", tipo:"furni", pt:"Guarda-Sol Azul Celeste", en:"Azure Parasol",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_rare_colourable_parasol_1.png", desc:"" },
@@ -3310,7 +3314,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_sc_frozenthrone.png", desc:"" },
   { slug:"luminaria-ambar-esmeralda", tipo:"furni", pt:"Luminária Âmbar Esmeralda", en:"Emerald Amber Lamp",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_rare_colourable_beehive_bulb_2.png", desc:"" },
-  { slug:"banquinho-eco-1", tipo:"furni", pt:"Eco Banqueta", ptAntigo:"Banquinho Eco 1", en:"Eco Stool 1",
+  { slug:"banquinho-eco-1", tipo:"furni", pt:"Eco Banqueta 1", ptAntigo:"Banquinho Eco 1", en:"Eco Stool 1",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_chair1.png", desc:"" },
   { slug:"maquina-fumaca-azul", tipo:"furni", pt:"Máquina de Fumaça Azul", en:"Blue Smoke Machine",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_a3_scifirocket.png", desc:"" },
@@ -3976,7 +3980,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_easter14_screen.png", desc:"" },
   { slug:"samovar-bronze", tipo:"furni", pt:"Samovar Bronze", en:"Bronze Samovar",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_h24_bday_bronzesamovar.png", desc:"" },
-  { slug:"eco-cacto", tipo:"furni", pt:"Eco Cacto", en:"Potted Cactus 2",
+  { slug:"eco-cacto", tipo:"furni", pt:"Eco Cacto 2", en:"Potted Cactus 2",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_cactus2.png", desc:"" },
   { slug:"cadeira-hc", tipo:"furni", pt:"Cadeira HC", en:"HC Chair",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_a1_newplch1.png", desc:"" },
@@ -4118,9 +4122,9 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_u24_plastotreasure.png", desc:"" },
   { slug:"saco-de-dormir-esmeralda", tipo:"furni", pt:"Saco de Dormir Esmeralda", en:"Emerald Sleeping Bag",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_rare_colourable_sleepingbag_2.png", desc:"" },
-  { slug:"eco-cadeira", tipo:"furni", pt:"Eco Cadeira", en:"Eco Armchair 3",
+  { slug:"eco-cadeira", tipo:"furni", pt:"Eco Cadeira 3", en:"Eco Armchair 3",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_sofa3.png", desc:"" },
-  { slug:"eco-cadeira-2", tipo:"furni", pt:"Eco Cadeira", en:"Eco Armchair 1",
+  { slug:"eco-cadeira-2", tipo:"furni", pt:"Eco Cadeira 1", en:"Eco Armchair 1",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_sofa1.png", desc:"" },
   { slug:"maquina-de-sorvete-azul", tipo:"furni", pt:"Máquina de Sorvete Azul", en:"Blue Ice Cream Maker",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_a2_rare_icecream.png", desc:"" },
@@ -4128,7 +4132,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_h24_bday_silversamovar.png", desc:"" },
   { slug:"saco-de-dormir-grafite", tipo:"furni", pt:"Saco de Dormir Grafite", en:"Graphite Sleeping Bag",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_a0_sleepingbag5.png", desc:"" },
-  { slug:"cesto-de-frutas", tipo:"furni", pt:"Cesto de Frutas", en:"Fruit Bowl 2",
+  { slug:"cesto-de-frutas", tipo:"furni", pt:"Cesto de Frutas 2", en:"Fruit Bowl 2",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_fruits2.png", desc:"" },
   { slug:"led-verde", tipo:"furni", pt:"LED Verde", en:"Green LED",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/led/green.gif", desc:"" },
@@ -4140,7 +4144,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_val_c16_lovebirds.png", desc:"" },
   { slug:"mala-turquesa", tipo:"furni", pt:"Mala Turquesa", en:"Teal Suitcase",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h24_luggage1.png", desc:"" },
-  { slug:"eco-mesa-de-cafe", tipo:"furni", pt:"Eco Mesa de Café", en:"Eco Coffee Table 1",
+  { slug:"eco-mesa-de-cafe", tipo:"furni", pt:"Eco Mesa de Café 1", en:"Eco Coffee Table 1",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_table1.png", desc:"" },
   { slug:"fonte-aquacristal", tipo:"furni", pt:"Fonte Áquacristal", en:"Aqua Crystal Fountain",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_suncity_r19_glassfountain.png", desc:"" },
@@ -4182,7 +4186,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_a4_wooden_screen.png", desc:"" },
   { slug:"tapete-de-petalas-outonais", tipo:"furni", pt:"Tapete de Pétalas Outonais", en:"Autumnal Petal Patch",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_u24_autumnpatch.png", desc:"" },
-  { slug:"cesto-de-frutas-2", tipo:"furni", pt:"Cesto de Frutas", en:"Fruit Bowl 3",
+  { slug:"cesto-de-frutas-2", tipo:"furni", pt:"Cesto de Frutas 3", en:"Fruit Bowl 3",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_fruits3.png", desc:"" },
   { slug:"eco-cortina-1", tipo:"furni", pt:"Eco Cortina 1", en:"Eco Curtain 1",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_eco_curtains1.png", desc:"" },
@@ -4412,7 +4416,7 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_diamond_painting45.png", desc:"" },
   { slug:"maquina-de-chocolate-quente-luxuosa", tipo:"furni", pt:"Máquina de Chocolate Quente Luxuosa", en:"Luxury Hot Chocolate Maker",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_xmas_r21_luxuryhotchocolate.png", desc:"" },
-  { slug:"kraken", tipo:"furni", pt:"Kraken", en:"Iku-Turso",
+  { slug:"kraken", tipo:"furni", pt:"Iku-Turso", en:"Iku-Turso",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_lostc_octopus.png", desc:"" },
   { slug:"pilar-classico-marrom-avermelhado", tipo:"furni", pt:"Pilar Clássico Marrom-Avermelhado", en:"Maroon Classic Pillar",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_habbo15_pillar.png", desc:"" },
@@ -6240,8 +6244,8 @@ const INFO_ITENS_EDITOR = {
     { id:"5525", nome:"Olhos Sonolentos", origem:"nft" },
     { id:"5740", nome:"Quer Jogar um Jogo?", origem:"nft" },
     { id:"5741", nome:"Quer Jogar um Jogo?", origem:"nft" },
-    { id:"5798", nome:"Coroa de Sangue", origem:"nft" },
-    { id:"5799", nome:"Coroa de Sangue", origem:"nft" },
+    { id:"5798", nome:"Olhos Sangrentos", origem:"nft" },
+    { id:"5799", nome:"Olhos Sangrentos", origem:"nft" },
     { id:"5837", nome:"Rosto Sardento A", origem:"nft" },
     { id:"5838", nome:"Rosto Sardento A", origem:"nft" },
     { id:"5839", nome:"Rosto Sardento B", origem:"nft" },
@@ -9127,15 +9131,20 @@ function telaEditor(){
                 <button class="opt" data-campo="genero" data-valor="F" aria-pressed="${ed.genero === "F"}">♀ Feminino</button>
               </div>
             </div>
-            <div class="campo">
-              <label>Ação</label>
-              <div class="opcoes">${botoesAcoes}</div>
+            <div class="campo linha-acao-busca">
+              <div>
+                <label>Ação</label>
+                <div class="opcoes">${botoesAcoes}</div>
+              </div>
+              <div class="busca-editor">
+                <label for="buscaEditor">Buscar peça</label>
+                <span class="busca-editor-campo">
+                  <input type="search" class="figura" id="buscaEditor" placeholder="Nome da peça..." value="${esc(editorBusca)}" autocomplete="off">
+                  ${editorBusca ? `<button type="button" class="opt" id="limparBuscaEditor" title="Limpar busca" aria-label="Limpar busca">✕</button>` : ""}
+                </span>
+              </div>
             </div>
             <div class="campo categorias-fixas" id="categoriasEditor">
-              <div class="busca-editor">
-                <input type="search" class="figura" id="buscaEditor" placeholder="Buscar peça pelo nome (ex.: jaqueta, coroa, neon)" value="${esc(editorBusca)}" autocomplete="off">
-                ${editorBusca ? `<button type="button" class="opt" id="limparBuscaEditor">Limpar busca</button>` : ""}
-              </div>
               <label>Categoria</label>
               <div class="opcoes">${abasCategoria || '<p class="dica">Carregando categorias...</p>'}</div>
             </div>
