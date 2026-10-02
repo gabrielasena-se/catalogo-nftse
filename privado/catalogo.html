@@ -8897,6 +8897,16 @@ function figuraMultipla(){
   return lista.join(".");
 }
 
+// Trajes que só aparecem inteiros: a peça sozinha não desenha nada (a "camisa" do
+// Traje Entidade do Fogo só esconde os braços; o fogo vem das três partes juntas).
+// Escolher qualquer parte veste o traje todo, e a miniatura mostra o traje completo.
+const TRAJES_COMPLETOS_EDITOR = [["ch-5192", "lg-5190", "ha-5191"]];
+function partesDoTrajeEditor(tipo, id){
+  const peca = tipo + "-" + id;
+  const traje = TRAJES_COMPLETOS_EDITOR.find(t => t.includes(peca));
+  return traje ? traje.filter(p => p !== peca).map(p => { const [t, i] = p.split("-"); return { tipo: t, id: i }; }) : [];
+}
+
 // Miniatura de uma opção: o avatar padrão do gênero vestindo só aquela peça,
 // sem acumular o que já foi escolhido (isso fica só na prévia grande).
 function figuraComCandidatoEditor(tipo, set){
@@ -8909,6 +8919,10 @@ function figuraComCandidatoEditor(tipo, set){
   const corPadrao = corAtual || (paleta[0] || { id: "1" }).id;
   const codigo = tipo + "-" + set.id + "-" + corPadrao + (set.maxCor >= 2 ? "-" + corPadrao : "");
   if (i >= 0) lista[i] = codigo; else lista.push(codigo);
+  partesDoTrajeEditor(tipo, set.id).forEach(p => {
+    const j = lista.findIndex(x => x.split("-")[0] === p.tipo);
+    if (j >= 0) lista[j] = p.tipo + "-" + p.id + "-0"; else lista.push(p.tipo + "-" + p.id + "-0");
+  });
   if (tipo === "hd" && HD_SEM_CABELO_EDITOR.has(set.id)) lista = removerCabeloEditor(lista);
   return lista.join(".");
 }
@@ -9137,6 +9151,8 @@ function telaEditor(){
     const corPadrao = (paleta[0] || { id: "1" }).id;
     const colors = maxCor >= 2 ? [corPadrao, corPadrao] : (maxCor >= 1 ? [corPadrao] : []);
     editorSelecionados[tipo] = { id, colors };
+    // traje que só aparece inteiro: veste as outras partes junto
+    partesDoTrajeEditor(tipo, id).forEach(p => { editorSelecionados[p.tipo] = { id: p.id, colors: [] }; });
     telaEditor();
   });
 
