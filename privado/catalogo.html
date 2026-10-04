@@ -9294,6 +9294,7 @@ function telaEditor(){
     editorSelecionados = {};
     editorItemExperimentado = null;
     for (const tipo in editorUltimaCor) delete editorUltimaCor[tipo];
+    ed.figLivre = ""; ed.nick = "";   // tira também o visual do nick: volta ao avatar padrão
     telaEditor();
   };
 
