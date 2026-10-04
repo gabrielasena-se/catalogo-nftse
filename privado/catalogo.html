@@ -6118,6 +6118,23 @@ function carregarFiguredataSilencioso(){
   return figuredataPromessa;
 }
 
+// Gênero de um visual pelas próprias peças (a busca do Habbo pelo nick não informa o gênero).
+// Conta as peças só de menino ou só de menina; o rosto (hd) desempata. Sem figuredata: null.
+function generoDaFigura(figura){
+  if (!FIGUREDATA_COMPLETO) return null;
+  let m = 0, f = 0, doRosto = null;
+  for (const parte of String(figura).split(".").filter(Boolean)) {
+    const [tipo, id] = parte.split("-");
+    const info = FIGUREDATA_COMPLETO.settypes[tipo];
+    const set = info && info.sets.find(s => s.id === id);
+    if (!set || set.gender === "U") continue;
+    if (set.gender === "M") m++; else if (set.gender === "F") f++;
+    if (tipo === "hd") doRosto = set.gender;
+  }
+  if (m === f) return doRosto;
+  return f > m ? "F" : "M";
+}
+
 // Cores que a pessoa escolheu no provador para o item aberto (vale também no "Experimentar no Editor").
 let provCores = { slug: "", cores: [] };
 const coresDoItem = it => provCores.slug === it.slug ? provCores.cores : [];
@@ -9338,7 +9355,8 @@ function telaEditor(){
       if (!dados.figureString) throw new Error("sem visual");
       ed.figLivre = dados.figureString;
       ed.nick = nick;
-      if (dados.gender) ed.genero = dados.gender;
+      const generoNick = dados.gender || generoDaFigura(dados.figureString);
+      if (generoNick) ed.genero = generoNick;
       // Visual novo pelo nick: limpa as peças escolhidas, para o visual da pessoa vir certinho.
       // Exceção: o item do "Experimentar no Editor de Visuais" continua vestido na primeira vez
       // que um nick é carregado depois dele (nos próximos nicks, vem tudo limpo).
@@ -9916,6 +9934,13 @@ function ligarProvador(it){
       if (!dados.figureString) throw new Error("sem visual");
       prov.figLivre = dados.figureString;
       prov.nick = nick;
+      // gênero pelo visual (a busca do Habbo não informa): peça de menina num avatar "menino" sai cinza
+      await carregarFiguredataSilencioso();
+      const generoNick = dados.gender || generoDaFigura(dados.figureString);
+      if (generoNick && generoNick !== prov.genero && !it.genero) {
+        prov.genero = generoNick;
+        app.querySelectorAll('[data-campo="genero"]').forEach(o => o.setAttribute("aria-pressed", o.dataset.valor === generoNick));
+      }
       document.getElementById("figLivre").value = dados.figureString;
       aviso.textContent = "Visual de " + nick + " carregado.";
       atualizar();
