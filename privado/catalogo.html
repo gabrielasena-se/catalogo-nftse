@@ -9338,13 +9338,18 @@ function telaEditor(){
       if (!dados.figureString) throw new Error("sem visual");
       ed.figLivre = dados.figureString;
       ed.nick = nick;
-      const generoAntigo = ed.genero;
       if (dados.gender) ed.genero = dados.gender;
-      document.getElementById("figLivreEditor").value = dados.figureString;
-      avisoEditor.textContent = "Visual de " + nick + " carregado.";
-      if (ed.genero !== generoAntigo) { reajustarItemExperimentado(generoAntigo); telaEditor(); return; }
-      atualizarEditor();
-      desenharPecasDoNick();
+      // Visual novo pelo nick: limpa as peças escolhidas, para o visual da pessoa vir certinho.
+      // Exceção: o item do "Experimentar no Editor de Visuais" continua vestido na primeira vez
+      // que um nick é carregado depois dele (nos próximos nicks, vem tudo limpo).
+      const experimentado = editorItemExperimentado;
+      editorSelecionados = {};
+      if (experimentado) partesDaPeca(pecaComCores(pecaDoItem(experimentado, ed.genero), coresDoItem(experimentado)))
+        .forEach(p => { editorSelecionados[p.tipo] = { id: p.id, colors: p.colors }; });
+      editorItemExperimentado = null;
+      telaEditor();
+      const avisoNovo = document.getElementById("avisoNickEditor");
+      if (avisoNovo) avisoNovo.textContent = "Visual de " + nick + " carregado.";
     } catch (e) {
       avisoEditor.textContent = "Não achei esse nick. Confira se está escrito igualzinho e se o perfil está público.";
     }
