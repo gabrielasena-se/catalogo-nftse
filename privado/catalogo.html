@@ -8928,6 +8928,11 @@ function figuraMultipla(){
 // Última cor escolhida em cada categoria do editor: { tipo: [cor1, cor2] }
 const editorUltimaCor = {};
 
+// Peças que só ficam reconhecíveis com cores certas (e, na miniatura, sem o cabelo do avatar padrão).
+// Ex.: Pele de Manequim — com a cor de pele comum parece uma pele normal; em cinza vira manequim.
+const CORES_PADRAO_EDITOR = { "hd-6361": ["29", "29"] };
+const MINIATURA_SEM_CABELO_EDITOR = new Set(["hd-6361"]);
+
 // Trajes que só aparecem inteiros: a peça sozinha não desenha nada (a "camisa" do
 // Traje Entidade do Fogo só esconde os braços; o fogo vem das três partes juntas).
 // Escolher qualquer parte veste o traje todo, e a miniatura mostra o traje completo.
@@ -8948,8 +8953,12 @@ function figuraComCandidatoEditor(tipo, set){
   const sel = editorSelecionados[tipo];
   const corAtual = sel && sel.colors && sel.colors[0];
   const corPadrao = corAtual || (paleta[0] || { id: "1" }).id;
-  const codigo = tipo + "-" + set.id + "-" + corPadrao + (set.maxCor >= 2 ? "-" + corPadrao : "");
+  const especial = CORES_PADRAO_EDITOR[tipo + "-" + set.id];
+  const codigo = especial
+    ? tipo + "-" + set.id + "-" + especial.slice(0, Math.max(1, set.maxCor)).join("-")
+    : tipo + "-" + set.id + "-" + corPadrao + (set.maxCor >= 2 ? "-" + corPadrao : "");
   if (i >= 0) lista[i] = codigo; else lista.push(codigo);
+  if (MINIATURA_SEM_CABELO_EDITOR.has(tipo + "-" + set.id)) lista = removerCabeloEditor(lista);
   partesDoTrajeEditor(tipo, set.id).forEach(p => {
     const j = lista.findIndex(x => x.split("-")[0] === p.tipo);
     if (j >= 0) lista[j] = p.tipo + "-" + p.id + "-0"; else lista.push(p.tipo + "-" + p.id + "-0");
@@ -9259,7 +9268,9 @@ function telaEditor(){
     // mantém a última cor escolhida nesta categoria (trocar de jaqueta não volta para a cor padrão)
     const ultima = editorUltimaCor[tipo] || [];
     const cor1 = ultima[0] || corPadrao, cor2 = ultima[1] || cor1;
-    const colors = maxCor >= 2 ? [cor1, cor2] : (maxCor >= 1 ? [cor1] : []);
+    const especial = CORES_PADRAO_EDITOR[tipo + "-" + id];   // ex.: Pele de Manequim já vem cinza
+    const colors = especial ? especial.slice(0, maxCor)
+      : (maxCor >= 2 ? [cor1, cor2] : (maxCor >= 1 ? [cor1] : []));
     editorSelecionados[tipo] = { id, colors };
     // traje que só aparece inteiro: veste as outras partes junto
     partesDoTrajeEditor(tipo, id).forEach(p => { editorSelecionados[p.tipo] = { id: p.id, colors: [] }; });
