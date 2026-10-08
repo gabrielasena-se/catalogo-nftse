@@ -69,8 +69,11 @@ function extrairSettypes(xml) {
 }
 
 export default async function handler(req, res) {
-  const sessao = await exigirSessao(req, res);
-  if (!sessao) return;
+  // ?visitante=1: a prévia sem login também abre o Editor de Visuais (dados públicos do Habbo)
+  if (!(req.query && req.query.visitante)) {
+    const sessao = await exigirSessao(req, res);
+    if (!sessao) return;
+  }
 
   if (emMemoria && Date.now() - emMemoria.quando < UMA_HORA) {
     return res.status(200).json(emMemoria.resultado);

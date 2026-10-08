@@ -5826,8 +5826,8 @@ function telaGrade(){
     b.onclick = () => {
       if (VISITANTE && ABA_TEMA && b.dataset.aba === ABA_TEMA.id) { mostrarConvite(); return; }   // a aba do tema depende das tags (só com login)
       aba = b.dataset.aba; render(); window.scrollTo(0, 0);
-      // a aba de balões é curtinha (não dá para rolar): o convite aparece sozinho em alguns segundos
-      if (VISITANTE && aba === "balao") setTimeout(() => { if (aba === "balao") mostrarConvite(); }, 3000);
+      // Mobis e Balões na prévia: a aba abre e o convite aparece na hora (os itens ficam por trás)
+      if (VISITANTE && (aba === "furni" || aba === "balao")) mostrarConvite();
     });   // a lista nova começa do início
   document.getElementById("ordemGrade").onchange = e => {
     ordem = e.target.value;
@@ -6172,7 +6172,7 @@ async function carregarFiguredataCompleto(){
   editorErroCarregar = "";
   telaEditor();
   try {
-    const r = await apiFetch(API_BASE + "/api/figuredata");
+    const r = VISITANTE ? await fetch(API_BASE + "/api/figuredata?visitante=1", { cache: "no-store" }) : await apiFetch(API_BASE + "/api/figuredata");
     const dados = await r.json();
     if (!r.ok || dados.erro) throw new Error(dados.erro || "erro");
     FIGUREDATA_COMPLETO = dados;
@@ -6190,7 +6190,7 @@ async function carregarFiguredataCompleto(){
 let figuredataPromessa = null;
 function carregarFiguredataSilencioso(){
   if (FIGUREDATA_COMPLETO) return Promise.resolve(FIGUREDATA_COMPLETO);
-  if (!figuredataPromessa) figuredataPromessa = apiFetch(API_BASE + "/api/figuredata")
+  if (!figuredataPromessa) figuredataPromessa = (VISITANTE ? fetch(API_BASE + "/api/figuredata?visitante=1", { cache: "no-store" }) : apiFetch(API_BASE + "/api/figuredata"))
     .then(r => r.json().then(d => { if (!r.ok || d.erro) throw new Error("erro"); return d; }))
     .then(d => { if (!FIGUREDATA_COMPLETO) FIGUREDATA_COMPLETO = d; return FIGUREDATA_COMPLETO; })
     .catch(() => { figuredataPromessa = null; return null; });
@@ -9092,7 +9092,7 @@ function marcarBarrasPresas(){
 addEventListener("scroll", marcarBarrasPresas, { passive: true });
 
 function telaEditor(){
-  if (estadoSessao !== "ATIVA") return;
+  if (estadoSessao !== "ATIVA" && !VISITANTE) return;
   if (!FIGUREDATA_COMPLETO && !editorCarregando && !editorErroCarregar) carregarFiguredataCompleto();
 
   const disponiveisEditor = FIGUREDATA_COMPLETO ? Object.keys(FIGUREDATA_COMPLETO.settypes) : [];
@@ -11200,7 +11200,20 @@ function registrarPagina(rota, entrada){
 
 function render(){
   if (VISITANTE) {
-    // visitante só vê a grade: qualquer outra tela (item, editor, favoritos...) abre o convite
+    // Editor de Visuais: o visitante vê a tela e, depois de alguns segundos, o convite aparece
+    if (location.hash === "#editor") {
+      telaEditor(); window.scrollTo(0, 0);
+      // conta os segundos a partir de quando as peças aparecem (a lista pode demorar um pouco)
+      let espera = 0;
+      const agendar = () => {
+        if (location.hash !== "#editor") return;
+        if (!FIGUREDATA_COMPLETO && !editorErroCarregar && espera++ < 30) { setTimeout(agendar, 500); return; }
+        setTimeout(() => { if (location.hash === "#editor") mostrarConvite(); }, 5000);
+      };
+      agendar();
+      return;
+    }
+    // fora isso, visitante só vê a grade: qualquer outra tela (item, favoritos...) abre o convite
     if (location.hash.replace(/^#\/?/, "")) {
       history.replaceState(null, "", location.pathname + location.search);
       mostrarConvite();
