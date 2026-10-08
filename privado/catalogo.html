@@ -81,6 +81,22 @@ a{color:var(--ouro)}
 }
 .aba[aria-selected="true"]{background:var(--ouro);color:#3a0050;border-color:#b800b8}
 /* Aba temporária de tema (Halloween): laranja */
+/* Convite para visitantes (modo prévia) */
+.convite-fundo{position:fixed;inset:0;z-index:1000;background:rgba(10,0,25,.72);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:16px}
+.convite-caixa{position:relative;max-width:480px;width:100%;background:var(--painel);border:1px solid var(--linha);border-radius:14px;padding:28px 24px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.convite-caixa h2{font-size:22px;line-height:1.25;margin:6px 0 12px;font-family:var(--corpo);font-weight:800}
+.convite-caixa p{margin:0 0 10px;color:var(--mudo);line-height:1.5}
+.convite-caixa strong{color:var(--texto)}
+.convite-caixa .convite-gratis{color:var(--texto);font-weight:800}
+.convite-icone{font-size:30px}
+.convite-fechar{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--mudo);font-size:18px;cursor:pointer}
+.convite-fechar:hover{color:var(--texto)}
+.convite-botoes{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:6px}
+.convite-botoes .cta{margin-top:8px}
+.convite-secundario{color:var(--texto);border:1px solid var(--linha);border-radius:8px;padding:10px 16px;text-decoration:none;font-weight:700;font-size:14px}
+.convite-secundario:hover{border-color:var(--ouro)}
+a.auth-entrar.auth-entrar-discord{background:linear-gradient(180deg,#ff2ee0,#b800a0);border-color:#b800a0;color:#fff;font-weight:800}
+.link-convite{background:none;border:none;padding:0;color:var(--ouro);text-decoration:underline;cursor:pointer;font:inherit}
 .aba-tema{color:#ffa94d;border-color:#c25a00;background:#2e1406}
 .aba-tema:hover{border-color:#ff8a1f}
 .aba-tema[aria-selected="true"]{background:linear-gradient(180deg,#ffa23a,#ff7a00);color:#2a0f00;border-color:#a34400}
@@ -5782,7 +5798,7 @@ function telaGrade(){
     <div class="envoltorio">
       <p class="aviso-legal aviso-legal-celular">${aviso}</p>
       <div class="linha-info-grade">
-        <p class="contador-itens">${esc(rotuloAba)}: ${lista.length} ${lista.length === 1 ? "item exibido" : "itens exibidos"}</p>
+        <p class="contador-itens">${VISITANTE ? `Prévia: ${esc(rotuloAba)} mais recentes · <button type="button" class="link-convite" data-convite>entre para ver todos</button>` : `${esc(rotuloAba)}: ${lista.length} ${lista.length === 1 ? "item exibido" : "itens exibidos"}`}</p>
         <label class="ordenar">Ordenar por
           <select id="ordemGrade">
             ${ORDENS.map(o => `<option value="${o.id}" ${o.id === ordem ? "selected" : ""}>${o.rotulo}</option>`).join("")}
@@ -5805,7 +5821,12 @@ function telaGrade(){
     </div>`;
 
   app.querySelectorAll("[data-aba]").forEach(b =>
-    b.onclick = () => { aba = b.dataset.aba; render(); window.scrollTo(0, 0); });   // a lista nova começa do início
+    b.onclick = () => {
+      if (VISITANTE && ABA_TEMA && b.dataset.aba === ABA_TEMA.id) { mostrarConvite(); return; }   // a aba do tema depende das tags (só com login)
+      aba = b.dataset.aba; render(); window.scrollTo(0, 0);
+      // a aba de balões é curtinha (não dá para rolar): o convite aparece sozinho em alguns segundos
+      if (VISITANTE && aba === "balao") setTimeout(() => { if (aba === "balao") mostrarConvite(); }, 3000);
+    });   // a lista nova começa do início
   document.getElementById("ordemGrade").onchange = e => {
     ordem = e.target.value;
     try { localStorage.setItem(CHAVE_ORDEM, ordem); } catch (err) {}
@@ -10068,8 +10089,11 @@ function ligarProvador(it){
 const SESSAO_INICIAL = /*SESSAO*/null;   // preenchido por /api/app — não mexa nesta linha
 const CHAVE_TOKEN = "nftse_token";
 const CHAVE_MOTIVO = "nftse_motivo";
-let sessao = SESSAO_INICIAL;             // { habboName, discordUserId }
-let estadoSessao = sessao ? "ATIVA" : "EXPIRADA";
+// Visitante (sem login): a página veio de /api/app?visitante=1, só com uma amostra do catálogo.
+// Ela mostra a grade, e um convite para entrar aparece ao rolar ou ao clicar em algo.
+const VISITANTE = !!(SESSAO_INICIAL && SESSAO_INICIAL.visitante);
+let sessao = VISITANTE ? null : SESSAO_INICIAL;   // { habboName, discordUserId }
+let estadoSessao = VISITANTE ? "VISITANTE" : (sessao ? "ATIVA" : "EXPIRADA");
 let contagens = {};
 let meusFavoritos = new Set();
 
@@ -10083,6 +10107,8 @@ function apagarToken(){
 // Chamada às rotas de /api levando o token. Se o servidor recusar a sessão,
 // sai do catálogo e interrompe quem chamou.
 async function apiFetch(url, opcoes = {}){
+  // visitante não fala com as rotas de dados (todas pedem login): mostra o convite
+  if (VISITANTE) { mostrarConvite(); throw new Error("visitante"); }
   const r = await fetch(url, {
     ...opcoes,
     cache: "no-store",
@@ -10147,6 +10173,7 @@ async function carregarFavoritos(){
 }
 
 async function toggleFavorito(slug){
+  if (VISITANTE) { mostrarConvite(); return; }
   if (estadoSessao !== "ATIVA") return;
   try {
     const r = await apiFetch(API_BASE + "/api/favoritos", {
@@ -10180,6 +10207,7 @@ async function carregarSacola(){
 }
 
 async function toggleSacola(slug, redesenhar = true){
+  if (VISITANTE) { mostrarConvite(); return; }
   if (estadoSessao !== "ATIVA") return;
   try {
     const r = await apiFetch(API_BASE + "/api/sacola", {
@@ -10195,8 +10223,57 @@ async function toggleSacola(slug, redesenhar = true){
   }
 }
 
+/* ---------- Convite para visitantes (modo prévia) ---------- */
+const CONVITE_DISCORD = "https://discord.gg/A2DhpT2kh";   // mesmo convite da página de entrada
+let conviteAberto = false, proximoConvite = Infinity;
+
+function mostrarConvite(){
+  if (!VISITANTE || conviteAberto) return;
+  conviteAberto = true;
+  const fundo = document.createElement("div");
+  fundo.className = "convite-fundo";
+  fundo.innerHTML = `
+    <div class="convite-caixa" role="dialog" aria-modal="true" aria-labelledby="conviteTitulo">
+      <button type="button" class="convite-fechar" aria-label="Fechar">✕</button>
+      <div class="convite-icone" aria-hidden="true">✨</div>
+      <h2 id="conviteTitulo">Gostou do que viu?<br>Acesse o site completo!</h2>
+      <p>Você está vendo uma prévia da NFT-SE. Entre gratuitamente na nossa comunidade no Discord para liberar o <strong>Catálogo completo</strong>, <strong>Provador Virtual</strong>, <strong>Editor de Visuais</strong>, <strong>Favoritos</strong> e outros recursos.</p>
+      <p class="convite-gratis">É grátis e leva menos de um minuto.</p>
+      <div class="convite-botoes">
+        <a class="cta" href="${CONVITE_DISCORD}" target="_blank" rel="noopener">Entrar no servidor da NFT-SE</a>
+        <a class="convite-secundario" href="/api/login-discord">Já sou do servidor: Entrar com Discord</a>
+      </div>
+    </div>`;
+  document.body.appendChild(fundo);
+  document.body.style.overflow = "hidden";
+  const fechar = () => {
+    fundo.remove();
+    document.body.style.overflow = "";
+    conviteAberto = false;
+    proximoConvite = window.scrollY + window.innerHeight;   // volta depois de mais uma tela rolada
+    document.removeEventListener("keydown", teclaEsc);
+  };
+  const teclaEsc = e => { if (e.key === "Escape") fechar(); };
+  document.addEventListener("keydown", teclaEsc);
+  fundo.querySelector(".convite-fechar").onclick = fechar;
+  fundo.onclick = e => { if (e.target === fundo) fechar(); };
+  fundo.querySelector(".cta").focus();
+}
+
+function ligarConviteAoRolar(){
+  proximoConvite = window.innerHeight * 1.2;   // depois de mais ou menos uma tela e pouco
+  addEventListener("scroll", () => {
+    if (!conviteAberto && window.scrollY > proximoConvite) mostrarConvite();
+  }, { passive: true });
+  document.addEventListener("click", e => { if (e.target.closest("[data-convite]")) mostrarConvite(); });
+}
+
 function renderAuthArea(){
   const el = document.getElementById("authArea");
+  if (VISITANTE) {
+    el.innerHTML = `<a href="/api/login-discord" class="auth-entrar auth-entrar-discord">Entrar com Discord</a>`;
+    return;
+  }
   if (!sessao) { el.innerHTML = ""; return; }
   const qtdSacola = minhaSacola.size;
   // sacola ao lado do nick, como nas lojas online
@@ -11074,6 +11151,15 @@ function registrarPagina(rota, entrada){
 }
 
 function render(){
+  if (VISITANTE) {
+    // visitante só vê a grade: qualquer outra tela (item, editor, favoritos...) abre o convite
+    if (location.hash.replace(/^#\/?/, "")) {
+      history.replaceState(null, "", location.pathname + location.search);
+      mostrarConvite();
+    }
+    telaGrade();
+    return;
+  }
   if (estadoSessao !== "ATIVA") return;
   const rota = location.hash.replace(/^#\/?/, "");
   const mudouDeTela = rota !== rotaAnterior;
@@ -11108,6 +11194,7 @@ document.getElementById("busca").oninput = e => {
 window.addEventListener("hashchange", render);
 
 (async () => {
+  if (VISITANTE) { renderAuthArea(); render(); ligarConviteAoRolar(); return; }
   if (estadoSessao !== "ATIVA") { encerrarNaTela("EXPIRADA"); return; }
   renderAuthArea();
   render();

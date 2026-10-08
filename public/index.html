@@ -453,7 +453,16 @@ a{color:var(--ouro)}
   var motivo = lerMotivo();
   var token = lerToken();
   var jaEntrou = !!token || !!motivo;   // tinha um link guardado: a sessão dela acabou
-  if (!token) { recusar(motivo || "NOVO"); return; }
+  // Sem login: quem chega pela primeira vez vê a prévia do catálogo (com o convite para entrar).
+  // Quem tem um aviso para ler (sessão encerrada, login que não deu certo) vê a vitrine com a mensagem.
+  if (!token) {
+    if (motivo || motivoLogin) { recusar(motivo || "NOVO"); return; }
+    fetch("/api/app?visitante=1", { cache: "no-store" })
+      .then(function(r){ if (!r.ok) throw new Error("previa"); return r.text(); })
+      .then(function(html){ document.open(); document.write(html); document.close(); })
+      .catch(function(){ recusar("NOVO"); });
+    return;
+  }
 
   fetch("/api/app", { cache: "no-store", headers: { "x-sessao-token": token } })
     .then(function(r){
