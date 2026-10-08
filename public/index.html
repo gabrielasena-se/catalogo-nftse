@@ -31,6 +31,7 @@
   --corpo:"Nunito Sans",-apple-system,"Segoe UI",sans-serif;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;padding:0}
 html{scroll-behavior:smooth}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
@@ -170,7 +171,8 @@ a{color:var(--ouro)}
   <header class="topo">
     <div class="topo-int">
       <span class="marca"><img src="/entrada/logo.png" alt="NFT-SE">CATÁLOGO NFTs<span class="marca-sub">by NFT-SE</span></span>
-      <a class="cta" data-discord href="#" target="_blank" rel="noopener">{{DISCORD_ICONE}} Entrar no Discord</a>
+      <a class="cta" data-discord data-sem-login href="#" target="_blank" rel="noopener">{{DISCORD_ICONE}} Entrar no Discord</a>
+      <a class="cta" data-login hidden href="/api/login-discord">{{DISCORD_ICONE}} Entrar com Discord</a>
     </div>
   </header>
 
@@ -181,7 +183,9 @@ a{color:var(--ouro)}
     <h1>Conheça os visuais do jogo, experimente no provador virtual e descubra os <em>NFTs do Habbo</em> em um só lugar!</h1>
     <p class="sub">Veja cada visual e mobi de perto, teste roupas no seu próprio avatar, experimente diferentes balões de chat e descubra a faixa de preço de cada item.</p>
     <div class="hero-botoes">
-      <a class="cta" data-discord href="#" target="_blank" rel="noopener">{{DISCORD_ICONE}} Entrar no Discord da NFT-SE</a>
+      <a class="cta" data-discord data-sem-login href="#" target="_blank" rel="noopener">{{DISCORD_ICONE}} Entrar no Discord da NFT-SE</a>
+      <a class="cta" data-login hidden href="/api/login-discord">{{DISCORD_ICONE}} Entrar com Discord</a>
+      <a class="cta-secundario" data-discord data-login hidden href="#" target="_blank" rel="noopener">Ainda não está no servidor?</a>
       <a class="cta-secundario" href="#como-acessar">Como acessar ↓</a>
     </div>
     <div class="numeros">
@@ -233,18 +237,26 @@ a{color:var(--ouro)}
   <section class="secao" id="como-acessar">
     <h2>Como acessar</h2>
     <p class="intro">O catálogo é exclusivo para quem faz parte do servidor da NFT-SE no Discord.<br>Leva menos de um minuto:</p>
-    <div class="passos">
+    <div class="passos" data-sem-login>
       <div class="passo"><b>Entre no servidor</b><span>Abra o convite e entre no servidor <strong>NFT-SE</strong> no Discord.</span></div>
       <div class="passo"><b>Faça a verificação</b><span>Siga a verificação do servidor para liberar os canais.</span></div>
       <div class="passo"><b>Peça seu acesso</b><span>No canal <strong>catálogo</strong>, clique em <strong>Acessar catálogo</strong>.</span></div>
       <div class="passo"><b>Abra o seu link</b><span>O bot envia um link pessoal, só seu. É só clicar e aproveitar!</span></div>
     </div>
-    <p class="nota">O acesso vale para a conexão em que o link foi aberto.<br>Se trocar de rede ou de aparelho, é só pedir um link novo no mesmo canal.</p>
+    <p class="nota" data-sem-login>O acesso vale para a conexão em que o link foi aberto.<br>Se trocar de rede ou de aparelho, é só pedir um link novo no mesmo canal.</p>
+    <div class="passos" data-login hidden>
+      <div class="passo"><b>Entre no servidor</b><span>Abra o convite e entre no servidor <strong>NFT-SE</strong> no Discord.</span></div>
+      <div class="passo"><b>Faça a verificação</b><span>Siga a verificação do servidor para vincular o seu nick do Habbo.</span></div>
+      <div class="passo"><b>Entre com o Discord</b><span>Clique em <strong>Entrar com Discord</strong> aqui no site (ou em <strong>Acessar catálogo</strong>, no canal catálogo).</span></div>
+      <div class="passo"><b>Pronto!</b><span>Você fica conectado por <strong>30 dias</strong> neste navegador, mesmo trocando de rede.</span></div>
+    </div>
+    <p class="nota" data-login hidden>Só entra quem está no servidor e fez a verificação. Se sair do servidor, o acesso é encerrado.</p>
   </section>
 
   <section class="final">
     <p>Pronto para experimentar?</p>
-    <a class="cta" data-discord href="#" target="_blank" rel="noopener">{{DISCORD_ICONE}} Entrar no Discord da NFT-SE</a>
+    <a class="cta" data-discord data-sem-login href="#" target="_blank" rel="noopener">{{DISCORD_ICONE}} Entrar no Discord da NFT-SE</a>
+    <a class="cta" data-login hidden href="/api/login-discord">{{DISCORD_ICONE}} Entrar com Discord</a>
   </section>
 
   <footer class="rodape">
@@ -323,6 +335,13 @@ a{color:var(--ouro)}
     history.replaceState(null, "", location.pathname + (resto ? "?" + resto : "") + location.hash);
   }
   if (doLink) salvarToken(doLink);
+  // Volta do "Entrar com Discord" sem sucesso: /?login=<motivo>
+  var motivoLogin = params.get("login");
+  if (params.has("login")) {
+    params.delete("login");
+    var resto2 = params.toString();
+    history.replaceState(null, "", location.pathname + (resto2 ? "?" + resto2 : "") + location.hash);
+  }
 
   function preencherEsteira(id, lista){
     var el = document.getElementById(id);
@@ -365,18 +384,50 @@ a{color:var(--ouro)}
     marcar(); reiniciar();
   }
 
-  function telaVitrine(estado){
+  // Mensagem no topo: por que a pessoa está aqui (sessão encerrada ou login que não deu certo)
+  function textoAviso(estado, comLogin){
+    var voltar = comLogin ? "Para voltar, clique em <b>Entrar com Discord</b>."
+      : "Para voltar, peça um link novo no canal <b>catálogo</b> do Discord.";
     var avisos = {
-      IP_DIFERENTE: "<b>Sua sessão foi encerrada</b> porque o catálogo foi aberto de outra conexão. Peça um link novo no canal <b>catálogo</b> do Discord.",
-      SAIU: "<b>Você saiu do catálogo.</b> Para voltar, peça um link novo no canal <b>catálogo</b> do Discord.",
-      EXPIRADA: "<b>Sua sessão expirou.</b> Para voltar, peça um link novo no canal <b>catálogo</b> do Discord."
+      IP_DIFERENTE: "<b>Sua sessão foi encerrada</b> porque o catálogo foi aberto de outra conexão. " + voltar,
+      SAIU: "<b>Você saiu do catálogo.</b> " + voltar,
+      EXPIRADA: "<b>Sua sessão expirou.</b> " + voltar,
+      FORA_DO_SERVIDOR: "<b>Seu acesso foi encerrado</b> porque você não está mais no servidor da NFT-SE. Entre no servidor de novo para voltar."
     };
+    var logins = {
+      "nao-membro": "<b>Você ainda não está no servidor da NFT-SE.</b> Entre no servidor pelo botão abaixo, faça a verificação e depois clique em <b>Entrar com Discord</b>.",
+      "nao-verificado": "<b>Você está no servidor, mas ainda não fez a verificação do seu nick do Habbo.</b> Faça a verificação no servidor e depois clique em <b>Entrar com Discord</b> de novo.",
+      "cancelado": "Você cancelou a entrada pelo Discord. Quando quiser, é só clicar em <b>Entrar com Discord</b> de novo.",
+      "expirou": "A entrada demorou demais. Clique em <b>Entrar com Discord</b> de novo.",
+      "erro": "Não deu para entrar agora. Tente de novo em instantes.",
+      "indisponivel": "A entrada pelo Discord ainda não está disponível. Use o botão <b>Acessar catálogo</b> no canal catálogo do servidor."
+    };
+    if (motivoLogin) return logins[motivoLogin] || logins.erro;
+    return jaEntrou ? avisos[estado] : null;
+  }
+
+  // Mostra o "Entrar com Discord" só quando o login está configurado no servidor
+  function aplicarLogin(estado){
+    fetch("/api/login-discord?disponivel=1", { cache: "no-store" })
+      .then(function(r){ return r.json(); })
+      .catch(function(){ return { disponivel: false }; })
+      .then(function(d){
+        var com = !!(d && d.disponivel);
+        entrada.querySelectorAll("[data-login]").forEach(function(e){ e.hidden = !com; });
+        entrada.querySelectorAll("[data-sem-login]").forEach(function(e){ e.hidden = com; });
+        var aviso = textoAviso(estado, com);
+        document.getElementById("avisoSessao").innerHTML = aviso ? '<div class="aviso-sessao">' + aviso + '</div>' : "";
+      });
+  }
+
+  function telaVitrine(estado){
     var html = document.getElementById("vitrine").innerHTML.split("{{DISCORD_ICONE}}").join(ICONE_DISCORD);
     entrada.innerHTML = html;
     entrada.querySelectorAll("[data-discord]").forEach(function(a){ a.href = DISCORD; });
     // Quem já teve acesso (sessão encerrada) vê o motivo no topo; quem nunca entrou, só a vitrine.
-    var aviso = jaEntrou ? avisos[estado] : null;
+    var aviso = textoAviso(estado, false);
     if (aviso) document.getElementById("avisoSessao").innerHTML = '<div class="aviso-sessao">' + aviso + '</div>';
+    aplicarLogin(estado);
     preencherEsteira("esteira1", ESTEIRA_1);
     preencherEsteira("esteira2", ESTEIRA_2);
     ligarCarrossel();

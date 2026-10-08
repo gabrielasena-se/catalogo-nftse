@@ -9,7 +9,9 @@
 // Antes o bot morava na Netlify e isto era uma chamada HTTP com token Bearer —
 // agora é o mesmo projeto, então não há API nem segredo no meio.
 
-import { registrarAcesso, revoke, revokeToken } from "../lib/bot/catalogo/repo.js";
+import { registrarAcesso, revoke, revokeToken, keyForToken } from "../lib/bot/catalogo/repo.js";
+import { redis } from "../lib/redis.js";
+import { membroDoServidor } from "./_membro.js";
 
 // Header em que o navegador manda o token da sessão para as rotas de dados.
 const HEADER_TOKEN = "x-sessao-token";
@@ -47,6 +49,8 @@ export async function encerrarSessao(token) {
 //   ATIVA         liberado; vem junto discordUserId e habboName
 //   EXPIRADA      sem token, token desconhecido/encerrado, ou sem IP para conferir
 //   IP_DIFERENTE  usado de outra conexão; a sessão acabou de ser encerrada
+//                 (só nas sessões do botão do Discord; as do "Entrar com Discord" podem trocar de rede)
+//   FORA_DO_SERVIDOR  sessão do "Entrar com Discord" de quem saiu do servidor; foi encerrada
 //   INDISPONIVEL  não deu para ler o banco (configuração ou rede) — também é recusa
 export async function validarSessao(req) {
   const token = tokenDaRequisicao(req);
@@ -69,6 +73,37 @@ export async function validarSessao(req) {
   }
 
   if (!sessao || !sessao.discordUserId) return { estado: "EXPIRADA" };
+
+  // Sessão do "Entrar com Discord" (api/login-discord.js): vale 30 dias, pode trocar de rede,
+  // e uma vez por dia o site confere se a pessoa continua no servidor (se saiu, perde o acesso).
+  if (sessao.login) {
+    const ativa = {
+      estado: "ATIVA",
+      discordUserId: String(sessao.discordUserId),
+      habboName: String(sessao.habboName || "")
+    };
+    try {
+      if (!sessao.expiraEm || Date.parse(sessao.expiraEm) < Date.now()) {
+        await revoke(sessao);
+        return { estado: "EXPIRADA" };
+      }
+      if (Date.now() - (Date.parse(sessao.conferidoEm) || 0) > 24 * 3600e3) {
+        const membro = await membroDoServidor(sessao.discordUserId);
+        if (membro === false) {
+          await revoke(sessao);
+          return { estado: "FORA_DO_SERVIDOR" };
+        }
+        // null = o Discord não respondeu agora: deixa entrar e tenta de novo no próximo acesso
+        if (membro === true) {
+          sessao.conferidoEm = new Date().toISOString();
+          await redis("SET", keyForToken(token), JSON.stringify(sessao), "XX", "KEEPTTL");
+        }
+      }
+    } catch (erro) {
+      console.error("[sessao] falha na conferência do login:", erro);
+    }
+    return ativa;
+  }
 
   // Encerrar derruba o token para todo mundo, inclusive o IP original: se o link vazou,
   // o dono também precisa pedir outro no Discord.
