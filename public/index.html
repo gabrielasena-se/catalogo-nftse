@@ -135,6 +135,23 @@ a{color:var(--ouro)}
   animation:camaDisco 2.667s steps(32) infinite}
 @keyframes camaDisco{to{background-position:103.2258% 0}}
 @media (prefers-reduced-motion:reduce){.mobi-anim{animation:none}}
+/* Camada do tamanho do print (1280x800) por cima dele, encolhida junto com a imagem (--k, pelo script):
+   as posições abaixo são as mesmas do print. */
+.quadro{overflow:hidden}
+.camada{position:absolute;left:0;top:0;width:1280px;height:800px;transform-origin:0 0;transform:scale(var(--k,1));pointer-events:none}
+.slide .camada img{position:absolute;display:block;width:auto;height:auto;aspect-ratio:auto;object-fit:fill}
+.slide .camada .anim-avatar{width:128px;height:220px}
+/* Balões como no "Teste o balão" do site: um a cada 1,5 s, empurrando os de antes para cima, e somem juntos */
+.balao{opacity:0;animation:6.3s ease-out infinite}
+.b1{animation-name:balao1}.b2{animation-name:balao2}.b3{animation-name:balao3}
+@keyframes balao1{0%{opacity:0;transform:translateY(79px)}5.56%{transform:translateY(66px)}7.94%{opacity:1}
+  23.81%{transform:translateY(66px)}29.37%{transform:translateY(33px)}47.62%{transform:translateY(33px)}53.18%{transform:translateY(0)}
+  71.43%{opacity:1}79.37%,100%{opacity:0;transform:translateY(0)}}
+@keyframes balao2{0%,23.81%{opacity:0;transform:translateY(46px)}29.37%{transform:translateY(33px)}31.75%{opacity:1}
+  47.62%{transform:translateY(33px)}53.18%{transform:translateY(0)}71.43%{opacity:1}79.37%,100%{opacity:0;transform:translateY(0)}}
+@keyframes balao3{0%,47.62%{opacity:0;transform:translateY(13px)}53.18%{transform:translateY(0)}55.56%{opacity:1}
+  71.43%{opacity:1}79.37%,100%{opacity:0;transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){.balao{animation:none;opacity:1}}
 .slide figcaption{padding:16px 22px 20px;border-top:1px solid var(--linha)}
 .slide figcaption b{display:block;font-family:var(--pixel);font-size:14px;color:var(--ouro);margin-bottom:4px}
 .slide figcaption span{color:var(--texto);font-size:15px}
@@ -218,11 +235,20 @@ a{color:var(--ouro)}
           <figcaption><b>Mais de 1.400 mobis</b><span>Ordene pelos lançamentos, pelo preço ou pelos mais curtidos, e ache qualquer um pela busca.</span></figcaption></figure>
         <figure class="slide"><div class="quadro"><img src="/entrada/mobi-no-quarto.jpg" alt="Cama Disco animada dentro de um quarto" loading="lazy"><span class="mobi-anim" aria-hidden="true"></span></div>
           <figcaption><b>Veja o mobi no quarto</b><span>Tamanho de verdade e até a animação, do jeitinho que fica no Habbo.</span></figcaption></figure>
-        <figure class="slide"><img src="/entrada/provador.jpg" alt="Provador com avatares vestindo o item" loading="lazy">
+        <figure class="slide"><div class="quadro"><img src="/entrada/provador.jpg" alt="Provador com avatares vestindo os Chifres LED" loading="lazy">
+          <div class="camada" aria-hidden="true">
+            <img class="anim-avatar" src="/entrada/provador-acenando.png" alt="" loading="lazy" style="left:117px;top:51px">
+            <img class="anim-avatar" src="/entrada/provador-andando.png" alt="" loading="lazy" style="left:295px;top:51px">
+          </div></div>
           <figcaption><b>Provador</b><span>Experimente qualquer roupa no avatar, troque o tom de pele e as cores, ou use o seu próprio visual pelo nick.</span></figcaption></figure>
         <figure class="slide"><img src="/entrada/editor-de-visuais.jpg" alt="Editor de visuais" loading="lazy">
           <figcaption><b>Editor de Visuais</b><span>Monte combinações com peças NFT e do jogo, salve seus favoritos e veja o que a comunidade criou.</span></figcaption></figure>
-        <figure class="slide"><img src="/entrada/teste-o-balao.jpg" alt="Teste do balão de fala no quarto" loading="lazy">
+        <figure class="slide"><div class="quadro"><img src="/entrada/teste-o-balao.jpg" alt="Teste do balão de fala Origami Azul no quarto" loading="lazy">
+          <div class="camada" aria-hidden="true">
+            <img class="balao b1" src="/entrada/balao-1.png" alt="" loading="lazy" style="left:276px;top:524px">
+            <img class="balao b2" src="/entrada/balao-2.png" alt="" loading="lazy" style="left:272px;top:557px">
+            <img class="balao b3" src="/entrada/balao-3.png" alt="" loading="lazy" style="left:279px;top:590px">
+          </div></div>
           <figcaption><b>Teste o balão</b><span>Escreva uma mensagem e veja como o balão de fala aparece no quarto antes de comprar.</span></figcaption></figure>
       </div>
       <button class="seta esq" type="button" data-seta="-1" aria-label="Tela anterior">‹</button>
@@ -371,8 +397,20 @@ a{color:var(--ouro)}
       b.onclick = (function(n){ return function(){ ir(n); reiniciar(); }; })(i);
       pontos.appendChild(b);
     }
+    // as animações por cima dos prints acompanham o tamanho da imagem (camada de 1280 px)
+    function escalar(){
+      document.querySelectorAll(".quadro").forEach(function(q){ q.style.setProperty("--k", q.clientWidth / 1280); });
+    }
+    escalar();
+    if (window.ResizeObserver) new ResizeObserver(escalar).observe(slides); else addEventListener("resize", escalar);
+    var vista = -1;
     function marcar(){
       for (var i = 0; i < pontos.children.length; i++) pontos.children[i].setAttribute("aria-current", i === atual ? "true" : "false");
+      // os balões começam do primeiro quando a tela deles aparece
+      if (atual !== vista) {
+        vista = atual;
+        slides.children[atual].querySelectorAll(".balao").forEach(function(b){ b.style.animation = "none"; void b.offsetWidth; b.style.animation = ""; });
+      }
     }
     function ir(n){ atual = (n + total) % total; slides.scrollTo({ left: slides.clientWidth * atual }); marcar(); }
     function reiniciar(){
