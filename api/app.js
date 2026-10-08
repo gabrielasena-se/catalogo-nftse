@@ -10,6 +10,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { exigirSessao } from "./_sessao.js";
+import { redis } from "../lib/redis.js";
 
 // Marca no script do catálogo que recebe a pessoa logada.
 const MARCA_SESSAO = "/*SESSAO*/null";
@@ -29,7 +30,27 @@ function lerPagina() {
 // com o nome de todos os itens (ORDEM_LANCAMENTO, MEDIDAS_MOBIS, MOBIS_ANIMADOS) também
 // são recortadas para a amostra. Na tela, um convite pede para entrar ao rolar ou clicar.
 const AMOSTRA_POR_ABA = 48;
-let visitanteEmMemoria = null;
+const MINUTOS_CACHE_VISITANTE = 5;   // as tags do tema mudam pelo admin: refaz a prévia de vez em quando
+let visitanteEmMemoria = null, visitanteFeitoEm = 0;
+
+const semAcento = t => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+// Aba temporária do tema (ex.: Halloween): os itens com a tag dela entram na prévia também,
+// e a página recebe só essa tag desses itens (as outras tags continuam só com login).
+async function itensDoTema(pagina) {
+  const m = pagina.match(/const ABA_TEMA = \{[^}]*tag:\s*"([^"]+)"/);
+  if (!m) return {};
+  try {
+    const tags = JSON.parse((await redis("GET", "catalogo:tags")) || "{}") || {};
+    const tema = {};
+    for (const [slug, lista] of Object.entries(tags))
+      if (Array.isArray(lista) && lista.some(t => semAcento(t) === semAcento(m[1]))) tema[slug] = [m[1]];
+    return tema;
+  } catch (erro) {
+    console.error("[api/app] tags do tema:", erro);
+    return {};
+  }
+}
 
 function recortarObjeto(pagina, inicio, manter) {
   const i = pagina.indexOf(inicio);
@@ -41,9 +62,10 @@ function recortarObjeto(pagina, inicio, manter) {
   return pagina.slice(0, i) + inicio + "\n  " + linhas.join(",") + pagina.slice(f);
 }
 
-function paginaVisitante() {
-  if (visitanteEmMemoria) return visitanteEmMemoria;
+async function paginaVisitante() {
+  if (visitanteEmMemoria && Date.now() - visitanteFeitoEm < MINUTOS_CACHE_VISITANTE * 60e3) return visitanteEmMemoria;
   let p = lerPagina();
+  const tema = await itensDoTema(p);
   // ordem de lançamento: os mais recentes de cada aba entram na amostra
   const io = p.indexOf("const ORDEM_LANCAMENTO = {"), fo = p.indexOf("\n};", io);
   const ordem = {};
@@ -56,13 +78,21 @@ function paginaVisitante() {
     amostra.push(...itens.filter(i => i.tipo === tipo)
       .sort((a, b) => (ordem[b.slug] || 0) - (ordem[a.slug] || 0)).slice(0, AMOSTRA_POR_ABA));
   }
+  // aba do tema: os mais recentes com a tag, no máximo uma amostra (os que faltam entram na lista)
+  const doTema = itens.filter(i => tema[i.slug])
+    .sort((a, b) => (ordem[b.slug] || 0) - (ordem[a.slug] || 0)).slice(0, AMOSTRA_POR_ABA);
+  const jaNaAmostra = new Set(amostra.map(i => i.slug));
+  const soTema = doTema.filter(i => !jaNaAmostra.has(i.slug));   // aparecem só na aba do tema
+  amostra.push(...soTema);
   const manter = new Set(amostra.map(i => i.slug));
+  const tagsTema = Object.fromEntries(doTema.map(i => [i.slug, tema[i.slug]]));
   p = p.slice(0, ic) + "const CATALOGO = [\n  " + amostra.map(i => i.texto).join(",\n  ") + p.slice(fc);
   p = recortarObjeto(p, "const ORDEM_LANCAMENTO = {", manter);
   p = recortarObjeto(p, "const MEDIDAS_MOBIS = {", manter);
   p = p.replace(/const MOBIS_ANIMADOS = new Set\((\[[^\]]*\])\);/, (t, lista) =>
     `const MOBIS_ANIMADOS = new Set(${JSON.stringify(JSON.parse(lista).filter(s => manter.has(s)))});`);
-  visitanteEmMemoria = p.replace(MARCA_SESSAO, JSON.stringify({ visitante: true }));
+  visitanteEmMemoria = p.replace(MARCA_SESSAO, JSON.stringify({ visitante: true, tagsTema, soTema: soTema.map(i => i.slug) }).replace(/</g, "\\u003c"));
+  visitanteFeitoEm = Date.now();
   return visitanteEmMemoria;
 }
 
@@ -72,7 +102,7 @@ export default async function handler(req, res) {
     if (!pagina.includes(MARCA_SESSAO)) return res.status(500).json({ ok: false, estado: "INDISPONIVEL" });
     res.setHeader("Cache-Control", "no-store, max-age=0");
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    return res.status(200).send(paginaVisitante());
+    return res.status(200).send(await paginaVisitante());
   }
 
   const sessao = await exigirSessao(req, res);

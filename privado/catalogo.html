@@ -5774,7 +5774,8 @@ function ordenarLista(lista){
 function telaGrade(){
   const busca = semAcento(termo.trim());
   if (aba !== "roupa" && !ABAS.some(a => a.id === aba) && !(ABA_TEMA && aba === ABA_TEMA.id)) aba = "roupa";
-  const naAba = ABA_TEMA && aba === ABA_TEMA.id ? itemDoTema : (it => it.tipo === aba);
+  // na prévia, os itens de Halloween mais antigos vêm só para a aba do tema
+  const naAba = ABA_TEMA && aba === ABA_TEMA.id ? itemDoTema : (it => it.tipo === aba && !SO_TEMA.has(it.slug));
   const lista = ordenarLista(CATALOGO.filter(it => naAba(it) && textoDeBusca(it).includes(busca)));
 
   const abas = ABAS.map(a => `
@@ -5824,10 +5825,13 @@ function telaGrade(){
 
   app.querySelectorAll("[data-aba]").forEach(b =>
     b.onclick = () => {
-      if (VISITANTE && ABA_TEMA && b.dataset.aba === ABA_TEMA.id) { mostrarConvite(); return; }   // a aba do tema depende das tags (só com login)
+      // a aba do tema depende das tags: se a prévia veio sem os itens dela, só mostra o convite
+      if (VISITANTE && ABA_TEMA && b.dataset.aba === ABA_TEMA.id && !CATALOGO.some(itemDoTema)) { mostrarConvite(); return; }
       aba = b.dataset.aba; render(); window.scrollTo(0, 0);
-      // Mobis e Balões na prévia: a aba abre e o convite aparece na hora (os itens ficam por trás)
-      if (VISITANTE && (aba === "furni" || aba === "balao")) mostrarConvite();
+      // Balões na prévia: a aba abre e o convite aparece na hora (os itens ficam por trás).
+      // Visuais e Mobis: a contagem da rolagem recomeça, e o convite vem depois de duas telas e meia.
+      if (VISITANTE && aba === "balao") mostrarConvite();
+      else if (VISITANTE) { proximoConvite = window.innerHeight * 2.5; conviteFechadoEm = -Infinity; }
     });   // a lista nova começa do início
   document.getElementById("ordemGrade").onchange = e => {
     ordem = e.target.value;
@@ -10095,6 +10099,8 @@ const CHAVE_MOTIVO = "nftse_motivo";
 // Ela mostra a grade, e um convite para entrar aparece ao rolar ou ao clicar em algo.
 const VISITANTE = !!(SESSAO_INICIAL && SESSAO_INICIAL.visitante);
 let sessao = VISITANTE ? null : SESSAO_INICIAL;   // { habboName, discordUserId }
+if (VISITANTE) tagsManuais = SESSAO_INICIAL.tagsTema || {};   // na prévia, só a tag da aba do tema (ex.: Halloween)
+const SO_TEMA = new Set(VISITANTE && SESSAO_INICIAL.soTema || []);   // itens da prévia que aparecem só na aba do tema
 let estadoSessao = VISITANTE ? "VISITANTE" : (sessao ? "ATIVA" : "EXPIRADA");
 let contagens = {};
 let meusFavoritos = new Set();
