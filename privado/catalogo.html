@@ -10264,12 +10264,13 @@ function mostrarConvite(){
 }
 
 function ligarConviteAoRolar(){
-  proximoConvite = window.innerHeight * 2;   // depois de mais ou menos duas telas
+  proximoConvite = window.innerHeight * 2.5;   // depois de mais ou menos duas telas e meia
   addEventListener("scroll", () => {
     if (conviteAberto) return;
-    // ou ao chegar no fim da lista (se ela for menor que isso)
-    const noFim = window.scrollY > 0 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 40;
-    if (window.scrollY > proximoConvite || (noFim && window.scrollY > conviteFechadoEm + 50)) mostrarConvite();
+    // ou antes de a lista acabar (falta menos de uma tela): parece que tem mais coisa para baixo
+    const falta = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+    const pertoDoFim = window.scrollY > 0 && falta < window.innerHeight;
+    if (window.scrollY > proximoConvite || (pertoDoFim && window.scrollY > conviteFechadoEm + 50)) mostrarConvite();
   }, { passive: true });
   document.addEventListener("click", e => {
     if (e.target.closest("[data-convite]")) mostrarConvite();

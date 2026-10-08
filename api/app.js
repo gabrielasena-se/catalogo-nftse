@@ -28,7 +28,7 @@ function lerPagina() {
 // dados, que continuam exigindo login). O resto do catálogo não sai do servidor: as listas
 // com o nome de todos os itens (ORDEM_LANCAMENTO, MEDIDAS_MOBIS, MOBIS_ANIMADOS) também
 // são recortadas para a amostra. Na tela, um convite pede para entrar ao rolar ou clicar.
-const AMOSTRA_POR_ABA = 24;
+const AMOSTRA_POR_ABA = 48;
 let visitanteEmMemoria = null;
 
 function recortarObjeto(pagina, inicio, manter) {
