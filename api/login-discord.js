@@ -5,8 +5,9 @@
 //   GET /api/login-discord                -> manda a pessoa para a tela de autorização do Discord
 //   GET /api/login-discord?code=..&state=.. (volta do Discord) -> confere e abre a sessão
 //
-// Quem pode entrar: quem está no servidor da NFT-SE E já fez a verificação do nick no bot
-// (a mesma regra do botão "Acessar catálogo"). A sessão aberta aqui vale 30 dias, não cai ao
+// Quem pode entrar: quem está no servidor da NFT-SE (a verificação do nick não é exigida;
+// quem verificou aparece com o nick do Habbo, quem não, com o nome do Discord — a mesma regra
+// do botão "Acessar catálogo"). A sessão aberta aqui vale 30 dias, não cai ao
 // trocar de rede, e o site confere uma vez por dia se a pessoa continua no servidor
 // (api/_sessao.js). Depois de entrar, o navegador vai para /?token=..., como no link do bot.
 //
@@ -86,17 +87,17 @@ export default async function handler(req, res) {
     if (!rEu.ok) return voltar(res, "erro");
     const eu = await rEu.json();
 
-    // precisa estar no servidor e ter feito a verificação do nick
+    // precisa estar no servidor (a verificação do nick não é exigida)
     const membro = await membroDoServidor(eu.id);
     if (membro === null) return voltar(res, "erro");
     if (!membro) return voltar(res, "nao-membro");
+    // quem fez a verificação aparece com o nick do Habbo; quem não fez, com o nome do Discord
     const vinculo = await findByDiscord(eu.id);
-    if (!vinculo) return voltar(res, "nao-verificado");
 
     const sessao = await createSession({
       discordUserId: eu.id,
-      habboName: vinculo.habboName,
-      habboUniqueId: vinculo.habboUniqueId,
+      habboName: vinculo ? vinculo.habboName : (eu.global_name || eu.username || ""),
+      habboUniqueId: vinculo ? vinculo.habboUniqueId : null,
       login: true
     });
     res.statusCode = 302;
