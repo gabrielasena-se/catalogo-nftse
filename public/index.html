@@ -127,6 +127,14 @@ a{color:var(--ouro)}
 .slides::-webkit-scrollbar{display:none}
 .slide{flex:0 0 100%;scroll-snap-align:start;margin:0}
 .slide img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top}
+/* Cama Disco se mexendo por cima do print do quarto (mesma tira de quadros do catálogo:
+   /mobis/anim/cama-disco.png, 32 quadros a 12 por segundo; posição medida no print de 1280x800) */
+.quadro{position:relative}
+.mobi-anim{position:absolute;left:21.944%;top:48.243%;width:14.835%;height:28.83%;
+  background:url("/mobis/anim/cama-disco.png") 0 0/3200% 100% no-repeat;image-rendering:pixelated;
+  animation:camaDisco 2.667s steps(32) infinite}
+@keyframes camaDisco{to{background-position:103.2258% 0}}
+@media (prefers-reduced-motion:reduce){.mobi-anim{animation:none}}
 .slide figcaption{padding:16px 22px 20px;border-top:1px solid var(--linha)}
 .slide figcaption b{display:block;font-family:var(--pixel);font-size:14px;color:var(--ouro);margin-bottom:4px}
 .slide figcaption span{color:var(--texto);font-size:15px}
@@ -208,7 +216,7 @@ a{color:var(--ouro)}
           <figcaption><b>Todos os visuais NFT</b><span>Roupas, peles, olhos e acessórios com o nome oficial do Habbo e a faixa de preço de cada um.</span></figcaption></figure>
         <figure class="slide"><img src="/entrada/catalogo-mobis.jpg" alt="Lista de mobis NFT do catálogo" loading="lazy">
           <figcaption><b>Mais de 1.400 mobis</b><span>Ordene pelos lançamentos, pelo preço ou pelos mais curtidos, e ache qualquer um pela busca.</span></figcaption></figure>
-        <figure class="slide"><img src="/entrada/mobi-no-quarto.jpg" alt="Mobi animado dentro de um quarto" loading="lazy">
+        <figure class="slide"><div class="quadro"><img src="/entrada/mobi-no-quarto.jpg" alt="Cama Disco animada dentro de um quarto" loading="lazy"><span class="mobi-anim" aria-hidden="true"></span></div>
           <figcaption><b>Veja o mobi no quarto</b><span>Tamanho de verdade e até a animação, do jeitinho que fica no Habbo.</span></figcaption></figure>
         <figure class="slide"><img src="/entrada/provador.jpg" alt="Provador com avatares vestindo o item" loading="lazy">
           <figcaption><b>Provador</b><span>Experimente qualquer roupa no avatar, troque o tom de pele e as cores, ou use o seu próprio visual pelo nick.</span></figcaption></figure>
