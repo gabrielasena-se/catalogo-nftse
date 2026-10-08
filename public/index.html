@@ -81,6 +81,8 @@ a{color:var(--ouro)}
   background:rgba(255,46,224,.08);color:var(--texto);font-size:14px;width:calc(100% - 36px);
 }
 .aviso-sessao b{color:var(--ouro)}
+.aviso-sessao{display:flex;align-items:flex-start;gap:10px}
+.ico-aviso{width:20px;height:20px;flex:none;color:#fff;margin-top:1px}
 
 /* ---------- hero ---------- */
 .hero{position:relative;text-align:center;padding:56px 18px 26px;overflow:hidden}
@@ -309,6 +311,8 @@ a{color:var(--ouro)}
     ["TV Retrô-Futurista","furni/images/nft_h26_retrofuturetv.png"]
   ];
 
+  // Triângulo de aviso em branco (o emoji ⚠️ sai amarelo na maioria dos aparelhos)
+  var ICONE_AVISO = '<svg class="ico-aviso" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
   var ICONE_DISCORD = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.2a18 18 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18a19.7 19.7 0 0 0 6 3l1.3-2a12.7 12.7 0 0 1-2-1l.5-.4a14 14 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2a19.6 19.6 0 0 0 6-3c.5-5.1-.8-9.6-3.6-13.6zM8.1 15.3c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4zm7.8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4z"/></svg>';
 
   function lerToken(){ try { return localStorage.getItem(CHAVE_TOKEN) || ""; } catch (e) { return ""; } }
@@ -413,7 +417,7 @@ a{color:var(--ouro)}
         entrada.querySelectorAll("[data-login]").forEach(function(e){ e.hidden = !com; });
         entrada.querySelectorAll("[data-sem-login]").forEach(function(e){ e.hidden = com; });
         var aviso = textoAviso(estado, com);
-        document.getElementById("avisoSessao").innerHTML = aviso ? '<div class="aviso-sessao">' + aviso + '</div>' : "";
+        document.getElementById("avisoSessao").innerHTML = aviso ? '<div class="aviso-sessao">' + ICONE_AVISO + '<span>' + aviso + '</span></div>' : "";
       });
   }
 
@@ -423,7 +427,7 @@ a{color:var(--ouro)}
     entrada.querySelectorAll("[data-discord]").forEach(function(a){ a.href = DISCORD; });
     // Quem já teve acesso (sessão encerrada) vê o motivo no topo; quem nunca entrou, só a vitrine.
     var aviso = textoAviso(estado, false);
-    if (aviso) document.getElementById("avisoSessao").innerHTML = '<div class="aviso-sessao">' + aviso + '</div>';
+    if (aviso) document.getElementById("avisoSessao").innerHTML = '<div class="aviso-sessao">' + ICONE_AVISO + '<span>' + aviso + '</span></div>';
     aplicarLogin(estado);
     preencherEsteira("esteira1", ESTEIRA_1);
     preencherEsteira("esteira2", ESTEIRA_2);
