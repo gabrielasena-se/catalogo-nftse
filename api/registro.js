@@ -5,6 +5,8 @@
 //   webhook: entrada:true = a pessoa acabou de abrir o site; senão, abriu outra página.
 // POST /api/registro  { acao:"listar" }  (sessão + cargo Administrador, veja _admin.js)
 //   Devolve os acessos mais recentes, para o painel de admin.
+// POST /api/registro  { acao:"previa", evento, id }   (SEM sessão: visitante da prévia)
+//   Conta um passo do funil da prévia (lib/funil.js): previa, convite, servidor ou login.
 //
 // Variáveis de ambiente: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN,
 // ADMIN_SECRET e DISCORD_WEBHOOK_URL (endereço do webhook do canal de avisos;
@@ -12,6 +14,7 @@
 
 import { exigirSessao } from "./_sessao.js";
 import { ehAdmin } from "./_admin.js";
+import { registrarFunil, EVENTOS_PREVIA } from "../lib/funil.js";
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -58,6 +61,16 @@ async function avisarDiscord(sessao, titulo, entrada) {
 }
 
 export default async function handler(req, res) {
+  // Funil da prévia (visitantes sem login): { acao:"previa", evento, id } — não exige sessão
+  const corpoPrevia = req.body || {};
+  if (req.method === "POST" && corpoPrevia.acao === "previa") {
+    const evento = String(corpoPrevia.evento || "");
+    const id = String(corpoPrevia.id || "");
+    if (!EVENTOS_PREVIA.includes(evento) || !/^[a-z0-9]{8,32}$/.test(id)) return res.status(400).json({ erro: "Evento inválido." });
+    try { await registrarFunil(evento, id); } catch (erro) { console.error("[registro] funil:", erro); }
+    return res.status(204).end();
+  }
+
   const sessao = await exigirSessao(req, res);
   if (!sessao) return;
   if (req.method !== "POST") return res.status(405).json({ erro: "Método não permitido." });

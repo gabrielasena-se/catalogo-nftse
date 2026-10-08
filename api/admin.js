@@ -13,6 +13,7 @@
 import { redis } from "../lib/redis.js";
 import { exigirSessao } from "./_sessao.js";
 import { exigirAdmin, temCargoAdmin } from "./_admin.js";
+import { lerFunil } from "../lib/funil.js";
 
 const MINUTOS_ENTRE_VISITAS = 30;      // mais que isso sem abrir página = visita nova
 const FUSO_MS = -3 * 3600e3;           // horário de Brasília
@@ -89,7 +90,8 @@ async function painel(dias) {
     maisFavoritados: topo(favoritos),
     sacolas: await contarSacolas(),
     pedidos: { total: pedidos.length, pessoas: new Set(pedidos.map(p => p.id)).size, itens: topo(pedidosPorItem, 10) },
-    visuaisPublicos: (await redis("HLEN", "visuais:publicos")) || 0
+    visuaisPublicos: (await redis("HLEN", "visuais:publicos")) || 0,
+    funil: await lerFunil(dias).catch(() => null)
   };
 }
 

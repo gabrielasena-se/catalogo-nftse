@@ -495,6 +495,8 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .tags-barra{height:10px;background:var(--tile);border:1px solid var(--linha);border-radius:6px;overflow:hidden}
 .tags-barra div{height:100%;background:linear-gradient(90deg,#b800b8,#ff2ee0)}
 @media(max-width:560px){.tags-prog-linha{grid-template-columns:1fr;gap:4px}}
+.funil-linha{grid-template-columns:230px 1fr 180px}
+@media(max-width:560px){.funil-linha{grid-template-columns:1fr}}
 .admin-linha{background:var(--painel);border:1px solid var(--linha);border-radius:10px;padding:10px 14px}
 .admin-linha-com-arte{display:flex;gap:14px;align-items:center}
 .admin-linha-corpo{flex:1;min-width:0}
@@ -10230,6 +10232,7 @@ let conviteAberto = false, proximoConvite = Infinity;
 function mostrarConvite(){
   if (!VISITANTE || conviteAberto) return;
   conviteAberto = true;
+  if (!conviteContado) { conviteContado = true; contarPrevia("convite"); }   // uma vez por visita
   const fundo = document.createElement("div");
   fundo.className = "convite-fundo";
   fundo.innerHTML = `
@@ -10265,7 +10268,29 @@ function ligarConviteAoRolar(){
   addEventListener("scroll", () => {
     if (!conviteAberto && window.scrollY > proximoConvite) mostrarConvite();
   }, { passive: true });
-  document.addEventListener("click", e => { if (e.target.closest("[data-convite]")) mostrarConvite(); });
+  document.addEventListener("click", e => {
+    if (e.target.closest("[data-convite]")) mostrarConvite();
+    // funil: clicou para entrar no servidor ou para entrar com o Discord
+    if (e.target.closest(`a[href="${CONVITE_DISCORD}"]`)) contarPrevia("servidor");
+    if (e.target.closest('a[href="/api/login-discord"]')) contarPrevia("login");
+  });
+  contarPrevia("previa");
+}
+
+// Funil da prévia (painel do admin): um número aleatório por navegador, para contar pessoas
+// diferentes sem saber quem são. sendBeacon chega mesmo se a pessoa já estiver saindo da página.
+let conviteContado = false;
+function contarPrevia(evento){
+  let id = "";
+  try {
+    id = localStorage.getItem("nftse_visitante") || "";
+    if (!/^[a-z0-9]{8,32}$/.test(id)) { id = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); localStorage.setItem("nftse_visitante", id); }
+  } catch (e) { id = Math.random().toString(36).slice(2, 14); }
+  const corpo = JSON.stringify({ acao: "previa", evento, id });
+  try {
+    if (navigator.sendBeacon && navigator.sendBeacon(API_BASE + "/api/registro", new Blob([corpo], { type: "application/json" }))) return;
+  } catch (e) {}
+  fetch(API_BASE + "/api/registro", { method: "POST", headers: { "Content-Type": "application/json" }, body: corpo, keepalive: true }).catch(() => {});
 }
 
 function renderAuthArea(){
@@ -10767,6 +10792,24 @@ async function adminPainel(alvo){
         ${barras(d.porDia, x => dataCurta(x.dia), x => x.visitas, x => `${dataCurta(x.dia)}: ${x.visitas} visitas · ${x.pessoas} pessoas`)}</section>
       <section class="admin-bloco admin-bloco-largo"><h3>Horários de mais movimento</h3>
         ${barras(d.porHora.map((v, h) => ({ v, h })), x => x.h % 3 === 0 ? x.h + "h" : "", x => x.v, x => `${x.h}h: ${x.v} visitas`)}</section>
+      ${d.funil ? (() => {
+        const p = d.funil.pessoas || {}, t = d.funil.total || {};
+        const base = Math.max(1, p.previa || 0);
+        const linha = (rotulo, n, extra = "") => `<div class="tags-prog-linha funil-linha"><span>${esc(rotulo)}</span>
+          <div class="tags-barra"><div style="width:${Math.round((n || 0) / base * 100)}%"></div></div>
+          <span><b>${n || 0}</b> ${n === 1 ? "pessoa" : "pessoas"}${extra}</span></div>`;
+        return `<section class="admin-bloco admin-bloco-largo"><h3>Prévia para visitantes (sem login)</h3>
+          ${linha("Abriram a prévia", p.previa, ` · ${t.previa || 0} visitas`)}
+          ${linha("Viram o convite", p.convite)}
+          ${linha("Clicaram em Entrar no servidor", p.servidor)}
+          ${linha("Clicaram em Entrar com Discord", p.login)}
+          <div class="cartoes" style="margin-top:12px">
+            ${cartao(t["login-ok"] || 0, "entradas pelo Entrar com Discord", `${t["login-novo"] || 0} pela primeira vez`)}
+            ${cartao(t["login-fora"] || 0, "tentaram sem estar no servidor")}
+          </div>
+          <p class="dica" style="margin:8px 0 0">As entradas pelo "Entrar com Discord" contam todo mundo que entrou pelo botão do site (inclusive quem já era do servidor e não passou pela prévia).</p>
+        </section>`;
+      })() : ""}
       <section class="admin-bloco"><h3>Itens mais vistos</h3>${ranking(d.maisVistos)}</section>
       <section class="admin-bloco"><h3>Mais favoritados</h3>${ranking(d.maisFavoritados)}</section>
       <section class="admin-bloco"><h3>Mais colocados na sacola</h3>${ranking(d.sacolas.itens)}</section>

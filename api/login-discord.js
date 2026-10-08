@@ -24,6 +24,7 @@ import { findByDiscord } from "../lib/bot/verification/repo.js";
 import { createSession } from "../lib/bot/catalogo/repo.js";
 import { membroDoServidor } from "./_membro.js";
 import { semCache } from "./_sessao.js";
+import { registrarFunil, registrarLogin } from "../lib/funil.js";
 
 const API = "https://discord.com/api/v10";
 const redirecionamento = () => (process.env.LOGIN_REDIRECT_URL || "https://nft-se.com/api/login-discord").trim();
@@ -90,7 +91,10 @@ export default async function handler(req, res) {
     // precisa estar no servidor (a verificação do nick não é exigida)
     const membro = await membroDoServidor(eu.id);
     if (membro === null) return voltar(res, "erro");
-    if (!membro) return voltar(res, "nao-membro");
+    if (!membro) {
+      await registrarFunil("login-fora").catch(() => {});
+      return voltar(res, "nao-membro");
+    }
     // quem fez a verificação aparece com o nick do Habbo; quem não fez, com o nome do Discord
     const vinculo = await findByDiscord(eu.id);
 
@@ -100,6 +104,7 @@ export default async function handler(req, res) {
       habboUniqueId: vinculo ? vinculo.habboUniqueId : null,
       login: true
     });
+    await registrarLogin(eu.id).catch(() => {});   // contador do funil (painel do admin)
     res.statusCode = 302;
     res.setHeader("Location", "/?token=" + encodeURIComponent(sessao.token));
     return res.end();
