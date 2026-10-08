@@ -93,8 +93,8 @@ a{color:var(--ouro)}
 .convite-fechar:hover{color:var(--texto)}
 .convite-botoes{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:6px}
 .convite-botoes .cta{margin-top:8px}
-.convite-secundario{color:var(--texto);border:1px solid var(--linha);border-radius:8px;padding:10px 16px;text-decoration:none;font-weight:700;font-size:14px}
-.convite-secundario:hover{border-color:var(--ouro)}
+.convite-secundario{color:#b77cf5;text-decoration:underline;text-underline-offset:3px;font-weight:700;font-size:14px;padding:4px}
+.convite-secundario:hover{color:var(--ouro)}
 a.auth-entrar.auth-entrar-discord{background:linear-gradient(180deg,#ff2ee0,#b800a0);border-color:#b800a0;color:#fff;font-weight:800}
 .link-convite{background:none;border:none;padding:0;color:var(--ouro);text-decoration:underline;cursor:pointer;font:inherit}
 .aba-tema{color:#ffa94d;border-color:#c25a00;background:#2e1406}
@@ -10238,9 +10238,8 @@ function mostrarConvite(){
   fundo.innerHTML = `
     <div class="convite-caixa" role="dialog" aria-modal="true" aria-labelledby="conviteTitulo">
       <button type="button" class="convite-fechar" aria-label="Fechar">✕</button>
-      <div class="convite-icone" aria-hidden="true">✨</div>
       <h2 id="conviteTitulo">Gostou do que viu?<br>Acesse o site completo!</h2>
-      <p>Você está vendo uma prévia da NFT-SE. Entre gratuitamente na nossa comunidade no Discord para liberar o <strong>Catálogo completo</strong>, <strong>Provador Virtual</strong>, <strong>Editor de Visuais</strong>, <strong>Favoritos</strong> e outros recursos.</p>
+      <p>Você está vendo uma prévia da NFT-SE. Entre gratuitamente na nossa comunidade no Discord para liberar o Catálogo completo, Provador Virtual, Editor de Visuais, Favoritos e outros recursos.</p>
       <p class="convite-gratis">É grátis e leva menos de um minuto.</p>
       <div class="convite-botoes">
         <a class="cta" href="${CONVITE_DISCORD}" target="_blank" rel="noopener">Entrar no servidor da NFT-SE</a>
@@ -10281,6 +10280,8 @@ function ligarConviteAoRolar(){
 // diferentes sem saber quem são. sendBeacon chega mesmo se a pessoa já estiver saindo da página.
 let conviteContado = false;
 function contarPrevia(evento){
+  // testes no computador (localhost) não entram nos números do painel
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
   let id = "";
   try {
     id = localStorage.getItem("nftse_visitante") || "";
