@@ -90,6 +90,23 @@ export default async function handler(req, res) {
     return res.status(200).json({ acessos });
   }
 
+  // Apaga uma visita do registro (ex.: a própria dona testando): os acessos daquela pessoa
+  // entre "de" e "ate" (ms). Some da lista de Acessos e dos números do Painel.
+  if (corpo.acao === "apagar") {
+    if (!(await ehAdmin(sessao, corpo.adminSecret))) {
+      return res.status(403).json({ erro: "Só quem tem o cargo Administrador no Discord pode fazer isto." });
+    }
+    const id = String(corpo.id || ""), de = Number(corpo.de), ate = Number(corpo.ate);
+    if (!/^\d{5,25}$/.test(id) || !isFinite(de) || !isFinite(ate) || ate < de) return res.status(400).json({ erro: "Visita inválida." });
+    const brutos = await redis("LRANGE", CHAVE_LOG, 0, MAX_REGISTROS - 1);
+    let apagados = 0;
+    for (const b of Array.isArray(brutos) ? brutos : []) {
+      let a; try { a = JSON.parse(b); } catch { continue; }
+      if (a && String(a.id) === id && a.t >= de && a.t <= ate) apagados += (await redis("LREM", CHAVE_LOG, 1, b)) || 0;
+    }
+    return res.status(200).json({ ok: true, apagados });
+  }
+
   // Registro de uma página aberta
   const pagina = limpar(corpo.pagina, 120) || "catálogo";
   const titulo = limpar(corpo.titulo, 120) || pagina;

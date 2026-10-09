@@ -503,6 +503,9 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .admin-arte{width:96px;height:96px;flex:none;border-radius:8px;overflow:hidden;background:var(--tile);display:flex;align-items:center;justify-content:center}
 .admin-arte img{width:100%;height:100%;object-fit:cover}
 .admin-arte .vazio{font-size:10px;color:var(--mudo);text-align:center;padding:4px}
+.admin-visita-topo{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.admin-excluir-visita{padding:3px 10px;font-size:12px;flex-shrink:0;opacity:.75}
+.admin-excluir-visita:hover{opacity:1}
 .admin-caminho{margin-top:4px;font-size:13px;color:var(--texto);opacity:.9;line-height:1.5}
 .calc-linha{display:grid;grid-template-columns:1fr 130px 34px;gap:6px;align-items:center;margin-top:6px}
 .calc-linha .figura{margin-top:0}
@@ -10852,19 +10855,34 @@ async function adminAcessos(alvo){
       if (v) { v.paginas.unshift(a.titulo); v.inicio = a.t; }
       else {
         visitas.forEach(x => { if (x.id === a.id) x.fechada = true; });
-        visitas.push({ id: a.id, nick: a.nick, inicio: a.t, paginas: [a.titulo] });
+        visitas.push({ id: a.id, nick: a.nick, inicio: a.t, fim: a.t, paginas: [a.titulo] });
       }
     }
     if (!document.body.contains(alvo)) return;
     alvo.innerHTML = `
       <p style="margin:0 0 12px">Pessoas diferentes: <b>${pessoas(1)}</b> nas últimas 24h · <b>${pessoas(7)}</b> em 7 dias · <b>${pessoas(30)}</b> em 30 dias</p>
       <div class="admin-lista">
-        ${visitas.slice(0, 150).map(v => `
+        ${visitas.slice(0, 150).map((v, i) => `
           <div class="admin-linha">
-            <div><b>${esc(v.nick || "?")}</b> <span class="dica">${quando(v.inicio)} · ${v.paginas.length} ${v.paginas.length === 1 ? "página" : "páginas"}</span></div>
+            <div class="admin-visita-topo"><div><b>${esc(v.nick || "?")}</b> <span class="dica">${quando(v.inicio)} · ${v.paginas.length} ${v.paginas.length === 1 ? "página" : "páginas"}</span></div>
+              <button type="button" class="opt admin-excluir-visita" data-excluir-visita="${i}">Excluir</button></div>
             <div class="admin-caminho">${v.paginas.map(esc).join(" → ")}</div>
           </div>`).join("")}
       </div>`;
+    // Excluir uma visita (ex.: você mesma ou outra conta sua testando o site)
+    alvo.querySelectorAll("[data-excluir-visita]").forEach(b => b.onclick = async () => {
+      const v = visitas[+b.dataset.excluirVisita];
+      if (!confirm(`Excluir esta visita de ${v.nick || "?"} (${quando(v.inicio)}, ${v.paginas.length} ${v.paginas.length === 1 ? "página" : "páginas"})?\nEla some daqui e dos números do Painel.`)) return;
+      b.disabled = true; b.textContent = "Excluindo...";
+      try {
+        const r = await postAdmin("/api/registro", { acao: "apagar", id: v.id, de: v.inicio, ate: v.fim });
+        if (!r.ok) throw new Error();
+        adminAcessos(alvo);   // recarrega a lista e as contagens de pessoas
+      } catch (e) {
+        b.disabled = false; b.textContent = "Excluir";
+        alert("Não consegui excluir agora. Tente de novo.");
+      }
+    });
   } catch (e) {
     alvo.innerHTML = `<p class="dica">Não consegui carregar os acessos agora.</p>`;
   }
