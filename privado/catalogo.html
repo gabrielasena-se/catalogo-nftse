@@ -10433,7 +10433,7 @@ function telaAdmin(){
     document.getElementById("adminSenhaEntrar").onkeydown = e => { if (e.key === "Enter") entrar(); };
     return;
   }
-  const abas = [["painel", "📊 Painel"], ["acessos", "👥 Acessos"], ["tags", "🏷️ Tags"], ["itens", "📦 Itens"], ["calculadora", "🧮 Calculadora"], ["financas", "💰 Finanças"]];
+  const abas = [["painel", "📊 Painel"], ["acessos", "👥 Acessos"], ["tags", "🏷️ Tags"], ["itens", "📦 Itens"], ["calculadora", "🧮 Calculadora"], ["financas", "💰 Finanças"], ["estoque", "🗃️ Estoque"]];
   app.innerHTML = `
     <div class="envoltorio">
       <button class="voltar" id="voltarAdmin">&lt; Voltar ao catálogo</button>
@@ -10446,7 +10446,7 @@ function telaAdmin(){
   document.getElementById("voltarAdmin").onclick = () => { location.hash = ""; };
   app.querySelectorAll("[data-aba-admin]").forEach(b => b.onclick = () => { abaAdmin = b.dataset.abaAdmin; telaAdmin(); });
   const alvo = document.getElementById("adminConteudo");
-  ({ painel: adminPainel, acessos: adminAcessos, tags: adminTags, itens: adminItens, calculadora: adminCalculadora, financas: adminFinancas })[abaAdmin](alvo);
+  ({ painel: adminPainel, acessos: adminAcessos, tags: adminTags, itens: adminItens, calculadora: adminCalculadora, financas: adminFinancas, estoque: adminEstoque })[abaAdmin](alvo);
 }
 
 /* ----- 🧮 Calculadora de preço ----- */
@@ -10454,8 +10454,22 @@ function telaAdmin(){
 // Taxas da compra de ETH: a cada compra (ex.: R$ 100) paga-se um % (reserva) e taxas fixas em dólar (fixo: Coinbase +
 // LayerSwap). Cada item paga o % sobre o seu valor e a parte das taxas fixas proporcional ao seu valor em reais.
 // A variação do ETH fica de fora. Os números ficam salvos neste navegador.
-const CHAVE_CALC = "nftse_calc_v3";
-const CALC_PADRAO = { cotacao: 5.20, cotacaoAuto: true, negocio: 0, reserva: 2, fixo: 0.09, compra: 100, taxa: 25, minimo: 1.00, arredondar: false };
+const CHAVE_CALC = "nftse_calc_v4";
+const CALC_PADRAO = { cotacao: 5.20, cotacaoAuto: true, negocio: 0, reserva: 2, fixo: 0.09, compra: 100, taxa: 20, minimo: 1.00, arredondar: false };
+// Configurações da Calculadora salvas neste navegador (o dólar também é usado no Estoque).
+function lerCfgCalc(){
+  const cfg = { ...CALC_PADRAO };
+  try {
+    const salvo = localStorage.getItem(CHAVE_CALC);
+    if (salvo) Object.assign(cfg, JSON.parse(salvo));
+    else {   // versões anteriores: mantém tudo, menos a reserva antiga (v2) e a taxa (agora sugerida em 20%)
+      const v3 = JSON.parse(localStorage.getItem("nftse_calc_v3") || "null");
+      if (v3) { const { taxa, ...resto } = v3; Object.assign(cfg, resto); }
+      else { const { reserva, fixo, taxa, ...resto } = JSON.parse(localStorage.getItem("nftse_calc_v2") || "{}"); Object.assign(cfg, resto); }
+    }
+  } catch (e) {}
+  return cfg;
+}
 // Formatos de dinheiro do admin
 const fmtUs = v => "US$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtRs = v => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -10464,15 +10478,7 @@ const hojeISO = () => { const d = new Date(Date.now() - 3 * 3600e3); return d.to
 let calcItens = [{ nome: "", usd: "" }];
 
 function adminCalculadora(alvo){
-  let cfg = { ...CALC_PADRAO };
-  try {
-    const salvo = localStorage.getItem(CHAVE_CALC);
-    if (salvo) Object.assign(cfg, JSON.parse(salvo));
-    else {   // configurações da versão anterior: mantém tudo, menos a reserva antiga (6% + US$ 0,07 por pedido)
-      const { reserva, fixo, ...resto } = JSON.parse(localStorage.getItem("nftse_calc_v2") || "{}");
-      Object.assign(cfg, resto);
-    }
-  } catch (e) {}
+  let cfg = lerCfgCalc();
   const salvar = () => { try { localStorage.setItem(CHAVE_CALC, JSON.stringify(cfg)); } catch (e) {} };
   const num = lerNumero, us = fmtUs, rs = fmtRs;
   const campoCfg = (id, rotulo, dica, extraId) => `
@@ -10784,6 +10790,147 @@ async function adminFinancas(alvo){
     try { await postAdmin("/api/admin", { acao: "financas-apagar", id: x.id }); } catch (e) {}
     if (finEditando && finEditando.id === x.id) finEditando = null;
     adminFinancas(alvo);
+  });
+}
+
+/* ----- 🗃️ Estoque ----- */
+// NFTs que a NFT-SE já tem: quanto pagou (R$), por quanto comprou (US$) e quanto valem hoje.
+// O valor de hoje vem do preço da TokenTrove gravado na última atualização do catálogo (catalogo:precos),
+// convertido pelo dólar da Calculadora. Item fora do catálogo: o valor de hoje é digitado.
+// Fica no servidor (Redis, estoque:registros), então aparece em qualquer aparelho do admin.
+let estEditando = null;
+
+async function adminEstoque(alvo){
+  alvo.innerHTML = `<p class="dica">Carregando...</p>`;
+  let registros = [], precos = { data: null, usd: {} };
+  try {
+    const r = await postAdmin("/api/admin", { acao: "estoque" });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || "erro");
+    registros = d.registros || [];
+    precos = d.precos || precos;
+  } catch (e) { alvo.innerHTML = `<p class="dica">Não consegui carregar agora. Tente de novo em instantes.</p>`; return; }
+
+  const cotacao = lerCfgCalc().cotacao;
+  const porNome = new Map(CATALOGO.map(it => [semAcento(it.pt), it]));
+  // valor de hoje por unidade (US$): preço da TokenTrove ou o digitado
+  const hojeUnit = x => (x.slug && precos.usd[x.slug]) || x.atualManual || 0;
+  const linhas = registros.map(x => {
+    const unit = hojeUnit(x), hojeUsd = unit * x.qtd;
+    return { ...x, unit, hojeUsd, hojeRs: hojeUsd * cotacao, automatico: !!(x.slug && precos.usd[x.slug]) };
+  });
+  const somar = k => linhas.reduce((s, x) => s + (x[k] || 0), 0);
+  const totalQtd = somar("qtd"), totalPago = somar("pago"), totalComprado = somar("comprado");
+  const totalHojeUsd = somar("hojeUsd"), totalHojeRs = totalHojeUsd * cotacao;
+  const semValor = linhas.filter(x => !x.unit).length;
+  // a diferença só compara itens que têm valor de hoje (os sem valor não entram como se valessem zero)
+  const pagoComValor = linhas.filter(x => x.unit).reduce((s, x) => s + (x.pago || 0), 0);
+  const diferenca = totalHojeRs - pagoComValor;
+  const cor = v => v < 0 ? "#ff8a8a" : "#7ee2a8";
+  const sinal = v => (v < 0 ? "− " : "+ ") + fmtRs(Math.abs(v));
+  const dataBR = iso => { if (!iso) return "–"; const [a, m, d] = iso.split("-"); return `${d}/${m}/${a}`; };
+  const form = estEditando || { nome: "", qtd: 1, data: hojeISO(), pago: "", comprado: "", atualManual: "", obs: "" };
+  const valorCampo = v => v === "" || v == null || v === 0 ? "" : String(v).replace(".", ",");
+
+  alvo.innerHTML = `
+    <div class="admin-grade">
+      <section class="admin-bloco">
+        <h3>Resumo do estoque</h3>
+        <table class="calc-tabela">
+          <tr><td>NFTs em estoque</td><td>${totalQtd}</td></tr>
+          <tr><td>Total pago</td><td>${fmtRs(totalPago)}</td></tr>
+          ${totalComprado ? `<tr><td>Comprados por</td><td>${fmtUs(totalComprado)}</td></tr>` : ""}
+          <tr><td>Valor hoje</td><td>${fmtRs(totalHojeRs)} <span class="dica">(${fmtUs(totalHojeUsd)})</span></td></tr>
+          <tr class="calc-total"><td>Diferença${semValor ? `<br><span class="dica" style="font-weight:400">só dos itens com valor de hoje</span>` : ""}</td><td style="color:${cor(diferenca)}">${sinal(diferenca)}</td></tr>
+        </table>
+        <p class="dica" style="margin:8px 0 0">Valor hoje: preço da TokenTrove na última atualização do catálogo${precos.data ? ` (${dataBR(precos.data)})` : ""},
+          com o dólar a R$ ${cotacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (o mesmo da Calculadora).
+          ${semValor ? `<br>${semValor} ${semValor === 1 ? "item está" : "itens estão"} sem valor de hoje: edite e coloque o valor.` : ""}</p>
+      </section>
+      <section class="admin-bloco">
+        <h3>${estEditando ? "Editar item" : "Adicionar ao estoque"}</h3>
+        <datalist id="estNomes">${CATALOGO.map(it => `<option value="${esc(it.pt)}">`).join("")}</datalist>
+        <label class="admin-campo">Item<input id="estNome" class="figura" list="estNomes" maxlength="120" value="${esc(form.nome)}" placeholder="Digite o nome..."></label>
+        <span class="dica" id="estPrecoHoje" style="display:block;margin-top:2px"></span>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <label class="admin-campo" style="flex:1;min-width:110px">Quantidade<input id="estQtd" class="figura" inputmode="numeric" value="${esc(String(form.qtd || 1))}"></label>
+          <label class="admin-campo" style="flex:1;min-width:150px">Data da compra<input id="estData" type="date" class="figura" value="${esc(form.data || "")}"></label>
+        </div>
+        <label class="admin-campo">Quanto você pagou no total (R$)<input id="estPago" class="figura" inputmode="decimal" value="${esc(valorCampo(form.pago))}"></label>
+        <label class="admin-campo">Por quanto comprou no total (US$, opcional)<input id="estComprado" class="figura" inputmode="decimal" value="${esc(valorCampo(form.comprado))}"></label>
+        <label class="admin-campo" id="estManualCampo">Valor de hoje por unidade (US$)<input id="estManual" class="figura" inputmode="decimal" value="${esc(valorCampo(form.atualManual))}">
+          <span class="dica" style="display:block;margin-top:2px">Só para itens sem preço da TokenTrove.</span></label>
+        <label class="admin-campo">Observação (opcional)<input id="estObs" class="figura" maxlength="300" value="${esc(form.obs || "")}"></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+          <button type="button" class="opt" id="estSalvar">${estEditando ? "Salvar alterações" : "Adicionar"}</button>
+          ${estEditando ? `<button type="button" class="opt" id="estCancelar">Cancelar</button>` : ""}
+          <span class="dica" id="estAviso"></span>
+        </div>
+      </section>
+      <section class="admin-bloco admin-bloco-largo">
+        <h3>Itens (${linhas.length})</h3>
+        ${linhas.length ? `
+        <div style="overflow-x:auto">
+        <table class="calc-tabela">
+          <tr class="dica"><td>Item</td><td>Qtd</td><td>Compra</td><td>Pago</td><td>Hoje</td><td>Diferença</td><td></td></tr>
+          ${linhas.map(x => `<tr>
+            <td style="text-align:left;white-space:normal">${x.slug ? `<a href="#item/${esc(x.slug)}">${esc(x.nome)}</a>` : esc(x.nome)}${x.obs ? `<br><span class="dica">${esc(x.obs)}</span>` : ""}</td>
+            <td>${x.qtd}</td>
+            <td>${dataBR(x.data)}${x.comprado ? `<br><span class="dica">${fmtUs(x.comprado)}</span>` : ""}</td>
+            <td>${fmtRs(x.pago)}</td>
+            <td>${x.unit ? `${fmtRs(x.hojeRs)}<br><span class="dica">${fmtUs(x.hojeUsd)}${x.automatico ? "" : " · digitado"}</span>` : `<span class="dica">sem valor</span>`}</td>
+            <td>${x.unit ? `<span style="color:${cor(x.hojeRs - x.pago)}">${sinal(x.hojeRs - x.pago)}</span>` : "–"}</td>
+            <td><button type="button" class="opt" data-est-editar="${x.id}" style="padding:4px 8px">Editar</button>
+                <button type="button" class="opt" data-est-apagar="${x.id}" style="padding:4px 8px" title="Apagar" aria-label="Apagar">✕</button></td></tr>`).join("")}
+        </table></div>` : `<p class="dica">Nenhum NFT no estoque ainda.</p>`}
+      </section>
+    </div>`;
+
+  // preço de hoje do item digitado (quando ele está no catálogo e tem preço da TokenTrove)
+  const campoNome = document.getElementById("estNome");
+  const mostrarPreco = () => {
+    const it = porNome.get(semAcento(campoNome.value.trim()));
+    const usd = it && precos.usd[it.slug];
+    document.getElementById("estPrecoHoje").textContent = usd
+      ? `Na TokenTrove: ${fmtUs(usd)} cada (${fmtRs(usd * cotacao)}).`
+      : (campoNome.value.trim() ? "Sem preço da TokenTrove para este item: coloque o valor de hoje abaixo." : "");
+    document.getElementById("estManualCampo").style.display = usd ? "none" : "";
+  };
+  campoNome.oninput = mostrarPreco;
+  mostrarPreco();
+
+  document.getElementById("estSalvar").onclick = async () => {
+    const aviso = document.getElementById("estAviso");
+    const nome = campoNome.value.trim();
+    if (!nome) { aviso.textContent = "Coloque o nome do item."; return; }
+    const it = porNome.get(semAcento(nome));
+    const registro = { ...(estEditando || {}), nome: it ? it.pt : nome, slug: it ? it.slug : "",
+      qtd: parseInt(document.getElementById("estQtd").value, 10) || 1,
+      data: document.getElementById("estData").value,
+      pago: lerNumero(document.getElementById("estPago").value),
+      comprado: lerNumero(document.getElementById("estComprado").value),
+      atualManual: lerNumero(document.getElementById("estManual").value),
+      obs: document.getElementById("estObs").value };
+    aviso.textContent = "Salvando...";
+    try {
+      const r = await postAdmin("/api/admin", { acao: "estoque-salvar", registro });
+      if (!r.ok) throw new Error("erro");
+      estEditando = null;
+      adminEstoque(alvo);
+    } catch (e) { aviso.textContent = "Não consegui salvar agora."; }
+  };
+  const cancelar = document.getElementById("estCancelar");
+  if (cancelar) cancelar.onclick = () => { estEditando = null; adminEstoque(alvo); };
+  alvo.querySelectorAll("[data-est-editar]").forEach(b => b.onclick = () => {
+    estEditando = registros.find(x => x.id === b.dataset.estEditar) || null;
+    adminEstoque(alvo);
+  });
+  alvo.querySelectorAll("[data-est-apagar]").forEach(b => b.onclick = async () => {
+    const x = registros.find(y => y.id === b.dataset.estApagar);
+    if (!x || !confirm(`Tirar do estoque: ${x.nome} (${x.qtd})?`)) return;
+    try { await postAdmin("/api/admin", { acao: "estoque-apagar", id: x.id }); } catch (e) {}
+    if (estEditando && estEditando.id === x.id) estEditando = null;
+    adminEstoque(alvo);
   });
 }
 

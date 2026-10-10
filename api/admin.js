@@ -5,6 +5,9 @@
 //   POST /api/admin { acao:"financas" }                  -> { registros }  controle financeiro (só admin)
 //   POST /api/admin { acao:"financas-salvar", registro } -> grava (novo ou editado)
 //   POST /api/admin { acao:"financas-apagar", id }       -> apaga um registro
+//   POST /api/admin { acao:"estoque" }                   -> { registros, precos }  NFTs em estoque (só admin)
+//   POST /api/admin { acao:"estoque-salvar", registro }  -> grava (novo ou editado)
+//   POST /api/admin { acao:"estoque-apagar", id }        -> apaga um registro
 //
 // Admin = cargo "Administrador" no Discord (veja _admin.js).
 // Os números saem do que o site já guarda no Redis: acessos:log (páginas abertas),
@@ -124,6 +127,39 @@ function limparRegistro(r) {
   };
 }
 
+// ----- Estoque: NFTs que a NFT-SE já tem (valores em R$ e US$) -----
+// Os preços de hoje vêm de catalogo:precos ({ data, usd: { slug: US$ } }), gravado a cada atualização
+// do catálogo com os preços da TokenTrove.
+const CHAVE_ESTOQUE = "estoque:registros";   // hash id -> JSON
+
+async function listarEstoque() {
+  const bruto = (await redis("HGETALL", CHAVE_ESTOQUE)) || [];
+  const registros = [];
+  for (let i = 1; i < bruto.length; i += 2) { try { registros.push(JSON.parse(bruto[i])); } catch {} }
+  registros.sort((a, b) => (b.data || "").localeCompare(a.data || "") || (b.criadoEm || 0) - (a.criadoEm || 0));
+  let precos = { data: null, usd: {} };
+  try { precos = JSON.parse((await redis("GET", "catalogo:precos")) || "null") || precos; } catch {}
+  return { registros, precos };
+}
+
+function limparEstoque(r) {
+  if (!r) return null;
+  const nome = texto(r.nome, 120);
+  if (!nome) return null;
+  const data = /^\d{4}-\d{2}-\d{2}$/.test(r.data || "") ? r.data : "";
+  const id = /^[a-z0-9]{6,20}$/.test(r.id || "") ? r.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const qtd = Math.max(1, Math.min(9999, Math.round(Number(r.qtd) || 1)));
+  return {
+    id, nome, data, qtd,
+    slug: /^[a-z0-9-]{1,80}$/.test(r.slug || "") ? r.slug : "",
+    pago: valor(r.pago),               // quanto pagou no total (R$)
+    comprado: valor(r.comprado),       // por quanto comprou no total (US$, preço da TokenTrove)
+    atualManual: valor(r.atualManual), // valor de hoje por unidade (US$), quando não há preço automático
+    obs: texto(r.obs, 300),
+    criadoEm: Number(r.criadoEm) || Date.now()
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method === "GET") {
     const sessao = await exigirSessao(req, res);
@@ -149,6 +185,18 @@ export default async function handler(req, res) {
   if (corpo.acao === "financas-apagar") {
     if (!/^[a-z0-9]{6,20}$/.test(String(corpo.id || ""))) return res.status(400).json({ erro: "Registro inválido." });
     await redis("HDEL", CHAVE_FINANCAS, corpo.id);
+    return res.status(200).json({ ok: true });
+  }
+  if (corpo.acao === "estoque") return res.status(200).json(await listarEstoque());
+  if (corpo.acao === "estoque-salvar") {
+    const reg = limparEstoque(corpo.registro);
+    if (!reg) return res.status(400).json({ erro: "Coloque o nome do item." });
+    await redis("HSET", CHAVE_ESTOQUE, reg.id, JSON.stringify(reg));
+    return res.status(200).json({ registro: reg });
+  }
+  if (corpo.acao === "estoque-apagar") {
+    if (!/^[a-z0-9]{6,20}$/.test(String(corpo.id || ""))) return res.status(400).json({ erro: "Registro inválido." });
+    await redis("HDEL", CHAVE_ESTOQUE, corpo.id);
     return res.status(200).json({ ok: true });
   }
   return res.status(400).json({ erro: "Ação inválida." });
