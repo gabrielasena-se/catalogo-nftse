@@ -40,11 +40,14 @@ const semAcento = t => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowe
 async function itensDoTema(pagina) {
   const m = pagina.match(/const ABA_TEMA = \{[^}]*tag:\s*"([^"]+)"/);
   if (!m) return {};
+  // todas as tags que entram na aba (ex.: halloween e fantasia); a página recebe só a principal (m[1])
+  const tagsAba = pagina.match(/const ABA_TEMA = \{[^}]*tags:\s*\[([^\]]*)\]/);
+  const doTema = new Set((tagsAba ? [...tagsAba[1].matchAll(/"([^"]+)"/g)].map(x => x[1]) : [m[1]]).map(semAcento));
   try {
     const tags = JSON.parse((await redis("GET", "catalogo:tags")) || "{}") || {};
     const tema = {};
     for (const [slug, lista] of Object.entries(tags))
-      if (Array.isArray(lista) && lista.some(t => semAcento(t) === semAcento(m[1]))) tema[slug] = [m[1]];
+      if (Array.isArray(lista) && lista.some(t => doTema.has(semAcento(t)))) tema[slug] = [m[1]];
     return tema;
   } catch (erro) {
     console.error("[api/app] tags do tema:", erro);

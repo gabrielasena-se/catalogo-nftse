@@ -5562,10 +5562,11 @@ const ABAS = [
   { id:"balao", rotulo:"Balões de Fala" }
 ];
 
-// Aba temporária de tema, ao lado de Balões de Fala: mostra os itens (de qualquer tipo) com a tag.
+// Aba temporária de tema, ao lado de Balões de Fala: mostra os itens (de qualquer tipo) com alguma das tags.
+// "tag" é a principal (clicar em #Halloween abre a aba); "tags" são todas as que entram na aba.
 // Para tirar do ar depois da data, troque por:  const ABA_TEMA = null;
-const ABA_TEMA = { id:"tema", rotulo:"Halloween", icone:"🎃", tag:"halloween" };
-const itemDoTema = it => ABA_TEMA && tagsDoItem(it).some(t => semAcento(t) === ABA_TEMA.tag);
+const ABA_TEMA = { id:"tema", rotulo:"Halloween", icone:"🎃", tag:"halloween", tags:["halloween", "fantasia"] };
+const itemDoTema = it => ABA_TEMA && tagsDoItem(it).some(t => (ABA_TEMA.tags || [ABA_TEMA.tag]).includes(semAcento(t)));
 
 // Traduz o "tipo" do figure string (as duas letrinhas no começo do código
 // da peça, tipo "ha" em "ha-1012-1339") pro nome da categoria em português.
