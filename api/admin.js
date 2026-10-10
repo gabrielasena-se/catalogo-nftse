@@ -158,6 +158,9 @@ function limparEstoque(r) {
     comprado: valor(r.comprado),       // por quanto comprou no total (US$, preço da TokenTrove)
     atualManual: valor(r.atualManual), // valor de hoje por unidade (US$), quando não há preço automático
     obs: texto(r.obs, 300),
+    vendido: !!r.vendido,              // vendido: sai das contas do estoque, mas o registro fica
+    venda: r.vendido ? valor(r.venda) : 0,   // quanto recebeu na venda (R$)
+    dataVenda: r.vendido && /^\d{4}-\d{2}-\d{2}$/.test(r.dataVenda || "") ? r.dataVenda : "",
     criadoEm: Number(r.criadoEm) || Date.now()
   };
 }

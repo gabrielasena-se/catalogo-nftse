@@ -520,6 +520,8 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .calc-destaque{font-size:26px;font-weight:700;margin:4px 0}
 .admin-campo{display:block;font-size:12px;color:var(--mudo);margin-top:10px}
 .admin-campo[hidden]{display:none}
+.est-venda{display:flex;gap:12px;flex-wrap:wrap}
+.est-venda[hidden]{display:none}
 .admin-campo input,.admin-campo select{width:100%;margin-top:4px;box-sizing:border-box}
 .tag-admin{display:inline-flex;align-items:center;gap:6px;border:1px solid #b800b8;color:#ff8cf0;border-radius:999px;padding:3px 4px 3px 10px;font-size:12px}
 .tag-admin button{background:rgba(255,46,224,.15);border:none;color:#ff8cf0;border-radius:50%;width:18px;height:18px;font-size:10px;line-height:18px;padding:0;cursor:pointer}
@@ -10857,10 +10859,15 @@ async function adminEstoque(alvo){
     const pago = x.cambios ? cambiosEmReais(x.cambios) : (x.pago || 0);
     return { ...x, pago, unit, hojeUsd, hojeRs: hojeUsd * cotacao, automatico: !!(x.slug && precos.usd[x.slug]) };
   });
-  const linhas = estFiltroConta ? linhasTodas.filter(x => (x.conta || "").trim() === estFiltroConta) : linhasTodas;
+  const linhasConta = estFiltroConta ? linhasTodas.filter(x => (x.conta || "").trim() === estFiltroConta) : linhasTodas;
+  // vendidos: saem das contas do estoque, mas o registro fica (com o lucro da venda)
+  const linhas = linhasConta.filter(x => !x.vendido);
+  const vendidos = linhasConta.filter(x => x.vendido).sort((a, b) => (b.dataVenda || "").localeCompare(a.dataVenda || ""));
+  const totalVendido = vendidos.reduce((s, x) => s + (x.venda || 0), 0);
+  const lucroVendas = vendidos.reduce((s, x) => s + (x.venda || 0) - (x.pago || 0), 0);
   // total de cada conta (para o resumo quando estiverem todas)
   const porConta = contas.map(c => {
-    const l = linhasTodas.filter(x => (x.conta || "").trim() === c);
+    const l = linhasTodas.filter(x => !x.vendido && (x.conta || "").trim() === c);
     return { conta: c, qtd: l.reduce((s, x) => s + x.qtd, 0), pago: l.reduce((s, x) => s + (x.pago || 0), 0), hojeRs: l.reduce((s, x) => s + x.hojeRs, 0) };
   });
   const semConta = linhasTodas.filter(x => !(x.conta || "").trim()).length;
@@ -10875,7 +10882,7 @@ async function adminEstoque(alvo){
   const sinal = v => (v < 0 ? "− " : "+ ") + fmtRs(Math.abs(v));
   const dataBR = iso => { if (!iso) return "–"; const [a, m, d] = iso.split("-"); return `${d}/${m}/${a}`; };
   let ultimaConta = ""; try { ultimaConta = localStorage.getItem("nftse_est_conta") || ""; } catch (e) {}
-  const form = estEditando || { nome: "", conta: estFiltroConta || ultimaConta, qtd: 1, data: hojeISO(), pago: "", cambios: "", comprado: "", atualManual: "", obs: "" };
+  const form = estEditando || { nome: "", conta: estFiltroConta || ultimaConta, qtd: 1, data: hojeISO(), pago: "", cambios: "", comprado: "", atualManual: "", obs: "", vendido: false, venda: "", dataVenda: "" };
   const pagouCambios = !!(form.cambios && form.cambios > 0);
   const valorCampo = v => v === "" || v == null || v === 0 ? "" : String(v).replace(".", ",");
 
@@ -10927,6 +10934,12 @@ async function adminEstoque(alvo){
         <label class="admin-campo" id="estManualCampo">Valor de hoje por unidade (US$)<input id="estManual" class="figura" inputmode="decimal" value="${esc(valorCampo(form.atualManual))}">
           <span class="dica" style="display:block;margin-top:2px">Só para itens sem preço da TokenTrove.</span></label>
         <label class="admin-campo">Observação (opcional)<input id="estObs" class="figura" maxlength="300" value="${esc(form.obs || "")}"></label>
+        <label class="admin-campo" style="display:flex;gap:8px;align-items:center">
+          <input type="checkbox" id="estVendido" style="width:auto;flex:none;margin:0" ${form.vendido ? "checked" : ""}> Já vendi este NFT</label>
+        <div id="estVendaCampos" class="est-venda" ${form.vendido ? "" : "hidden"}>
+          <label class="admin-campo" style="flex:1;min-width:150px">Valor da venda (R$)<input id="estVenda" class="figura" inputmode="decimal" value="${esc(valorCampo(form.venda))}"></label>
+          <label class="admin-campo" style="flex:1;min-width:150px">Data da venda<input id="estDataVenda" type="date" class="figura" value="${esc(form.dataVenda || hojeISO())}"></label>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
           <button type="button" class="opt" id="estSalvar">${estEditando ? "Salvar alterações" : "Adicionar"}</button>
           ${estEditando ? `<button type="button" class="opt" id="estCancelar">Cancelar</button>` : ""}
@@ -10947,10 +10960,30 @@ async function adminEstoque(alvo){
             <td>${fmtRs(x.pago)}${x.cambios ? `<br><span class="dica">${fmtCambios(x.cambios)}</span>` : ""}</td>
             <td>${x.unit ? `${fmtRs(x.hojeRs)}<br><span class="dica">${fmtUs(x.hojeUsd)}${x.automatico ? "" : " · digitado"}</span>` : `<span class="dica">sem valor</span>`}</td>
             <td>${x.unit ? `<span style="color:${cor(x.hojeRs - x.pago)}">${sinal(x.hojeRs - x.pago)}</span>` : "–"}</td>
-            <td><button type="button" class="opt" data-est-editar="${x.id}" style="padding:4px 8px">Editar</button>
+            <td style="white-space:nowrap"><button type="button" class="opt" data-est-vender="${x.id}" style="padding:4px 8px" title="Marcar como vendido">Vendi</button>
+                <button type="button" class="opt" data-est-editar="${x.id}" style="padding:4px 8px">Editar</button>
                 <button type="button" class="opt" data-est-apagar="${x.id}" style="padding:4px 8px" title="Apagar" aria-label="Apagar">✕</button></td></tr>`).join("")}
         </table></div>` : `<p class="dica">Nenhum NFT no estoque ainda.</p>`}
       </section>
+      ${vendidos.length ? `
+      <section class="admin-bloco admin-bloco-largo">
+        <h3>Vendidos (${vendidos.length})</h3>
+        <p style="margin:0 0 8px">Total vendido: <b>${fmtRs(totalVendido)}</b> · Lucro: <b style="color:${cor(lucroVendas)}">${sinal(lucroVendas)}</b>
+          <span class="dica">(valor da venda − quanto pagou)</span></p>
+        <div style="overflow-x:auto">
+        <table class="calc-tabela">
+          <tr class="dica"><td>Item</td><td>Conta</td><td>Qtd</td><td>Pago</td><td>Venda</td><td>Lucro</td><td></td></tr>
+          ${vendidos.map(x => `<tr>
+            <td style="text-align:left;white-space:normal">${x.slug ? `<a href="#item/${esc(x.slug)}">${esc(x.nome)}</a>` : esc(x.nome)}${x.obs ? `<br><span class="dica">${esc(x.obs)}</span>` : ""}</td>
+            <td>${x.conta ? esc(x.conta) : `<span class="dica">–</span>`}</td>
+            <td>${x.qtd}</td>
+            <td>${fmtRs(x.pago)}<br><span class="dica">${dataBR(x.data)}${x.cambios ? " · " + fmtCambios(x.cambios) : ""}</span></td>
+            <td>${fmtRs(x.venda || 0)}<br><span class="dica">${dataBR(x.dataVenda)}</span></td>
+            <td><span style="color:${cor((x.venda || 0) - x.pago)}">${sinal((x.venda || 0) - x.pago)}</span></td>
+            <td style="white-space:nowrap"><button type="button" class="opt" data-est-editar="${x.id}" style="padding:4px 8px">Editar</button>
+                <button type="button" class="opt" data-est-apagar="${x.id}" style="padding:4px 8px" title="Apagar" aria-label="Apagar">✕</button></td></tr>`).join("")}
+        </table></div>
+      </section>` : ""}
     </div>`;
 
   // preço de hoje do item digitado (quando ele está no catálogo e tem preço da TokenTrove)
@@ -10982,6 +11015,10 @@ async function adminEstoque(alvo){
     document.getElementById("estCambiosCampo").hidden = moeda !== "cambios";
   });
 
+  // vendido: mostra o valor e a data da venda
+  const caixaVendido = document.getElementById("estVendido");
+  caixaVendido.onchange = () => { document.getElementById("estVendaCampos").hidden = !caixaVendido.checked; };
+
   document.getElementById("estSalvar").onclick = async () => {
     const aviso = document.getElementById("estAviso");
     const nome = campoNome.value.trim();
@@ -10996,7 +11033,10 @@ async function adminEstoque(alvo){
       cambios: moeda === "cambios" ? (parseInt(campoCambios.value, 10) || 0) : 0,
       comprado: lerNumero(document.getElementById("estComprado").value),
       atualManual: lerNumero(document.getElementById("estManual").value),
-      obs: document.getElementById("estObs").value };
+      obs: document.getElementById("estObs").value,
+      vendido: caixaVendido.checked,
+      venda: caixaVendido.checked ? lerNumero(document.getElementById("estVenda").value) : 0,
+      dataVenda: caixaVendido.checked ? document.getElementById("estDataVenda").value : "" };
     aviso.textContent = "Salvando...";
     try {
       const r = await postAdmin("/api/admin", { acao: "estoque-salvar", registro });
@@ -11008,13 +11048,21 @@ async function adminEstoque(alvo){
   const cancelar = document.getElementById("estCancelar");
   if (cancelar) cancelar.onclick = () => { estEditando = null; adminEstoque(alvo); };
   alvo.querySelectorAll("[data-est-conta]").forEach(b => b.onclick = () => { estFiltroConta = b.dataset.estConta; adminEstoque(alvo); });
+  // "Vendi": abre o item no formulário já marcado como vendido, para colocar o valor da venda
+  alvo.querySelectorAll("[data-est-vender]").forEach(b => b.onclick = () => {
+    const x = registros.find(y => y.id === b.dataset.estVender);
+    if (!x) return;
+    estEditando = { ...x, vendido: true, dataVenda: x.dataVenda || hojeISO() };
+    adminEstoque(alvo).then(() => { const v = document.getElementById("estVenda"); if (v) { v.scrollIntoView({ block: "center" }); v.focus(); } });
+  });
   alvo.querySelectorAll("[data-est-editar]").forEach(b => b.onclick = () => {
     estEditando = registros.find(x => x.id === b.dataset.estEditar) || null;
     adminEstoque(alvo);
   });
   alvo.querySelectorAll("[data-est-apagar]").forEach(b => b.onclick = async () => {
     const x = registros.find(y => y.id === b.dataset.estApagar);
-    if (!x || !confirm(`Tirar do estoque: ${x.nome} (${x.qtd})?`)) return;
+    if (!x || !confirm(`Apagar o registro de ${x.nome} (${x.qtd})? Ele some do estoque e do histórico.
+Se você vendeu, use "Vendi" para guardar o registro.`)) return;
     try { await postAdmin("/api/admin", { acao: "estoque-apagar", id: x.id }); } catch (e) {}
     if (estEditando && estEditando.id === x.id) estEditando = null;
     adminEstoque(alvo);
