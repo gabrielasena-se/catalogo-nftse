@@ -10798,7 +10798,7 @@ async function adminFinancas(alvo){
 // O valor de hoje vem do preço da TokenTrove gravado na última atualização do catálogo (catalogo:precos),
 // convertido pelo dólar da Calculadora. Item fora do catálogo: o valor de hoje é digitado.
 // Fica no servidor (Redis, estoque:registros), então aparece em qualquer aparelho do admin.
-let estEditando = null;
+let estEditando = null, estFiltroConta = "";   // estFiltroConta: "" = todas as contas
 
 async function adminEstoque(alvo){
   alvo.innerHTML = `<p class="dica">Carregando...</p>`;
@@ -10815,10 +10815,20 @@ async function adminEstoque(alvo){
   const porNome = new Map(CATALOGO.map(it => [semAcento(it.pt), it]));
   // valor de hoje por unidade (US$): preço da TokenTrove ou o digitado
   const hojeUnit = x => (x.slug && precos.usd[x.slug]) || x.atualManual || 0;
-  const linhas = registros.map(x => {
+  // contas (avatares/carteiras) já usadas, e o filtro escolhido
+  const contas = [...new Set(registros.map(x => (x.conta || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  if (estFiltroConta && !contas.includes(estFiltroConta)) estFiltroConta = "";
+  const linhasTodas = registros.map(x => {
     const unit = hojeUnit(x), hojeUsd = unit * x.qtd;
     return { ...x, unit, hojeUsd, hojeRs: hojeUsd * cotacao, automatico: !!(x.slug && precos.usd[x.slug]) };
   });
+  const linhas = estFiltroConta ? linhasTodas.filter(x => (x.conta || "").trim() === estFiltroConta) : linhasTodas;
+  // total de cada conta (para o resumo quando estiverem todas)
+  const porConta = contas.map(c => {
+    const l = linhasTodas.filter(x => (x.conta || "").trim() === c);
+    return { conta: c, qtd: l.reduce((s, x) => s + x.qtd, 0), pago: l.reduce((s, x) => s + (x.pago || 0), 0), hojeRs: l.reduce((s, x) => s + x.hojeRs, 0) };
+  });
+  const semConta = linhasTodas.filter(x => !(x.conta || "").trim()).length;
   const somar = k => linhas.reduce((s, x) => s + (x[k] || 0), 0);
   const totalQtd = somar("qtd"), totalPago = somar("pago"), totalComprado = somar("comprado");
   const totalHojeUsd = somar("hojeUsd"), totalHojeRs = totalHojeUsd * cotacao;
@@ -10829,13 +10839,16 @@ async function adminEstoque(alvo){
   const cor = v => v < 0 ? "#ff8a8a" : "#7ee2a8";
   const sinal = v => (v < 0 ? "− " : "+ ") + fmtRs(Math.abs(v));
   const dataBR = iso => { if (!iso) return "–"; const [a, m, d] = iso.split("-"); return `${d}/${m}/${a}`; };
-  const form = estEditando || { nome: "", qtd: 1, data: hojeISO(), pago: "", comprado: "", atualManual: "", obs: "" };
+  let ultimaConta = ""; try { ultimaConta = localStorage.getItem("nftse_est_conta") || ""; } catch (e) {}
+  const form = estEditando || { nome: "", conta: estFiltroConta || ultimaConta, qtd: 1, data: hojeISO(), pago: "", comprado: "", atualManual: "", obs: "" };
   const valorCampo = v => v === "" || v == null || v === 0 ? "" : String(v).replace(".", ",");
 
   alvo.innerHTML = `
+    ${contas.length ? `<div class="admin-periodo">${[["", "Todas as contas"], ...contas.map(c => [c, c])].map(([id, rot]) =>
+      `<button type="button" class="opt" data-est-conta="${esc(id)}" aria-pressed="${id === estFiltroConta}">${esc(rot)}</button>`).join("")}</div>` : ""}
     <div class="admin-grade">
       <section class="admin-bloco">
-        <h3>Resumo do estoque</h3>
+        <h3>Resumo do estoque${estFiltroConta ? ` · ${esc(estFiltroConta)}` : ""}</h3>
         <table class="calc-tabela">
           <tr><td>NFTs em estoque</td><td>${totalQtd}</td></tr>
           <tr><td>Total pago</td><td>${fmtRs(totalPago)}</td></tr>
@@ -10846,12 +10859,21 @@ async function adminEstoque(alvo){
         <p class="dica" style="margin:8px 0 0">Valor hoje: preço da TokenTrove na última atualização do catálogo${precos.data ? ` (${dataBR(precos.data)})` : ""},
           com o dólar a R$ ${cotacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (o mesmo da Calculadora).
           ${semValor ? `<br>${semValor} ${semValor === 1 ? "item está" : "itens estão"} sem valor de hoje: edite e coloque o valor.` : ""}</p>
+        ${!estFiltroConta && porConta.length ? `
+        <h3 style="margin:16px 0 4px;font-size:14px">Por conta</h3>
+        <table class="calc-tabela">
+          <tr class="dica"><td>Conta</td><td>NFTs</td><td>Pago</td><td>Hoje</td></tr>
+          ${porConta.map(c => `<tr><td>${esc(c.conta)}</td><td>${c.qtd}</td><td>${fmtRs(c.pago)}</td><td>${fmtRs(c.hojeRs)}</td></tr>`).join("")}
+        </table>
+        ${semConta ? `<p class="dica" style="margin:6px 0 0">${semConta} ${semConta === 1 ? "item está" : "itens estão"} sem conta.</p>` : ""}` : ""}
       </section>
       <section class="admin-bloco">
         <h3>${estEditando ? "Editar item" : "Adicionar ao estoque"}</h3>
         <datalist id="estNomes">${CATALOGO.map(it => `<option value="${esc(it.pt)}">`).join("")}</datalist>
         <label class="admin-campo">Item<input id="estNome" class="figura" list="estNomes" maxlength="120" value="${esc(form.nome)}" placeholder="Digite o nome..."></label>
         <span class="dica" id="estPrecoHoje" style="display:block;margin-top:2px"></span>
+        <datalist id="estContas">${contas.map(c => `<option value="${esc(c)}">`).join("")}</datalist>
+        <label class="admin-campo">Conta (avatar/carteira)<input id="estConta" class="figura" list="estContas" maxlength="40" value="${esc(form.conta || "")}" placeholder="Nome do avatar"></label>
         <div style="display:flex;gap:12px;flex-wrap:wrap">
           <label class="admin-campo" style="flex:1;min-width:110px">Quantidade<input id="estQtd" class="figura" inputmode="numeric" value="${esc(String(form.qtd || 1))}"></label>
           <label class="admin-campo" style="flex:1;min-width:150px">Data da compra<input id="estData" type="date" class="figura" value="${esc(form.data || "")}"></label>
@@ -10872,9 +10894,10 @@ async function adminEstoque(alvo){
         ${linhas.length ? `
         <div style="overflow-x:auto">
         <table class="calc-tabela">
-          <tr class="dica"><td>Item</td><td>Qtd</td><td>Compra</td><td>Pago</td><td>Hoje</td><td>Diferença</td><td></td></tr>
+          <tr class="dica"><td>Item</td><td>Conta</td><td>Qtd</td><td>Compra</td><td>Pago</td><td>Hoje</td><td>Diferença</td><td></td></tr>
           ${linhas.map(x => `<tr>
             <td style="text-align:left;white-space:normal">${x.slug ? `<a href="#item/${esc(x.slug)}">${esc(x.nome)}</a>` : esc(x.nome)}${x.obs ? `<br><span class="dica">${esc(x.obs)}</span>` : ""}</td>
+            <td>${x.conta ? esc(x.conta) : `<span class="dica">–</span>`}</td>
             <td>${x.qtd}</td>
             <td>${dataBR(x.data)}${x.comprado ? `<br><span class="dica">${fmtUs(x.comprado)}</span>` : ""}</td>
             <td>${fmtRs(x.pago)}</td>
@@ -10904,7 +10927,9 @@ async function adminEstoque(alvo){
     const nome = campoNome.value.trim();
     if (!nome) { aviso.textContent = "Coloque o nome do item."; return; }
     const it = porNome.get(semAcento(nome));
-    const registro = { ...(estEditando || {}), nome: it ? it.pt : nome, slug: it ? it.slug : "",
+    const conta = document.getElementById("estConta").value.trim();
+    try { localStorage.setItem("nftse_est_conta", conta); } catch (e) {}   // a próxima já vem com a mesma conta
+    const registro = { ...(estEditando || {}), nome: it ? it.pt : nome, slug: it ? it.slug : "", conta,
       qtd: parseInt(document.getElementById("estQtd").value, 10) || 1,
       data: document.getElementById("estData").value,
       pago: lerNumero(document.getElementById("estPago").value),
@@ -10921,6 +10946,7 @@ async function adminEstoque(alvo){
   };
   const cancelar = document.getElementById("estCancelar");
   if (cancelar) cancelar.onclick = () => { estEditando = null; adminEstoque(alvo); };
+  alvo.querySelectorAll("[data-est-conta]").forEach(b => b.onclick = () => { estFiltroConta = b.dataset.estConta; adminEstoque(alvo); });
   alvo.querySelectorAll("[data-est-editar]").forEach(b => b.onclick = () => {
     estEditando = registros.find(x => x.id === b.dataset.estEditar) || null;
     adminEstoque(alvo);

@@ -151,6 +151,7 @@ function limparEstoque(r) {
   const qtd = Math.max(1, Math.min(9999, Math.round(Number(r.qtd) || 1)));
   return {
     id, nome, data, qtd,
+    conta: texto(r.conta, 40),         // avatar/carteira onde o NFT está
     slug: /^[a-z0-9-]{1,80}$/.test(r.slug || "") ? r.slug : "",
     pago: valor(r.pago),               // quanto pagou no total (R$)
     comprado: valor(r.comprado),       // por quanto comprou no total (US$, preço da TokenTrove)
