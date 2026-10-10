@@ -154,6 +154,7 @@ function limparEstoque(r) {
     conta: texto(r.conta, 40),         // avatar/carteira onde o NFT está
     slug: /^[a-z0-9-]{1,80}$/.test(r.slug || "") ? r.slug : "",
     pago: valor(r.pago),               // quanto pagou no total (R$)
+    cambios: Math.max(0, Math.min(1e7, Math.round(Number(r.cambios) || 0))),   // ou: quantos câmbios pagou (moeda do jogo)
     comprado: valor(r.comprado),       // por quanto comprou no total (US$, preço da TokenTrove)
     atualManual: valor(r.atualManual), // valor de hoje por unidade (US$), quando não há preço automático
     obs: texto(r.obs, 300),

@@ -515,6 +515,7 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .calc-tabela tr.calc-total td{font-weight:700;font-size:17px;color:var(--texto);border-bottom:none}
 .calc-destaque{font-size:26px;font-weight:700;margin:4px 0}
 .admin-campo{display:block;font-size:12px;color:var(--mudo);margin-top:10px}
+.admin-campo[hidden]{display:none}
 .admin-campo input,.admin-campo select{width:100%;margin-top:4px;box-sizing:border-box}
 .tag-admin{display:inline-flex;align-items:center;gap:6px;border:1px solid #b800b8;color:#ff8cf0;border-radius:999px;padding:3px 4px 3px 10px;font-size:12px}
 .tag-admin button{background:rgba(255,46,224,.15);border:none;color:#ff8cf0;border-radius:50%;width:18px;height:18px;font-size:10px;line-height:18px;padding:0;cursor:pointer}
@@ -10800,6 +10801,17 @@ async function adminFinancas(alvo){
 // Fica no servidor (Redis, estoque:registros), então aparece em qualquer aparelho do admin.
 let estEditando = null, estFiltroConta = "";   // estFiltroConta: "" = todas as contas
 
+// Câmbios (moeda do jogo): pacotes e preços em R$. A quantidade é montada com os pacotes,
+// do maior para o menor; o que sobrar (menos de 50c) sai pelo preço do menor pacote.
+const PACOTES_CAMBIO = [[1000, 210], [500, 105], [250, 52.5], [100, 22], [50, 11]];
+function cambiosEmReais(c){
+  let resto = Math.max(0, Math.round(c || 0)), rs = 0;
+  for (const [qtd, preco] of PACOTES_CAMBIO) { const n = Math.floor(resto / qtd); rs += n * preco; resto -= n * qtd; }
+  const [menorQtd, menorPreco] = PACOTES_CAMBIO[PACOTES_CAMBIO.length - 1];
+  return Math.round((rs + resto * menorPreco / menorQtd) * 100) / 100;
+}
+const fmtCambios = c => c.toLocaleString("pt-BR") + "c";
+
 async function adminEstoque(alvo){
   alvo.innerHTML = `<p class="dica">Carregando...</p>`;
   let registros = [], precos = { data: null, usd: {} };
@@ -10820,7 +10832,9 @@ async function adminEstoque(alvo){
   if (estFiltroConta && !contas.includes(estFiltroConta)) estFiltroConta = "";
   const linhasTodas = registros.map(x => {
     const unit = hojeUnit(x), hojeUsd = unit * x.qtd;
-    return { ...x, unit, hojeUsd, hojeRs: hojeUsd * cotacao, automatico: !!(x.slug && precos.usd[x.slug]) };
+    // pago em câmbios: convertido para reais pela tabela de pacotes
+    const pago = x.cambios ? cambiosEmReais(x.cambios) : (x.pago || 0);
+    return { ...x, pago, unit, hojeUsd, hojeRs: hojeUsd * cotacao, automatico: !!(x.slug && precos.usd[x.slug]) };
   });
   const linhas = estFiltroConta ? linhasTodas.filter(x => (x.conta || "").trim() === estFiltroConta) : linhasTodas;
   // total de cada conta (para o resumo quando estiverem todas)
@@ -10830,7 +10844,7 @@ async function adminEstoque(alvo){
   });
   const semConta = linhasTodas.filter(x => !(x.conta || "").trim()).length;
   const somar = k => linhas.reduce((s, x) => s + (x[k] || 0), 0);
-  const totalQtd = somar("qtd"), totalPago = somar("pago"), totalComprado = somar("comprado");
+  const totalQtd = somar("qtd"), totalPago = somar("pago"), totalComprado = somar("comprado"), totalCambios = somar("cambios");
   const totalHojeUsd = somar("hojeUsd"), totalHojeRs = totalHojeUsd * cotacao;
   const semValor = linhas.filter(x => !x.unit).length;
   // a diferença só compara itens que têm valor de hoje (os sem valor não entram como se valessem zero)
@@ -10840,7 +10854,8 @@ async function adminEstoque(alvo){
   const sinal = v => (v < 0 ? "− " : "+ ") + fmtRs(Math.abs(v));
   const dataBR = iso => { if (!iso) return "–"; const [a, m, d] = iso.split("-"); return `${d}/${m}/${a}`; };
   let ultimaConta = ""; try { ultimaConta = localStorage.getItem("nftse_est_conta") || ""; } catch (e) {}
-  const form = estEditando || { nome: "", conta: estFiltroConta || ultimaConta, qtd: 1, data: hojeISO(), pago: "", comprado: "", atualManual: "", obs: "" };
+  const form = estEditando || { nome: "", conta: estFiltroConta || ultimaConta, qtd: 1, data: hojeISO(), pago: "", cambios: "", comprado: "", atualManual: "", obs: "" };
+  const pagouCambios = !!(form.cambios && form.cambios > 0);
   const valorCampo = v => v === "" || v == null || v === 0 ? "" : String(v).replace(".", ",");
 
   alvo.innerHTML = `
@@ -10852,6 +10867,7 @@ async function adminEstoque(alvo){
         <table class="calc-tabela">
           <tr><td>NFTs em estoque</td><td>${totalQtd}</td></tr>
           <tr><td>Total pago</td><td>${fmtRs(totalPago)}</td></tr>
+          ${totalCambios ? `<tr><td>Pago em câmbios <span class="dica">(já somado acima)</span></td><td>${fmtCambios(totalCambios)} <span class="dica">(${fmtRs(cambiosEmReais(totalCambios))})</span></td></tr>` : ""}
           ${totalComprado ? `<tr><td>Comprados por</td><td>${fmtUs(totalComprado)}</td></tr>` : ""}
           <tr><td>Valor hoje</td><td>${fmtRs(totalHojeRs)} <span class="dica">(${fmtUs(totalHojeUsd)})</span></td></tr>
           <tr class="calc-total"><td>Diferença${semValor ? `<br><span class="dica" style="font-weight:400">só dos itens com valor de hoje</span>` : ""}</td><td style="color:${cor(diferenca)}">${sinal(diferenca)}</td></tr>
@@ -10878,7 +10894,14 @@ async function adminEstoque(alvo){
           <label class="admin-campo" style="flex:1;min-width:110px">Quantidade<input id="estQtd" class="figura" inputmode="numeric" value="${esc(String(form.qtd || 1))}"></label>
           <label class="admin-campo" style="flex:1;min-width:150px">Data da compra<input id="estData" type="date" class="figura" value="${esc(form.data || "")}"></label>
         </div>
-        <label class="admin-campo">Quanto você pagou no total (R$)<input id="estPago" class="figura" inputmode="decimal" value="${esc(valorCampo(form.pago))}"></label>
+        <div class="admin-campo">Pagou em
+          <span style="display:flex;gap:6px;margin-top:4px">
+            <button type="button" class="opt" data-est-moeda="rs" aria-pressed="${!pagouCambios}">Reais</button>
+            <button type="button" class="opt" data-est-moeda="cambios" aria-pressed="${pagouCambios}">Câmbios</button>
+          </span></div>
+        <label class="admin-campo" id="estPagoCampo" ${pagouCambios ? "hidden" : ""}>Quanto você pagou no total (R$)<input id="estPago" class="figura" inputmode="decimal" value="${esc(valorCampo(form.pago))}"></label>
+        <label class="admin-campo" id="estCambiosCampo" ${pagouCambios ? "" : "hidden"}>Quantos câmbios você pagou no total<input id="estCambios" class="figura" inputmode="numeric" value="${esc(valorCampo(form.cambios))}">
+          <span class="dica" id="estCambiosRs" style="display:block;margin-top:2px"></span></label>
         <label class="admin-campo">Por quanto comprou no total (US$, opcional)<input id="estComprado" class="figura" inputmode="decimal" value="${esc(valorCampo(form.comprado))}"></label>
         <label class="admin-campo" id="estManualCampo">Valor de hoje por unidade (US$)<input id="estManual" class="figura" inputmode="decimal" value="${esc(valorCampo(form.atualManual))}">
           <span class="dica" style="display:block;margin-top:2px">Só para itens sem preço da TokenTrove.</span></label>
@@ -10900,7 +10923,7 @@ async function adminEstoque(alvo){
             <td>${x.conta ? esc(x.conta) : `<span class="dica">–</span>`}</td>
             <td>${x.qtd}</td>
             <td>${dataBR(x.data)}${x.comprado ? `<br><span class="dica">${fmtUs(x.comprado)}</span>` : ""}</td>
-            <td>${fmtRs(x.pago)}</td>
+            <td>${fmtRs(x.pago)}${x.cambios ? `<br><span class="dica">${fmtCambios(x.cambios)}</span>` : ""}</td>
             <td>${x.unit ? `${fmtRs(x.hojeRs)}<br><span class="dica">${fmtUs(x.hojeUsd)}${x.automatico ? "" : " · digitado"}</span>` : `<span class="dica">sem valor</span>`}</td>
             <td>${x.unit ? `<span style="color:${cor(x.hojeRs - x.pago)}">${sinal(x.hojeRs - x.pago)}</span>` : "–"}</td>
             <td><button type="button" class="opt" data-est-editar="${x.id}" style="padding:4px 8px">Editar</button>
@@ -10922,6 +10945,22 @@ async function adminEstoque(alvo){
   campoNome.oninput = mostrarPreco;
   mostrarPreco();
 
+  // reais ou câmbios: mostra o campo certo e a conversão dos câmbios
+  let moeda = pagouCambios ? "cambios" : "rs";
+  const campoCambios = document.getElementById("estCambios");
+  const mostrarCambios = () => {
+    const c = parseInt(campoCambios.value, 10) || 0;
+    document.getElementById("estCambiosRs").textContent = c ? `= ${fmtRs(cambiosEmReais(c))} (pela tabela de pacotes)` : "";
+  };
+  campoCambios.oninput = mostrarCambios;
+  mostrarCambios();
+  alvo.querySelectorAll("[data-est-moeda]").forEach(b => b.onclick = () => {
+    moeda = b.dataset.estMoeda;
+    alvo.querySelectorAll("[data-est-moeda]").forEach(x => x.setAttribute("aria-pressed", x === b));
+    document.getElementById("estPagoCampo").hidden = moeda !== "rs";
+    document.getElementById("estCambiosCampo").hidden = moeda !== "cambios";
+  });
+
   document.getElementById("estSalvar").onclick = async () => {
     const aviso = document.getElementById("estAviso");
     const nome = campoNome.value.trim();
@@ -10932,7 +10971,8 @@ async function adminEstoque(alvo){
     const registro = { ...(estEditando || {}), nome: it ? it.pt : nome, slug: it ? it.slug : "", conta,
       qtd: parseInt(document.getElementById("estQtd").value, 10) || 1,
       data: document.getElementById("estData").value,
-      pago: lerNumero(document.getElementById("estPago").value),
+      pago: moeda === "rs" ? lerNumero(document.getElementById("estPago").value) : 0,
+      cambios: moeda === "cambios" ? (parseInt(campoCambios.value, 10) || 0) : 0,
       comprado: lerNumero(document.getElementById("estComprado").value),
       atualManual: lerNumero(document.getElementById("estManual").value),
       obs: document.getElementById("estObs").value };
