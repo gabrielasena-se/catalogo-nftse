@@ -23,11 +23,13 @@
 
 import { randomUUID } from "node:crypto";
 import { exigirSessao } from "./_sessao.js";
+import { temCargoAdmin } from "./_admin.js";
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 const LIMITE_VISUAIS = 100;
+const LIMITE_VISUAIS_ADMIN = 1000;   // quem tem o cargo Administrador no Discord pode salvar mais
 const LIMITE_CARROSSEL = 30;
 const TAMANHO_NOME = 40;
 const CHAVE_PUBLICOS = "visuais:publicos";
@@ -115,7 +117,11 @@ export default async function handler(req, res) {
 
     const quantos = await redis("HLEN", chave);
     if (quantos >= LIMITE_VISUAIS) {
-      return res.status(400).json({ erro: `Você já tem ${LIMITE_VISUAIS} visuais salvos. Exclua algum para salvar outro.` });
+      // só confere o cargo quando passa do limite comum (para não consultar o Discord a cada visual salvo)
+      const limite = (await temCargoAdmin(sessao.discordUserId).catch(() => false)) ? LIMITE_VISUAIS_ADMIN : LIMITE_VISUAIS;
+      if (quantos >= limite) {
+        return res.status(400).json({ erro: `Você já tem ${limite} visuais salvos. Exclua algum para salvar outro.` });
+      }
     }
 
     const visual = {
