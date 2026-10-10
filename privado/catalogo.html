@@ -6066,7 +6066,7 @@ function itensDoVisualHTML(figura){
     else if (CATEGORIAS_PECA[tipo] && !basicas.includes(CATEGORIAS_PECA[tipo])) basicas.push(CATEGORIAS_PECA[tipo]);
   }
   return `<ul class="visual-itens">
-      ${itens.map(i => `<li${i.nft ? ' class="visual-item-nft"' : ""}>${i.nft ? (i.parceria ? `<img src="${CUBO_NFT_B64}" class="cubo-parceria" alt="NFT de parceria" title="NFT de parceria: vem com o NFT ${esc(i.parceria)}">` : `<img src="${CUBO_NFT_B64}" alt="NFT" title="NFT">`) : ""}${i.slug ? `<a href="#item/${esc(i.slug)}">${esc(i.nome)}</a>` : esc(i.nome)}</li>`).join(" ")}
+      ${itens.map(i => `<li${i.nft ? ' class="visual-item-nft"' : ""}>${i.nft ? (i.parceria ? `<img src="${CUBO_NFT_B64}" class="cubo-parceria" alt="NFT parceria" title="NFT parceria: ${esc(i.parceria)}">` : `<img src="${CUBO_NFT_B64}" alt="NFT" title="NFT">`) : ""}${i.slug ? `<a href="#item/${esc(i.slug)}">${esc(i.nome)}</a>` : esc(i.nome)}</li>`).join(" ")}
       ${basicas.length ? `<li class="visual-itens-basicas">Básicas: ${esc(basicas.join(", "))}</li>` : ""}
     </ul>`;
 }
@@ -6320,7 +6320,7 @@ const SELOS_EDITOR = {
   H:   { img: HABBO_H_B64, classe: "selo-habbo", explica: "Grátis ou HC" },
   nft: { img: CUBO_NFT_B64, explica: "NFT" },
   // cubo de outra cor: não se compra a peça, ela vem de brinde com o NFT de um projeto parceiro (OpenSea)
-  parceria: { img: CUBO_NFT_B64, classe: "selo-parceria", explica: "NFT de parceria: vem com o NFT" },
+  parceria: { img: CUBO_NFT_B64, classe: "selo-parceria", explica: "NFT parceria:" },
   LTD: { img: LTD_B64, classe: "selo-ltd", explica: "Edição Limitada" },
   CA:  { img: CAMBIO_B64, classe: "selo-cambio", explica: "Catálogo/Feira" },
   CVD: { img: CAMBIO_B64, classe: "selo-cambio", explica: "Catálogo/Feira (clicável)" },
