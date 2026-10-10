@@ -596,6 +596,8 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .selo-img{display:flex;align-items:center;justify-content:center}
 .selo-img img{width:100%;height:100%;image-rendering:pixelated}
 .selo-ltd{width:34px;height:17px;top:4px}
+/* NFT de parceria (Cool Cats, CyberKongz...): o mesmo cubo, dourado */
+.selo-parceria img,img.cubo-parceria{filter:hue-rotate(180deg) saturate(1.6) brightness(1.15)}
 .selo-h{
   border-radius:7px;background:linear-gradient(180deg,#ff2ee0,#b800a0);
   border:2px solid #3a0050;color:#fff;font-family:var(--pixel);font-size:16px;font-weight:700;
@@ -6059,12 +6061,12 @@ function itensDoVisualHTML(figura){
       const chave = doCatalogo ? doCatalogo.slug : info.nome;
       if (vistos.has(chave)) continue;
       vistos.add(chave);
-      itens.push({ nome: info.nome, nft: info.origem === "nft", slug: doCatalogo && doCatalogo.slug });
+      itens.push({ nome: info.nome, nft: info.origem === "nft" || info.origem === "parceria", parceria: info.parceria, slug: doCatalogo && doCatalogo.slug });
     }
     else if (CATEGORIAS_PECA[tipo] && !basicas.includes(CATEGORIAS_PECA[tipo])) basicas.push(CATEGORIAS_PECA[tipo]);
   }
   return `<ul class="visual-itens">
-      ${itens.map(i => `<li${i.nft ? ' class="visual-item-nft"' : ""}>${i.nft ? `<img src="${CUBO_NFT_B64}" alt="NFT" title="NFT">` : ""}${i.slug ? `<a href="#item/${esc(i.slug)}">${esc(i.nome)}</a>` : esc(i.nome)}</li>`).join(" ")}
+      ${itens.map(i => `<li${i.nft ? ' class="visual-item-nft"' : ""}>${i.nft ? (i.parceria ? `<img src="${CUBO_NFT_B64}" class="cubo-parceria" alt="NFT de parceria" title="NFT de parceria: vem com o NFT ${esc(i.parceria)}">` : `<img src="${CUBO_NFT_B64}" alt="NFT" title="NFT">`) : ""}${i.slug ? `<a href="#item/${esc(i.slug)}">${esc(i.nome)}</a>` : esc(i.nome)}</li>`).join(" ")}
       ${basicas.length ? `<li class="visual-itens-basicas">Básicas: ${esc(basicas.join(", "))}</li>` : ""}
     </ul>`;
 }
@@ -6317,6 +6319,8 @@ const CAMBIO_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAA
 const SELOS_EDITOR = {
   H:   { img: HABBO_H_B64, classe: "selo-habbo", explica: "Grátis ou HC" },
   nft: { img: CUBO_NFT_B64, explica: "NFT" },
+  // cubo de outra cor: não se compra a peça, ela vem de brinde com o NFT de um projeto parceiro (OpenSea)
+  parceria: { img: CUBO_NFT_B64, classe: "selo-parceria", explica: "NFT de parceria: vem com o NFT" },
   LTD: { img: LTD_B64, classe: "selo-ltd", explica: "Edição Limitada" },
   CA:  { img: CAMBIO_B64, classe: "selo-cambio", explica: "Catálogo/Feira" },
   CVD: { img: CAMBIO_B64, classe: "selo-cambio", explica: "Catálogo/Feira (clicável)" },
@@ -6325,11 +6329,12 @@ const SELOS_EDITOR = {
   CRX: { letra: "P", classe: "selo-p", explica: "Pack" },
   CAZ: { img: DUCKET_B64, classe: "selo-ducket", explica: "Duckets" }
 };
-function seloEditorHTML(origem){
+function seloEditorHTML(origem, parceria){
   const s = SELOS_EDITOR[origem];
   if (!s) return "";
+  const explica = parceria ? `${s.explica} ${parceria}` : s.explica;
   const conteudo = s.img ? `<img src="${s.img}" alt="">` : s.letra;
-  return `<span class="selo-origem ${s.img ? "selo-img" : "selo-h"} ${s.classe || ""}" data-explica="${esc(s.explica)}" aria-label="${esc(s.explica)}">${conteudo}</span>`;
+  return `<span class="selo-origem ${s.img ? "selo-img" : "selo-h"} ${s.classe || ""}" data-explica="${esc(explica)}" aria-label="${esc(explica)}">${conteudo}</span>`;
 }
 
 // Peças que existem no jogo mas NÃO devem aparecer no Editor de Visuais
@@ -6659,14 +6664,14 @@ const INFO_ITENS_EDITOR = {
   ch: [
     { id:"4950", nome:"Camiseta Habbo 2022", origem:"nft" },
     { id:"4951", nome:"Camiseta Habbo 2022", origem:"nft" },
-    { id:"4974", nome:"Camiseta Metakey", origem:"nft" },
-    { id:"4975", nome:"Camiseta Metakey", origem:"nft" },
+    { id:"4974", nome:"Camiseta Metakey", origem:"parceria", parceria:"MetaKey" },
+    { id:"4975", nome:"Camiseta Metakey", origem:"parceria", parceria:"MetaKey" },
     { id:"4981", nome:"Regata Tropical", origem:"nft" },
     { id:"4982", nome:"Regata Tropical", origem:"nft" },
     { id:"4983", nome:"Crop Top Tropical", origem:"nft" },
     { id:"4984", nome:"Crop Top Tropical", origem:"nft" },
-    { id:"5005", nome:"Camiseta Cool Cats", origem:"nft" },
-    { id:"5006", nome:"Camiseta Cool Cats", origem:"nft" },
+    { id:"5005", nome:"Camiseta Cool Cats", origem:"parceria", parceria:"Cool Cats" },
+    { id:"5006", nome:"Camiseta Cool Cats", origem:"parceria", parceria:"Cool Cats" },
     { id:"5036", nome:"Macacão Boneco Gótico", origem:"nft" },
     { id:"5037", nome:"Macacão Boneco Gótico", origem:"nft" },
     { id:"5038", nome:"Vestido Boneca Gótica", origem:"nft" },
@@ -7168,8 +7173,8 @@ const INFO_ITENS_EDITOR = {
   cc: [
     { id:"4952", nome:"Moletom Habbo 2022", origem:"nft" },
     { id:"4953", nome:"Moletom Habbo 2022", origem:"nft" },
-    { id:"4966", nome:"Moletom MVHQ", origem:"nft" },
-    { id:"4967", nome:"Moletom MVHQ", origem:"nft" },
+    { id:"4966", nome:"Moletom MVHQ", origem:"parceria", parceria:"MVHQ" },
+    { id:"4967", nome:"Moletom MVHQ", origem:"parceria", parceria:"MVHQ" },
     { id:"5104", nome:"Traje Fogos de Artifício 2023", origem:"nft" },
     { id:"5105", nome:"Traje Fogos de Artifício 2023", origem:"nft" },
     { id:"5126", nome:"Casaco de Inverno Marrom", origem:"nft" },
@@ -7611,10 +7616,10 @@ const INFO_ITENS_EDITOR = {
   ],
   ha: [
     { id:"4949", nome:"Boné Habbo 2022", origem:"nft" },
-    { id:"4970", nome:"Cabeça CyberKong", origem:"nft" },
+    { id:"4970", nome:"Cabeça CyberKong", origem:"parceria", parceria:"CyberKongz" },
     { id:"4972", nome:"Cartola Trippy", origem:"nft" },
-    { id:"5003", nome:"Máscara Cool Cats", origem:"nft" },
-    { id:"5004", nome:"Cabeça de TV Cool Cats", origem:"nft" },
+    { id:"5003", nome:"Máscara Cool Cats", origem:"parceria", parceria:"Cool Cats" },
+    { id:"5004", nome:"Cabeça de TV Cool Cats", origem:"parceria", parceria:"Cool Cats" },
     { id:"5010", nome:"Chapéu 1o Aniversário Prata", origem:"nft" },
     { id:"5011", nome:"Chapéu 1o Aniversário Ouro", origem:"nft" },
     { id:"5012", nome:"Chapéu 1o Aniversário Trippy", origem:"nft" },
@@ -8066,8 +8071,8 @@ const INFO_ITENS_EDITOR = {
     ...["1001","1002","1003","1004","1005","1006","1007","1008","1009","1010","1011","1012","1013","1014","1015","1016","1017","1018","1019","1020","1021","1022","1023","1024","1025","1026","1027","3026","3054","3086","3117","3118","3129","3130","3139","3140","3144","3145","3150","3156","3171","3173","3179","3209","3220","3231","3236","3238","3240","3241","3242","3243","3253","3254","3259","3261","3265","3268","3272","3291","3298","3300","3303","3305"].map(id => ({ id }))
   ],
   he: [
-    { id:"4969", nome:"Fones de Ouvido MVHQ", origem:"nft" },
-    { id:"4971", nome:"Casca de Banana CyberKongz", origem:"nft" },
+    { id:"4969", nome:"Fones de Ouvido MVHQ", origem:"parceria", parceria:"MVHQ" },
+    { id:"4971", nome:"Casca de Banana CyberKongz", origem:"parceria", parceria:"CyberKongz" },
     { id:"5199", nome:"Margarida Smurfette", origem:"nft" },
     { id:"5337", nome:"Vela de Aniversário", origem:"nft" },
     { id:"5393", nome:"Piercings de Roqueiro", origem:"nft" },
@@ -8276,7 +8281,7 @@ const INFO_ITENS_EDITOR = {
     ...["1601","1602","1603","1604","1605","1606","1607","1608","1609","1610","3069","3070","3071","3079","3081","3082","3146","3149","3155","3164","3181","3188","3189","3218","3227","3228","3229","3239","3258","3274","3295","3297"].map(id => ({ id }))
   ],
   ea: [
-    { id:"4968", nome:"Óculos VR MVHQ", origem:"nft" },
+    { id:"4968", nome:"Óculos VR MVHQ", origem:"parceria", parceria:"MVHQ" },
     { id:"4985", nome:"Óculos Estrela Azul", origem:"nft" },
     { id:"4986", nome:"Óculos Coração Azul", origem:"nft" },
     { id:"4987", nome:"Óculos Estrela Rosa", origem:"nft" },
@@ -8484,8 +8489,8 @@ const INFO_ITENS_EDITOR = {
     ...["1201","1202","1203","1204","1205","1206","1207","1208","1209","1210","1211","1212","3147","3193","3230","3276","3296","3350"].map(id => ({ id }))
   ],
   ca: [
-    { id:"5001", nome:"Mochila Coração Cool Cats", origem:"nft" },
-    { id:"5002", nome:"Mochila Lil Chugs", origem:"nft" },
+    { id:"5001", nome:"Mochila Coração Cool Cats", origem:"parceria", parceria:"Cool Cats" },
+    { id:"5002", nome:"Mochila Lil Chugs", origem:"parceria", parceria:"Cool Cats" },
     { id:"5043", nome:"Mochila Abóbora Trippy", origem:"nft" },
     { id:"5136", nome:"Mochila Pato de Borracha", origem:"nft" },
     { id:"5193", nome:"Mochila Propulsora Industrial", origem:"nft" },
@@ -9067,7 +9072,7 @@ function botaoItemEditor(tipo, s){
   return `
   <button type="button" class="item-mini" data-tipo="${tipo}" data-id="${s.id}" data-cor="${s.maxCor}"
     data-codigo="${esc(rotuloBotao)}" aria-pressed="${!!(sel && sel.id === s.id)}">
-    ${seloEditorHTML(ehDoJogo ? "H" : (infoItem && infoItem.origem))}
+    ${seloEditorHTML(ehDoJogo ? "H" : (infoItem && infoItem.origem), infoItem && infoItem.parceria)}
     ${zona === "corpo" ? `<span class="recorte-corpo">${imgMiniatura}</span>` : (zona ? `<span class="recorte">${imgMiniatura}</span>` : imgMiniatura)}
     ${semImagemHabbo(tipo, s.id) ? `<span class="sem-imagem">${AVISO_SEM_IMAGEM}</span>` : ""}
   </button>`;
