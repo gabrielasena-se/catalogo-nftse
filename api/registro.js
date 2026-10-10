@@ -96,13 +96,16 @@ export default async function handler(req, res) {
     if (!(await ehAdmin(sessao, corpo.adminSecret))) {
       return res.status(403).json({ erro: "Só quem tem o cargo Administrador no Discord pode fazer isto." });
     }
-    const id = String(corpo.id || ""), de = Number(corpo.de), ate = Number(corpo.ate);
-    if (!/^\d{5,25}$/.test(id) || !isFinite(de) || !isFinite(ate) || ate < de) return res.status(400).json({ erro: "Visita inválida." });
+    // uma visita ({ id, de, ate }) ou várias de uma vez ({ visitas: [{ id, de, ate }, ...] })
+    const lista = (Array.isArray(corpo.visitas) ? corpo.visitas : [corpo]).slice(0, 300)
+      .map(v => ({ id: String(v.id || ""), de: Number(v.de), ate: Number(v.ate) }));
+    if (!lista.length || lista.some(v => !/^\d{5,25}$/.test(v.id) || !isFinite(v.de) || !isFinite(v.ate) || v.ate < v.de))
+      return res.status(400).json({ erro: "Visita inválida." });
     const brutos = await redis("LRANGE", CHAVE_LOG, 0, MAX_REGISTROS - 1);
     let apagados = 0;
     for (const b of Array.isArray(brutos) ? brutos : []) {
       let a; try { a = JSON.parse(b); } catch { continue; }
-      if (a && String(a.id) === id && a.t >= de && a.t <= ate) apagados += (await redis("LREM", CHAVE_LOG, 1, b)) || 0;
+      if (a && lista.some(v => String(a.id) === v.id && a.t >= v.de && a.t <= v.ate)) apagados += (await redis("LREM", CHAVE_LOG, 1, b)) || 0;
     }
     return res.status(200).json({ ok: true, apagados });
   }

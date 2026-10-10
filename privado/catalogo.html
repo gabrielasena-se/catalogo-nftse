@@ -503,6 +503,10 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .admin-arte{width:96px;height:96px;flex:none;border-radius:8px;overflow:hidden;background:var(--tile);display:flex;align-items:center;justify-content:center}
 .admin-arte img{width:100%;height:100%;object-fit:cover}
 .admin-arte .vazio{font-size:10px;color:var(--mudo);text-align:center;padding:4px}
+.acessos-selecao{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+.acessos-marcar{display:inline-flex;margin-right:8px;vertical-align:-2px;cursor:pointer}
+.acessos-marcar input{width:16px;height:16px;margin:0;cursor:pointer;accent-color:var(--ouro)}
+.admin-linha.selecionada{border-color:var(--ouro)}
 .admin-visita-topo{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .admin-excluir-visita{padding:3px 10px;font-size:12px;flex-shrink:0;opacity:.75}
 .admin-excluir-visita:hover{opacity:1}
@@ -11106,21 +11110,62 @@ async function adminAcessos(alvo){
     if (!document.body.contains(alvo)) return;
     alvo.innerHTML = `
       <p style="margin:0 0 12px">Pessoas diferentes: <b>${pessoas(1)}</b> nas últimas 24h · <b>${pessoas(7)}</b> em 7 dias · <b>${pessoas(30)}</b> em 30 dias</p>
+      <div class="acessos-selecao">
+        <select id="acSelPessoa" class="figura" style="margin:0;width:auto">
+          <option value="">Selecionar todas as visitas de...</option>
+          ${[...new Map(visitas.slice(0, 150).map(v => [v.id, v.nick || "?"])).entries()].map(([id, nick]) => `<option value="${esc(id)}">${esc(nick)}</option>`).join("")}
+        </select>
+        <button type="button" class="opt" id="acSelLimpar">Limpar seleção</button>
+        <button type="button" class="opt" id="acExcluirSel" disabled>Excluir selecionados</button>
+      </div>
       <div class="admin-lista">
         ${visitas.slice(0, 150).map((v, i) => `
           <div class="admin-linha">
-            <div class="admin-visita-topo"><div><b>${esc(v.nick || "?")}</b> <span class="dica">${quando(v.inicio)} · ${v.paginas.length} ${v.paginas.length === 1 ? "página" : "páginas"}</span></div>
+            <div class="admin-visita-topo"><div><label class="acessos-marcar"><input type="checkbox" data-sel-visita="${i}" aria-label="Selecionar esta visita"></label><b>${esc(v.nick || "?")}</b> <span class="dica">${quando(v.inicio)} · ${v.paginas.length} ${v.paginas.length === 1 ? "página" : "páginas"}</span></div>
               <button type="button" class="opt admin-excluir-visita" data-excluir-visita="${i}">Excluir</button></div>
             <div class="admin-caminho">${v.paginas.map(esc).join(" → ")}</div>
           </div>`).join("")}
       </div>`;
+    // Seleção de várias visitas para excluir de uma vez
+    const caixas = [...alvo.querySelectorAll("[data-sel-visita]")];
+    const botaoSel = document.getElementById("acExcluirSel");
+    const atualizarSel = () => {
+      const n = caixas.filter(c => c.checked).length;
+      botaoSel.disabled = !n;
+      botaoSel.textContent = n ? `Excluir selecionados (${n})` : "Excluir selecionados";
+      caixas.forEach(c => c.closest(".admin-linha").classList.toggle("selecionada", c.checked));
+    };
+    caixas.forEach(c => c.onchange = atualizarSel);
+    document.getElementById("acSelPessoa").onchange = e => {
+      const id = e.target.value;
+      if (id) caixas.forEach(c => { if (visitas[+c.dataset.selVisita].id === id) c.checked = true; });
+      e.target.value = "";
+      atualizarSel();
+    };
+    document.getElementById("acSelLimpar").onclick = () => { caixas.forEach(c => { c.checked = false; }); atualizarSel(); };
+    botaoSel.onclick = async () => {
+      const escolhidas = caixas.filter(c => c.checked).map(c => visitas[+c.dataset.selVisita]);
+      if (!escolhidas.length) return;
+      const paginas = escolhidas.reduce((s, v) => s + v.paginas.length, 0);
+      if (!confirm(`Excluir ${escolhidas.length} ${escolhidas.length === 1 ? "visita" : "visitas"} (${paginas} ${paginas === 1 ? "página" : "páginas"})?
+Elas somem daqui e dos números do Painel.`)) return;
+      botaoSel.disabled = true; botaoSel.textContent = "Excluindo...";
+      try {
+        const r = await postAdmin("/api/registro", { acao: "apagar", visitas: escolhidas.map(v => ({ id: v.id, de: Math.min(v.inicio, v.fim), ate: Math.max(v.inicio, v.fim) })) });
+        if (!r.ok) throw new Error();
+        adminAcessos(alvo);
+      } catch (e) {
+        atualizarSel();
+        alert("Não consegui excluir agora. Tente de novo.");
+      }
+    };
     // Excluir uma visita (ex.: você mesma ou outra conta sua testando o site)
     alvo.querySelectorAll("[data-excluir-visita]").forEach(b => b.onclick = async () => {
       const v = visitas[+b.dataset.excluirVisita];
       if (!confirm(`Excluir esta visita de ${v.nick || "?"} (${quando(v.inicio)}, ${v.paginas.length} ${v.paginas.length === 1 ? "página" : "páginas"})?\nEla some daqui e dos números do Painel.`)) return;
       b.disabled = true; b.textContent = "Excluindo...";
       try {
-        const r = await postAdmin("/api/registro", { acao: "apagar", id: v.id, de: v.inicio, ate: v.fim });
+        const r = await postAdmin("/api/registro", { acao: "apagar", id: v.id, de: Math.min(v.inicio, v.fim), ate: Math.max(v.inicio, v.fim) });
         if (!r.ok) throw new Error();
         adminAcessos(alvo);   // recarrega a lista e as contagens de pessoas
       } catch (e) {
