@@ -172,11 +172,14 @@ a.auth-entrar.auth-entrar-discord{background:linear-gradient(180deg,#ff2ee0,#b80
   border-radius:8px;padding:0;text-align:left;overflow:hidden;
   display:flex;flex-direction:column;
 }
-.card[data-slug]{cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s,background .15s}
+.card[data-slug]{position:relative;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s,background .15s}
 .card:hover,.card:focus-visible{background:var(--tile-alto);outline:none;border-color:var(--ouro)}
 .card[data-slug]:hover{transform:translateY(-3px);box-shadow:0 8px 18px rgba(255,46,224,.25)}
 @media(prefers-reduced-motion:reduce){.card[data-slug]:hover{transform:none}}
 .card:focus-visible{outline:2px solid var(--ouro);outline-offset:2px}
+/* link invisível cobrindo o card (para "abrir em nova guia"); coração e faixa ficam por cima dele */
+.card-link{position:absolute;inset:0;z-index:1}
+.card .coracao,.card .card-faixa{position:relative;z-index:2}
 .palco{
   aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;
   background:
@@ -5750,6 +5753,7 @@ function cardsHTML(lista, msgVazio){
   if (!lista.length) return `<p style="color:var(--mudo)">${msgVazio}</p>`;
   return lista.map(it => `
     <div class="card" tabindex="0" data-slug="${it.slug}">
+      <a class="card-link" href="#item/${esc(it.slug)}" tabindex="-1" aria-label="${esc(it.pt)}"></a>
       <span class="palco">${cardArte(it)}</span>
       <span class="card-txt">
         <span class="card-cabecalho">
@@ -5765,8 +5769,12 @@ function cardsHTML(lista, msgVazio){
 }
 
 function ligarCliquesGrade(){
-  app.querySelectorAll("[data-slug]").forEach(b =>
-    b.onclick = () => { location.hash = "item/" + b.dataset.slug; });
+  // O card tem um link de verdade por cima (card-link): clique normal abre o item aqui; Ctrl/botão do meio/
+  // botão direito → "Abrir em nova guia" funcionam como em qualquer link. Enter no card (teclado) também abre.
+  app.querySelectorAll("[data-slug]").forEach(b => {
+    b.onclick = e => { if (e.target.closest("a")) return; location.hash = "item/" + b.dataset.slug; };
+    b.onkeydown = e => { if (e.key === "Enter" && e.target === b) location.hash = "item/" + b.dataset.slug; };
+  });
   app.querySelectorAll("[data-fav]").forEach(b =>
     b.onclick = (e) => { e.stopPropagation(); toggleFavorito(b.dataset.fav); });
 }
