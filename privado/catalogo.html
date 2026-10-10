@@ -10450,10 +10450,12 @@ function telaAdmin(){
 }
 
 /* ----- 🧮 Calculadora de preço ----- */
-// Preço final = valor dos NFTs + reserva operacional (% do valor + custo fixo por pedido)
-//             + taxa NFT-SE (em cada item: % do valor, com mínimo por item). Os números ficam salvos neste navegador.
-const CHAVE_CALC = "nftse_calc_v2";
-const CALC_PADRAO = { cotacao: 5.20, cotacaoAuto: true, negocio: 0, reserva: 6, fixo: 0.07, taxa: 25, minimo: 1.00, arredondar: false };
+// Preço final = valor dos NFTs + taxas da compra de ETH + taxa NFT-SE (em cada item: % do valor, com mínimo por item).
+// Taxas da compra de ETH: a cada compra (ex.: R$ 100) paga-se um % (reserva) e taxas fixas em dólar (fixo: Coinbase +
+// LayerSwap). Cada item paga o % sobre o seu valor e a parte das taxas fixas proporcional ao seu valor em reais.
+// A variação do ETH fica de fora. Os números ficam salvos neste navegador.
+const CHAVE_CALC = "nftse_calc_v3";
+const CALC_PADRAO = { cotacao: 5.20, cotacaoAuto: true, negocio: 0, reserva: 2, fixo: 0.09, compra: 100, taxa: 25, minimo: 1.00, arredondar: false };
 // Formatos de dinheiro do admin
 const fmtUs = v => "US$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtRs = v => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -10463,7 +10465,14 @@ let calcItens = [{ nome: "", usd: "" }];
 
 function adminCalculadora(alvo){
   let cfg = { ...CALC_PADRAO };
-  try { Object.assign(cfg, JSON.parse(localStorage.getItem(CHAVE_CALC) || "{}")); } catch (e) {}
+  try {
+    const salvo = localStorage.getItem(CHAVE_CALC);
+    if (salvo) Object.assign(cfg, JSON.parse(salvo));
+    else {   // configurações da versão anterior: mantém tudo, menos a reserva antiga (6% + US$ 0,07 por pedido)
+      const { reserva, fixo, ...resto } = JSON.parse(localStorage.getItem("nftse_calc_v2") || "{}");
+      Object.assign(cfg, resto);
+    }
+  } catch (e) {}
   const salvar = () => { try { localStorage.setItem(CHAVE_CALC, JSON.stringify(cfg)); } catch (e) {} };
   const num = lerNumero, us = fmtUs, rs = fmtRs;
   const campoCfg = (id, rotulo, dica, extraId) => `
@@ -10508,8 +10517,9 @@ function adminCalculadora(alvo){
               </label>
             </div>
             <div>
-              ${campoCfg("reserva", "Reserva operacional (% do valor dos NFTs)", "Coinbase, variação do ETH e uma folga.", "calcDicaReserva")}
-              ${campoCfg("fixo", "Custo fixo por pedido (US$)", "Envio da Coinbase para a MetaMask (LayerSwap).")}
+              ${campoCfg("reserva", "Taxa na compra de ETH (%)", "Cobrada sobre o valor comprado.", "calcDicaReserva")}
+              ${campoCfg("fixo", "Taxas fixas por compra de ETH (US$)", "Coinbase (US$ 0,02) + LayerSwap (US$ 0,07).")}
+              ${campoCfg("compra", "Valor de cada compra de ETH (R$)", "As taxas fixas são divididas entre os itens, proporcional ao valor.")}
             </div>
             <div>
               ${campoCfg("taxa", "Taxa NFT-SE (% do valor de cada item)")}
@@ -10554,7 +10564,8 @@ function adminCalculadora(alvo){
     const n = validos.length;
     // Em cada item: reserva (% do valor + parte do custo fixo) e taxa NFT-SE (% do valor ou o mínimo, o que for maior)
     const itens = validos.map(l => {
-      const reserva = l.usd * cfg.reserva / 100 + cfg.fixo / n;
+      // % da compra de ETH + parte das taxas fixas proporcional ao valor do item (em reais) dentro de cada compra
+      const reserva = l.usd * cfg.reserva / 100 + (cfg.compra > 0 ? cfg.fixo * (l.usd * cfg.cotacao) / cfg.compra : 0);
       const negocio = l.usd * cfg.negocio / 100;   // custos do negócio (Claude, domínio...)
       const pct = l.usd * cfg.taxa / 100;
       const taxa = Math.max(pct, cfg.minimo);
@@ -10578,7 +10589,7 @@ function adminCalculadora(alvo){
       <p class="dica" style="margin:0 0 12px">${us(finalUsd)} · dólar a R$ ${cfg.cotacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
       <table class="calc-tabela">
         <tr><td>Valor dos NFTs (${n} ${n === 1 ? "item" : "itens"})</td><td>${us(subtotal)}</td><td>${rs(subtotal * cfg.cotacao)}</td></tr>
-        <tr><td>Reserva operacional (${cfg.reserva}% + ${us(cfg.fixo)})</td><td>${us(reserva)}</td><td>${rs(reserva * cfg.cotacao)}</td></tr>
+        <tr><td>Taxas da compra de ETH (${cfg.reserva.toLocaleString("pt-BR")}% + ${us(cfg.fixo)} a cada ${rs(cfg.compra)})</td><td>${us(reserva)}</td><td>${rs(reserva * cfg.cotacao)}</td></tr>
         ${cfg.negocio > 0 ? `<tr><td>Custos do negócio (${cfg.negocio}%)</td><td>${us(negocio)}</td><td>${rs(negocio * cfg.cotacao)}</td></tr>` : ""}
         <tr><td><b>Seu custo</b></td><td><b>${us(custo)}</b></td><td><b>${rs(custo * cfg.cotacao)}</b></td></tr>
         <tr><td>Taxa NFT-SE (seu lucro)${cfg.arredondar && finalRs > exato + 0.004 ? " + arredondamento" : ""}</td><td>${us(taxa)}</td><td>${rs(lucroRs)}</td></tr>
