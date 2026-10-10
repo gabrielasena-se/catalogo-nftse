@@ -10461,6 +10461,14 @@ function telaAdmin(){
 // A variação do ETH fica de fora. Os números ficam salvos neste navegador.
 const CHAVE_CALC = "nftse_calc_v4";
 const CALC_PADRAO = { cotacao: 5.20, cotacaoAuto: true, negocio: 0, reserva: 2, fixo: 0.09, compra: 100, taxa: 20, minimo: 1.00, arredondar: false };
+// Dólar de agora (venda), da AwesomeAPI. Devolve null se não der para buscar.
+async function cotacaoDeAgora(){
+  try {
+    const d = await (await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL", { signal: AbortSignal.timeout(5000) })).json();
+    const v = Math.round(parseFloat(d.USDBRL.ask) * 100) / 100;
+    return v > 0 ? v : null;
+  } catch (e) { return null; }
+}
 // Configurações da Calculadora salvas neste navegador (o dólar também é usado no Estoque).
 function lerCfgCalc(){
   const cfg = { ...CALC_PADRAO };
@@ -10651,8 +10659,7 @@ function adminCalculadora(alvo){
     const msg = document.getElementById("calcCotacaoMsg");
     msg.textContent = "Buscando...";
     try {
-      const d = await (await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")).json();
-      const v = Math.round(parseFloat(d.USDBRL.ask) * 100) / 100;
+      const v = await cotacaoDeAgora();
       if (!v) throw new Error("sem valor");
       cfg.cotacao = v; cfg.cotacaoAuto = true; salvar();
       alvo.querySelector('[data-cfg="cotacao"]').value = String(v).replace(".", ",");
@@ -10827,7 +10834,17 @@ async function adminEstoque(alvo){
     precos = d.precos || precos;
   } catch (e) { alvo.innerHTML = `<p class="dica">Não consegui carregar agora. Tente de novo em instantes.</p>`; return; }
 
-  const cotacao = lerCfgCalc().cotacao;
+  // dólar de agora; se não der para buscar, o último salvo na Calculadora
+  const cfgCalc = lerCfgCalc();
+  let cotacao = cfgCalc.cotacao, origemCotacao = "não consegui buscar a cotação de agora; usando o da Calculadora";
+  const agora = await cotacaoDeAgora();
+  if (agora) {
+    cotacao = agora;
+    origemCotacao = "cotação de agora, " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    // a Calculadora também passa a usar, se ela estiver no automático
+    if (cfgCalc.cotacaoAuto) try { localStorage.setItem(CHAVE_CALC, JSON.stringify({ ...cfgCalc, cotacao: agora })); } catch (e) {}
+  }
+  if (!document.body.contains(alvo)) return;
   const porNome = new Map(CATALOGO.map(it => [semAcento(it.pt), it]));
   // valor de hoje por unidade (US$): preço da TokenTrove ou o digitado
   const hojeUnit = x => (x.slug && precos.usd[x.slug]) || x.atualManual || 0;
@@ -10877,7 +10894,7 @@ async function adminEstoque(alvo){
           <tr class="calc-total"><td>Diferença${semValor ? `<br><span class="dica" style="font-weight:400">só dos itens com valor de hoje</span>` : ""}</td><td style="color:${cor(diferenca)}">${sinal(diferenca)}</td></tr>
         </table>
         <p class="dica" style="margin:8px 0 0">Valor hoje: preço da TokenTrove na última atualização do catálogo${precos.data ? ` (${dataBR(precos.data)})` : ""},
-          com o dólar a R$ ${cotacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (o mesmo da Calculadora).
+          com o dólar a R$ ${cotacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${origemCotacao}).
           ${semValor ? `<br>${semValor} ${semValor === 1 ? "item está" : "itens estão"} sem valor de hoje: edite e coloque o valor.` : ""}</p>
         ${!estFiltroConta && porConta.length ? `
         <h3 style="margin:16px 0 4px;font-size:14px">Por conta</h3>
