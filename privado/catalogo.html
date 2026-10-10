@@ -48,6 +48,9 @@ a{color:var(--ouro)}
   border-bottom:2px solid var(--topo-linha);
   position:sticky;top:0;z-index:20;
 }
+/* No celular o topo é alto (busca + botões em duas linhas): ele rola junto com a página,
+   para sobrar tela para a lista e o editor. */
+@media(max-width:700px){.topo{position:relative}}
 .topo-int{
   max-width:1120px;margin:0 auto;padding:14px 18px;
   display:flex;align-items:center;gap:16px;flex-wrap:wrap;
@@ -207,7 +210,12 @@ a.auth-entrar.auth-entrar-discord{background:linear-gradient(180deg,#ff2ee0,#b80
 .dica-faixa div span:first-child{font-family:var(--pixel);font-size:11px;color:var(--ouro);letter-spacing:1px}
 /* Meus visuais */
 .visual-card:hover{background:var(--tile);border-color:var(--linha)}
-.visual-avatar{height:88%;width:auto;image-rendering:pixelated}
+.visual-card .palco{position:relative}
+/* centralizado em qualquer tela (no iPhone a altura em % não funcionava dentro do quadrado) */
+.visual-card .palco img.visual-avatar{position:absolute;left:0;right:0;top:6%;width:100%;height:88%;max-width:none;max-height:none;object-fit:contain;image-rendering:pixelated}
+.visual-pecas{margin:6px 0}
+.visual-pecas summary{cursor:pointer;font-size:12px;color:var(--ouro);list-style:revert}
+.visual-pecas .visual-itens{margin-top:4px}
 .visual-itens{margin:8px 0 8px;padding:0 0 0 16px;font-size:12px;line-height:1.45;color:var(--texto)}
 .visual-itens-basicas{color:var(--mudo);list-style:none;margin-left:-16px}
 .visual-itens a{color:var(--texto);text-decoration:underline;text-decoration-color:var(--linha);text-underline-offset:2px}
@@ -357,6 +365,14 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 }
 .provador-editor .espelho > *{flex-shrink:0}
 .provador-editor .espelho img{height:250px}
+/* miniatura do avatar no canto (só no celular, quando o avatar grande sai da tela) */
+.avatar-flutuante{position:fixed;right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:30;
+  width:92px;height:150px;padding:0;border:2px solid var(--ouro);border-radius:12px;cursor:pointer;
+  background:linear-gradient(180deg,#3a1670,#200a3c);box-shadow:0 6px 18px rgba(0,0,0,.55);overflow:hidden}
+.avatar-flutuante[hidden]{display:none}
+/* espaço no fim do editor, para a miniatura não cobrir a última fileira de peças */
+@media(max-width:700px){.provador-editor .controles{padding-bottom:170px}}
+.provador-editor .espelho .avatar-flutuante img{height:auto;width:100%;max-height:100%;object-fit:contain}
 /* Copiar código / Salvar visual, lado a lado embaixo do avatar */
 .acoes-visual{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .acoes-visual .opt{padding:6px 9px;font-size:12px}
@@ -6133,7 +6149,11 @@ async function telaVisuais(){
       <span class="card-txt">
         <span class="card-pt">${esc(v.nome)}</span>
         <span class="card-en">Salvo em ${esc(dataCurta(v.criadoEm))}</span>
-        ${itensDoVisualHTML(v.figura)}
+        ${(() => {   // lista de peças recolhida: abre ao clicar
+          const lista = itensDoVisualHTML(v.figura);
+          const n = (lista.match(/<li(?! class="visual-itens-basicas")/g) || []).length;
+          return `<details class="visual-pecas"><summary>Ver peças${n ? ` (${n})` : ""}</summary>${lista}</details>`;
+        })()}
         <label class="caixa-marcar">
           <input type="checkbox" data-publico="${esc(v.id)}" ${v.publico === false ? "" : "checked"}>
           Mostrar meu visual na página de itens
@@ -9124,7 +9144,8 @@ function urlMiniaturaEditor(tipo, set){
 // A coluna do avatar no editor fica presa logo abaixo da barra do topo (veja --altura-topo no CSS).
 function medirAlturaTopo(){
   const topo = document.querySelector("header.topo");
-  document.documentElement.style.setProperty("--altura-topo", (topo ? topo.offsetHeight : 0) + "px");
+  const preso = topo && getComputedStyle(topo).position === "sticky";   // no celular o topo não fica preso
+  document.documentElement.style.setProperty("--altura-topo", (preso ? topo.offsetHeight : 0) + "px");
   marcarBarrasPresas();   // a tela foi redesenhada: a barra pode já estar presa
 }
 addEventListener("resize", medirAlturaTopo);
@@ -9259,6 +9280,8 @@ function telaEditor(){
         <div class="provador provador-editor">
           <div class="espelho">
             <img id="espelhoEditorImg" src="" alt="Pré-visualização do avatar">
+            <button type="button" class="avatar-flutuante" id="avatarFlutuante" hidden aria-label="Voltar para o avatar">
+              <img id="avatarFlutuanteImg" src="" alt=""></button>
             <div class="girar">
               <button class="mini" id="girarEsqEditor" aria-label="Girar para a esquerda">&#8592;</button>
               <button class="mini" id="girarDirEditor" aria-label="Girar para a direita">&#8594;</button>
@@ -9328,9 +9351,22 @@ function telaEditor(){
   medirAlturaTopo();
 
   function atualizarEditor(){
-    document.getElementById("espelhoEditorImg").src =
-      urlAvatar(figuraMultipla(), { dir: ed.dir, acao: ed.acao, size: "l", genero: ed.genero });
+    const url = urlAvatar(figuraMultipla(), { dir: ed.dir, acao: ed.acao, size: "l", genero: ed.genero });
+    document.getElementById("espelhoEditorImg").src = url;
+    document.getElementById("avatarFlutuanteImg").src = url;
   }
+
+  // No celular o avatar fica no alto e as peças embaixo: quando o avatar sai da tela, aparece uma
+  // miniatura dele no canto (tocar nela volta para o avatar grande).
+  (function ligarAvatarFlutuante(){
+    const grande = document.getElementById("espelhoEditorImg"), mini = document.getElementById("avatarFlutuante");
+    const celular = matchMedia("(max-width:700px)");
+    let fora = false;
+    const atualizar = () => { mini.hidden = !(celular.matches && fora); };
+    if (window.IntersectionObserver) new IntersectionObserver(([e]) => { fora = !e.isIntersecting; atualizar(); }).observe(grande);
+    celular.addEventListener ? celular.addEventListener("change", atualizar) : celular.addListener(atualizar);
+    mini.onclick = () => grande.scrollIntoView({ behavior: "smooth", block: "center" });
+  })();
 
   document.getElementById("voltarEditor").onclick = () => { location.hash = ""; };
 
