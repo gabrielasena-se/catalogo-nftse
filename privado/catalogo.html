@@ -10657,8 +10657,9 @@ function adminCalculadora(alvo){
       <div style="display:flex;gap:24px;flex-wrap:wrap">
         <div><p class="dica" style="margin:0">Preço final para o cliente</p><p class="calc-destaque">${rs(finalRs)}</p></div>
         <div><p class="dica" style="margin:0">Seu lucro</p><p class="calc-destaque" style="color:#7ee2a8">${rs(lucroRs)}</p></div>
+        <div><p class="dica" style="margin:0">Em câmbios</p><p class="calc-destaque" style="color:#ffd76a">${fmtCambios(reaisEmCambios(finalRs))}</p></div>
       </div>
-      <p class="dica" style="margin:0 0 12px">${us(finalUsd)} · dólar a R$ ${cfg.cotacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+      <p class="dica" style="margin:0 0 12px">${us(finalUsd)} · dólar a R$ ${cfg.cotacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · câmbio a R$ 0,21 (1000c = R$ 210)</p>
       <table class="calc-tabela">
         <tr><td>Valor dos NFTs (${n} ${n === 1 ? "item" : "itens"})</td><td>${us(subtotal)}</td><td>${rs(subtotal * cfg.cotacao)}</td></tr>
         <tr><td>Taxas da compra de ETH (${cfg.reserva.toLocaleString("pt-BR")}% + ${us(cfg.fixo)} a cada ${rs(cfg.compra)})</td><td>${us(reserva)}</td><td>${rs(reserva * cfg.cotacao)}</td></tr>
@@ -10671,8 +10672,8 @@ function adminCalculadora(alvo){
       ${n > 1 ? `
         <h3 style="margin:16px 0 4px;font-size:14px">Cada item</h3>
         <table class="calc-tabela">
-          <tr class="dica"><td>Item</td><td>NFT</td><td>Taxa</td><td>Preço</td></tr>
-          ${itens.map((l, i) => `<tr><td>${esc(l.nome || "Item " + (i + 1))}</td><td>${us(l.usd)}</td><td>${us(l.taxa)}</td><td>${rs(l.rs)}</td></tr>`).join("")}
+          <tr class="dica"><td>Item</td><td>NFT</td><td>Taxa</td><td>Preço</td><td>Câmbios</td></tr>
+          ${itens.map((l, i) => `<tr><td>${esc(l.nome || "Item " + (i + 1))}</td><td>${us(l.usd)}</td><td>${us(l.taxa)}</td><td>${rs(l.rs)}</td><td>${fmtCambios(reaisEmCambios(l.rs))}</td></tr>`).join("")}
         </table>` : ""}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center">
         <button type="button" class="opt" id="calcCopiar">Copiar orçamento</button>
@@ -10875,6 +10876,13 @@ function cambiosEmReais(c){
   return Math.round((rs + resto * menorPreco / menorQtd) * 100) / 100;
 }
 const fmtCambios = c => c.toLocaleString("pt-BR") + "c";
+// O contrário: quantos câmbios valem um preço em R$, pelo valor do câmbio no maior pacote
+// (1000c = R$ 210 → R$ 0,21 cada), arredondado para cima. Ex.: R$ 210 = 1000c.
+function reaisEmCambios(rs){
+  if (!(rs > 0)) return 0;
+  const [qtd, preco] = PACOTES_CAMBIO[0];
+  return Math.ceil(rs / (preco / qtd) - 1e-9);
+}
 
 async function adminEstoque(alvo){
   alvo.innerHTML = `<p class="dica">Carregando...</p>`;
