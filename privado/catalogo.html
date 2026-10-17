@@ -705,6 +705,7 @@ const BASE_POR_GENERO = {
 // slug: [largura, profundidade, altura, usos] — usos: s = pode sentar, d = pode deitar,
 // a = pode andar em cima, p = vai na parede. Altura 0 = não informada.
 const MEDIDAS_MOBIS = {
+  "livro-voador":[1,1,1],"pratica-de-transmogrificacao":[1,1,1],"kit-de-alquimia":[1,1,0.5],"suporte-de-varinhas-magicas":[1,1,1],
   "ingredientes-magicos":[1,1,1],"prateleira-de-ingredientes-magicos":[2,1,2],
   "caldeirao-bronze":[1,1,1],"caldeirao-prata":[1,1,1],"caldeirao-dourado":[1,1,1],"caldeirao-trippy":[1,1,1],"suporte-para-vassouras":[1,2,1],
   "menino-habbo":[1,1,1],"orgao":[2,1,0],"frank-demoniaco":[1,1,1],"bryan-o-cavaleiro":[1,1,1],"luz-da-lua":[1,1,0.01,"a"],"pato-zumbi":[1,1,1],"punk-rock":[1,1,1],"boneco-mariachi":[1,1,1],"fonte-sangrenta":[2,2,1],"saintini":[1,1,0],"o-terror-das-bonequinhas":[1,1,1],"esqueleto-tatuado":[1,1,1],"luta-livre":[1,1,1],"boneca-catrina":[1,1,1],"trono-espinhudo":[1,1,2,"s"],"o-ceifador":[1,1,1],"gabinete-mao-de-lobo":[1,1,4],"gato-esqueleto":[1,1,1],"chefe-do-pato-do-mal":[1,1,1],"sam-o-querubim":[1,1,0],"arca-maldita":[1,1,0],"gabinete-de-curiosidades":[1,1,4],"corvo-malefico":[1,1,1],"caminhao-de-fazenda-retro":[2,4,1.4,"s"],"salgueiro-chorao":[2,2,0,"a"],"cavalgador-da-vida":[0,0,0,"p"],
@@ -1156,6 +1157,7 @@ const MEDIDAS_MOBIS = {
 // do Habbo, que cresce conforme os itens entram no jogo (balões: número do estilo do balão).
 // Itens sem número ficam no fim; itens cadastrados pelo painel de admin contam como os mais novos.
 const ORDEM_LANCAMENTO = {
+  "chapeu-cowboy-classico":19024,"livro-voador":19164,"pratica-de-transmogrificacao":19166,"kit-de-alquimia":19163,"suporte-de-varinhas-magicas":19167,
   "ingredientes-magicos":19159,"prateleira-de-ingredientes-magicos":19157,
   "capa-de-bruxa-moderna":19193,"amigo-balao":19259,"caldeirao-bronze":19153,"caldeirao-prata":19155,"caldeirao-dourado":19154,"caldeirao-trippy":19156,"suporte-para-vassouras":19152,
   "menino-habbo":19302,"orgao":19294,"frank-demoniaco":19308,"bryan-o-cavaleiro":19310,"luz-da-lua":19296,"pato-zumbi":19293,"punk-rock":19306,"boneco-mariachi":19298,"fonte-sangrenta":19295,"saintini":19311,"o-terror-das-bonequinhas":19301,"esqueleto-tatuado":19303,"luta-livre":19304,"boneca-catrina":19300,"trono-espinhudo":19297,"o-ceifador":19307,"gabinete-mao-de-lobo":19313,"gato-esqueleto":19299,"chefe-do-pato-do-mal":19309,"sam-o-querubim":19312,"arca-maldita":19315,"gabinete-de-curiosidades":19314,"corvo-malefico":19317,"caminhao-de-fazenda-retro":19032,"salgueiro-chorao":19316,"cavalgador-da-vida":4937,"estampa-de-colecionaveis":19260,
@@ -5325,6 +5327,14 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_spellingredients.png", desc:"" },
   { slug:"prateleira-de-ingredientes-magicos", tipo:"furni", pt:"Prateleira de Ingredientes Mágicos", en:"Spell Ingredient Shelf",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_ingredientshelf.png", desc:"" },
+  { slug:"livro-voador", tipo:"furni", pt:"Livro Voador", en:"Flying Book",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_sc26_flyingbook.png", desc:"" },
+  { slug:"pratica-de-transmogrificacao", tipo:"furni", pt:"Prática de Transmogrificação", en:"Transmogrification Practice",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_sc_transmogrification.png", desc:"" },
+  { slug:"kit-de-alquimia", tipo:"furni", pt:"Kit de Alquimia", en:"Alchemy Kit",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_sc26_alchemykit.png", desc:"" },
+  { slug:"suporte-de-varinhas-magicas", tipo:"furni", pt:"Suporte de Varinhas Mágicas", en:"Magic Wand Display",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_sc_wanddisplay.png", desc:"" },
   { slug:"capa-chuva-translucida-amarela", tipo:"roupa", pt:"Moletom Translúcido Amarelo", ptAntigo:"Capa de Chuva Translúcida Amarela", en:"Yellow Translucent Anorak",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/raincoats/clothing_nftyellowraincoat.png", peca:"cc-5322-1408.ha-5325-1408", desc:"" },
   { slug:"barba-roqueira-grande", tipo:"roupa", pt:"Barba de Roqueiro Grande", ptAntigo:"Barba Roqueira Grande", en:"Big Rocker Beard",
@@ -5525,6 +5535,8 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_nftwitchcape.png", peca:"cc-6581-1408-1408", pecaF:"cc-6582-1408-1408", desc:"" },
   { slug:"amigo-balao", tipo:"roupa", pt:"Amigo Balão", en:"Balloon Buddy",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftballoonbuddy.gif", peca:"pt-6618-1408", desc:"" },
+  { slug:"chapeu-cowboy-classico", tipo:"roupa", pt:"Chapéu Cowboy Clássico", en:"Classic Western Hat",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftwesternhat.gif", peca:"ha-6540-1408-1408", desc:"" },
 
   // --- Balões de chat (da aba "Add Ons" da TokenTrove) ---
   { slug:"dinheiro",         tipo:"balao", pt:"Dinheiro Vivo", ptAntigo:"Dinheiro", en:"Cash Money Speech Bubble",
