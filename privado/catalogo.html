@@ -10688,6 +10688,9 @@ function adminCalculadora(alvo){
             <span class="dica" id="calcCotacaoMsg" style="display:block;margin-top:2px">${cfg.cotacaoAuto ? "" : "Valor digitado por você."}</span>
           </label>
         </div>
+        <label class="admin-campo" style="margin:0 0 14px">Comprador (opcional)
+          <input class="figura" id="calcComprador" maxlength="80" placeholder="Nick ou nome de quem está comprando" value="${esc(calcComprador)}">
+        </label>
         <p class="dica" style="margin:0 0 4px">Coloque o valor de cada NFT no TokenTrove, em dólar.</p>
         <datalist id="calcNomes">${opcoesNomesItens()}</datalist>
         <div id="calcItens"></div>
@@ -10784,7 +10787,7 @@ function adminCalculadora(alvo){
     const lucroRs = finalRs - custo * cfg.cotacao;           // taxa NFT-SE (+ o arredondamento)
     itens.forEach(l => { l.rs = finalRs * l.rsItem / somaItens; });
     const minimos = itens.filter(l => l.minimo && !(l.manual > 0)).length;
-    calcUltimo = { descricao: itens.map((l, i) => l.nome || "Item " + (i + 1)).join(", "), valor: finalRs, custo: subtotal * cfg.cotacao };
+    calcUltimo = { descricao: itens.map((l, i) => l.nome || "Item " + (i + 1)).join(", "), comprador: calcComprador.trim(), valor: finalRs, custo: subtotal * cfg.cotacao };
     resultado.innerHTML = `
       <div style="display:flex;gap:24px;flex-wrap:wrap">
         <div><p class="dica" style="margin:0">Preço final para o cliente${manual ? (n > 1 ? ` (${ajustados} de ${n} ajustados por você)` : " (ajustado por você)") : ""}</p><p class="calc-destaque">${rs(finalRs)}</p>${manual ? `<p class="dica" style="margin:0">Calculado: ${rs(calculado)}</p>` : ""}</div>
@@ -10824,7 +10827,7 @@ function adminCalculadora(alvo){
       try {
         const r = await postAdmin("/api/admin", { acao: "financas-salvar", registro: { tipo: "venda", data: hojeISO(), ...calcUltimo } });
         if (!r.ok) throw new Error("erro");
-        aviso.textContent = "Venda registrada no Finanças (dá para editar lá).";
+        aviso.textContent = "Venda registrada no Finanças" + (calcUltimo.comprador ? " para " + calcUltimo.comprador : "") + " (dá para editar lá).";
       } catch (e) { aviso.textContent = "Não consegui registrar agora."; }
     };
   }
@@ -10836,7 +10839,8 @@ function adminCalculadora(alvo){
   });
   document.getElementById("calcArredondar").onchange = e => { cfg.arredondar = e.target.checked; salvar(); calcular(); };
   document.getElementById("calcMais").onclick = () => { calcItens.push({ nome: "", usd: "" }); desenharItens(); lista.querySelector(`[data-nome="${calcItens.length - 1}"]`).focus(); };
-  document.getElementById("calcLimpar").onclick = () => { calcItens = [{ nome: "", usd: "" }]; desenharItens(); calcular(); };
+  document.getElementById("calcComprador").oninput = e => { calcComprador = e.target.value; if (calcUltimo) calcUltimo.comprador = calcComprador.trim(); };
+  document.getElementById("calcLimpar").onclick = () => { calcItens = [{ nome: "", usd: "" }]; calcComprador = ""; document.getElementById("calcComprador").value = ""; desenharItens(); calcular(); };
   document.getElementById("calcPadrao").onclick = () => {
     cfg = { ...CALC_PADRAO, cotacao: cfg.cotacao, cotacaoAuto: cfg.cotacaoAuto, negocio: cfg.negocio }; salvar(); adminCalculadora(alvo);
   };
@@ -10859,6 +10863,7 @@ function adminCalculadora(alvo){
   calcular();
 }
 let calcUltimo = null;
+let calcComprador = "";   // nome de quem está comprando (vai junto para o Finanças)
 
 /* ----- 💰 Finanças: compras de ETH, outras despesas e vendas ----- */
 // Fica no servidor (Redis, financas:registros), então aparece em qualquer aparelho do admin.
@@ -10892,7 +10897,7 @@ async function adminFinancas(alvo){
   const lucroVendas = vendas - custoVendas;
   const resultadoFin = lucroVendas - perdaEth - despesas;
   const pct = (a, b) => b > 0 ? (a / b * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "–";
-  const form = finEditando || { tipo: "compra-eth", data: hojeISO(), descricao: "", valor: "", recebido: "", custo: "", eth: "" };
+  const form = finEditando || { tipo: "compra-eth", data: hojeISO(), descricao: "", comprador: "", valor: "", recebido: "", custo: "", eth: "" };
   const valorCampo = v => v === "" || v == null ? "" : String(v).replace(".", ",");
   const periodos = [["mes", "Este mês"], ["anterior", "Mês passado"], ["ano", "Este ano"], ["tudo", "Tudo"]];
 
@@ -10919,6 +10924,7 @@ async function adminFinancas(alvo){
         </label>
         <label class="admin-campo">Data<input id="finData" type="date" class="figura" value="${esc(form.data)}"></label>
         <div id="finCampos"></div>
+        <label class="admin-campo" id="finCompradorCampo">Comprador (opcional)<input id="finComprador" class="figura" value="${esc(form.comprador || "")}" maxlength="80"></label>
         <label class="admin-campo">Descrição (opcional)<input id="finDescricao" class="figura" value="${esc(form.descricao)}" maxlength="300"></label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
           <button type="button" class="opt" id="finSalvar">${finEditando ? "Salvar alterações" : "Adicionar"}</button>
@@ -10938,7 +10944,7 @@ async function adminFinancas(alvo){
             if (x.tipo === "compra-eth") { valorTxt = `pagou ${fmtRs(x.valor)}<br><span class="dica">entrou ${fmtRs(x.recebido)}${x.eth ? ` · ${x.eth.toLocaleString("pt-BR", { maximumFractionDigits: 6 })} ETH` : ""}</span>`; res = `<span style="color:#ff8a8a">− ${fmtRs(Math.max(0, x.valor - x.recebido))}</span> <span class="dica">(${pct(Math.max(0, x.valor - x.recebido), x.valor)})</span>`; }
             else if (x.tipo === "venda") { valorTxt = `${fmtRs(x.valor)}<br><span class="dica">custo ${fmtRs(x.custo)}</span>`; res = `<span style="color:#7ee2a8">+ ${fmtRs(x.valor - x.custo)}</span>`; }
             else res = `<span style="color:#ff8a8a">− ${fmtRs(x.valor)}</span>`;
-            return `<tr><td>${dia}/${mes}/${ano}</td><td>${TIPOS_FIN[x.tipo]}</td><td style="text-align:left;white-space:normal">${esc(x.descricao)}</td><td>${valorTxt}</td><td>${res}</td>
+            return `<tr><td>${dia}/${mes}/${ano}</td><td>${TIPOS_FIN[x.tipo]}</td><td style="text-align:left;white-space:normal">${esc(x.descricao)}${x.comprador ? `<br><span class="dica">Comprador: ${esc(x.comprador)}</span>` : ""}</td><td>${valorTxt}</td><td>${res}</td>
               <td><button type="button" class="opt" data-fin-editar="${x.id}" style="padding:4px 8px">Editar</button>
                   <button type="button" class="opt" data-fin-apagar="${x.id}" style="padding:4px 8px" title="Apagar" aria-label="Apagar">✕</button></td></tr>`;
           }).join("")}
@@ -10956,6 +10962,7 @@ async function adminFinancas(alvo){
     document.getElementById("finCampos").innerHTML = camposPorTipo[tipo].map(([id, rot, dica]) => `
       <label class="admin-campo">${rot}<input class="figura" data-fin="${id}" inputmode="decimal" value="${esc(valorCampo(form[id]))}">
       ${dica ? `<span class="dica" style="display:block;margin-top:2px">${dica}</span>` : ""}</label>`).join("");
+    document.getElementById("finCompradorCampo").style.display = tipo === "venda" ? "" : "none";
   };
   desenharCampos();
   document.getElementById("finTipo").onchange = desenharCampos;
@@ -10965,6 +10972,7 @@ async function adminFinancas(alvo){
     const aviso = document.getElementById("finAviso");
     const registro = { ...(finEditando || {}), tipo: document.getElementById("finTipo").value, data: document.getElementById("finData").value,
       descricao: document.getElementById("finDescricao").value, valor: 0, recebido: 0, custo: 0, eth: 0 };
+    registro.comprador = registro.tipo === "venda" ? document.getElementById("finComprador").value : "";
     alvo.querySelectorAll("[data-fin]").forEach(c => { registro[c.dataset.fin] = lerNumero(c.value); });
     if (!registro.data) { aviso.textContent = "Coloque a data."; return; }
     if (!(registro.valor > 0)) { aviso.textContent = "Coloque o valor."; return; }

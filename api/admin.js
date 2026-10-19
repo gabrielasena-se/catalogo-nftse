@@ -119,6 +119,7 @@ function limparRegistro(r) {
   return {
     id, tipo: r.tipo, data,
     descricao: texto(r.descricao, 300),
+    comprador: texto(r.comprador, 80),   // venda: nome de quem comprou (opcional)
     valor: valor(r.valor),          // compra-eth: quanto pagou | despesa: valor | venda: quanto cobrou
     recebido: valor(r.recebido),    // compra-eth: quanto entrou (em R$)
     custo: valor(r.custo),          // venda: quanto custaram os NFTs (em R$)
