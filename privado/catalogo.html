@@ -376,6 +376,17 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 /* Copiar código / Salvar visual, lado a lado embaixo do avatar */
 .acoes-visual{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .acoes-visual .opt{padding:6px 9px;font-size:12px}
+/* Peças NFT deste visual (embaixo do avatar no editor) */
+.pecas-visual{width:100%;box-sizing:border-box;background:var(--tile);border:1px solid var(--linha);border-radius:8px;padding:8px 12px;font-size:13px}
+.pecas-visual[hidden]{display:none}
+.pecas-visual summary{cursor:pointer;font-weight:bold;color:var(--ouro)}
+.pecas-visual ul{list-style:none;margin:6px 0 8px;padding:0;display:flex;flex-direction:column;gap:3px}
+.pecas-visual li{display:flex;align-items:flex-start;gap:5px;line-height:1.35}
+.pecas-visual li a{flex:1;min-width:0}
+.provador-editor .espelho .pecas-visual img{width:13px;height:13px;margin-top:2px}
+.pecas-visual .card-faixa{position:static;margin-left:auto}
+.pecas-visual .opt{width:100%;padding:7px;font-size:12px}
+.pecas-visual .ver-sacola{display:block;text-align:center;font-size:12px}
 .salvar-visual{display:flex;flex-direction:column;gap:6px;width:100%}
 .salvar-visual[hidden]{display:none}
 .salvar-visual-linha{display:flex;gap:6px}
@@ -9366,6 +9377,7 @@ function telaEditor(){
               </label>
             </div>
             <p class="dica" id="copiarCodigoMsg" style="margin:0;min-height:14px;text-align:center"></p>
+            <details class="pecas-visual" id="pecasVisual" hidden${matchMedia("(max-width:700px)").matches ? "" : " open"}></details>
             ${painelCores}
           </div>
           <div class="controles">
@@ -9420,6 +9432,38 @@ function telaEditor(){
     const url = urlAvatar(figuraMultipla(), { dir: ed.dir, acao: ed.acao, size: "l", genero: ed.genero });
     document.getElementById("espelhoEditorImg").src = url;
     document.getElementById("avatarFlutuanteImg").src = url;
+    desenharPecasVisual();
+  }
+
+  // Quadrinho embaixo do avatar: as peças NFT do catálogo que o visual usa, com a faixa de
+  // preço, e um botão que põe todas na sacola (para perguntar o preço do visual inteiro).
+  function desenharPecasVisual(){
+    const caixa = document.getElementById("pecasVisual");
+    if (!caixa) return;
+    const itens = [], vistos = new Set();
+    for (const parte of figuraMultipla().split(".")) {
+      const it = itemDoCatalogoPorPeca(parte.split("-").slice(0, 2).join("-"));
+      if (it && !vistos.has(it.slug)) { vistos.add(it.slug); itens.push(it); }
+    }
+    caixa.hidden = !itens.length;
+    if (!itens.length) { caixa.innerHTML = ""; return; }
+    const faltam = itens.filter(it => !minhaSacola.has(it.slug));
+    caixa.innerHTML = `
+      <summary>Peças NFT deste visual (${itens.length})</summary>
+      <ul>
+        ${itens.map(it => `<li><img src="${CUBO_NFT_B64}" alt=""><a href="#item/${esc(it.slug)}">${esc(it.pt)}</a>${faixaHTML(it.faixa)}</li>`).join("")}
+      </ul>
+      ${faltam.length
+        ? `<button type="button" class="opt" id="pecasVisualSacola">🛍️ ${itens.length === 1 ? "Colocar na sacola" : "Colocar tudo na sacola"}</button>`
+        : `<a href="#sacola" class="ver-sacola">✓ Tudo na sacola · Ver sacola →</a>`}`;
+    const botao = document.getElementById("pecasVisualSacola");
+    if (botao) botao.onclick = async () => {
+      if (VISITANTE) { mostrarConvite(); return; }
+      botao.disabled = true;
+      botao.textContent = "Colocando na sacola...";
+      for (const it of faltam) if (!minhaSacola.has(it.slug)) await toggleSacola(it.slug, false);
+      desenharPecasVisual();
+    };
   }
 
   // No celular o avatar fica no alto e as peças embaixo: quando o avatar sai da tela, aparece uma
