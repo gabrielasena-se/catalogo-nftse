@@ -705,6 +705,7 @@ const BASE_POR_GENERO = {
 // slug: [largura, profundidade, altura, usos] — usos: s = pode sentar, d = pode deitar,
 // a = pode andar em cima, p = vai na parede. Altura 0 = não informada.
 const MEDIDAS_MOBIS = {
+  "pe-de-abacaxi-supercrescido":[1,1,4],"tapete-recyccoon":[3,2,0.1,"a"],"cadeira-polyfon-saltitante":[1,1,2.4,"s"],"televisao-antiga-de-tela-larga":[1,2,1],"sofa-de-cactos":[2,1,1,"s"],"descanso-de-pes-real":[1,1,0.9,"s"],
   "livro-voador":[1,1,1],"pratica-de-transmogrificacao":[1,1,1],"kit-de-alquimia":[1,1,0.5],"suporte-de-varinhas-magicas":[1,1,1],
   "ingredientes-magicos":[1,1,1],"prateleira-de-ingredientes-magicos":[2,1,2],
   "caldeirao-bronze":[1,1,1],"caldeirao-prata":[1,1,1],"caldeirao-dourado":[1,1,1],"caldeirao-trippy":[1,1,1],"suporte-para-vassouras":[1,2,1],
@@ -1157,6 +1158,7 @@ const MEDIDAS_MOBIS = {
 // do Habbo, que cresce conforme os itens entram no jogo (balões: número do estilo do balão).
 // Itens sem número ficam no fim; itens cadastrados pelo painel de admin contam como os mais novos.
 const ORDEM_LANCAMENTO = {
+  "bigode-zigzag":19286,"pente-de-cabelo":19283,"capacete-banana":19278,"chapeu-de-ninho-de-passaro":19279,"alta-costura-lixeira":19285,"talheres":19281,"palito-de-algodao-doce":19280,"rosto-esperancoso":19284,"rosto-determinado":19282,"pe-de-abacaxi-supercrescido":19289,"tapete-recyccoon":19290,"cadeira-polyfon-saltitante":19292,"televisao-antiga-de-tela-larga":19287,"sofa-de-cactos":19288,"descanso-de-pes-real":19291,
   "chapeu-cowboy-classico":19024,"livro-voador":19164,"pratica-de-transmogrificacao":19166,"kit-de-alquimia":19163,"suporte-de-varinhas-magicas":19167,
   "ingredientes-magicos":19159,"prateleira-de-ingredientes-magicos":19157,
   "capa-de-bruxa-moderna":19193,"amigo-balao":19259,"caldeirao-bronze":19153,"caldeirao-prata":19155,"caldeirao-dourado":19154,"caldeirao-trippy":19156,"suporte-para-vassouras":19152,
@@ -1652,7 +1654,7 @@ const ORDEM_LANCAMENTO = {
   "coroa-icaro":17678,"passarinho-amigo":15636,"maleta-cheia-dinheiro":15846,"bexiga-azul":1012,"origami-azul":1014,
   "chocolate":1015,"chocolate-branco":1016,"bexiga-amarela":1011,"natal-2022":1023,"origami-amarelo":1013,
   "dinheiro":1027,"artefato":1017,"pedra-de-neve":1024,"congelado":1025,"tecla":1022,"aurora":1026,"kryptomon":1021,
-  "bobba":1020
+  "bobba":1020,"barra-de-ouro":1028
 };
 
 const CATALOGO = [
@@ -5335,6 +5337,18 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_sc26_alchemykit.png", desc:"" },
   { slug:"suporte-de-varinhas-magicas", tipo:"furni", pt:"Suporte de Varinhas Mágicas", en:"Magic Wand Display",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_sc_wanddisplay.png", desc:"" },
+  { slug:"pe-de-abacaxi-supercrescido", tipo:"furni", pt:"Pé de Abacaxi Supercrescido", en:"Overgrown Pineapple Plant",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_overgrownplant.png", desc:"" },
+  { slug:"tapete-recyccoon", tipo:"furni", pt:"Tapete Recyccoon", en:"Recyccoon Carpet",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_recyccooncarpet.png", desc:"" },
+  { slug:"cadeira-polyfon-saltitante", tipo:"furni", pt:"Cadeira Polyfon Saltitante", en:"Springy Polyfon Chair",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_springchair.png", desc:"" },
+  { slug:"televisao-antiga-de-tela-larga", tipo:"furni", pt:"Televisão Antiga de Tela Larga", en:"Widescreen Antique Television",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_antiquewidescreen.png", desc:"" },
+  { slug:"sofa-de-cactos", tipo:"furni", pt:"Sofá de Cactos", en:"Cactus Sofa",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_cactussofa.png", desc:"" },
+  { slug:"descanso-de-pes-real", tipo:"furni", pt:"Descanso de Pés Real", en:"Royal Footrest",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_royalfootrest.png", desc:"" },
   { slug:"capa-chuva-translucida-amarela", tipo:"roupa", pt:"Moletom Translúcido Amarelo", ptAntigo:"Capa de Chuva Translúcida Amarela", en:"Yellow Translucent Anorak",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/raincoats/clothing_nftyellowraincoat.png", peca:"cc-5322-1408.ha-5325-1408", desc:"" },
   { slug:"barba-roqueira-grande", tipo:"roupa", pt:"Barba de Roqueiro Grande", ptAntigo:"Barba Roqueira Grande", en:"Big Rocker Beard",
@@ -5537,6 +5551,24 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftballoonbuddy.gif", peca:"pt-6618-1408", desc:"" },
   { slug:"chapeu-cowboy-classico", tipo:"roupa", pt:"Chapéu Cowboy Clássico", en:"Classic Western Hat",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftwesternhat.gif", peca:"ha-6540-1408-1408", desc:"" },
+  { slug:"bigode-zigzag", tipo:"roupa", pt:"Bigode Zigzag", en:"Zigzag Mustache",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_zigzagmustache.png", peca:"fa-6623-1408", desc:"" },
+  { slug:"pente-de-cabelo", tipo:"roupa", pt:"Pente de Cabelo", en:"Hair Comb",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_haircomb.png", peca:"he-6624-1408", desc:"" },
+  { slug:"capacete-banana", tipo:"roupa", pt:"Capacete Banana", en:"Banana Helmet",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_bananahelmet.png", peca:"ha-6609-0", desc:"" },
+  { slug:"chapeu-de-ninho-de-passaro", tipo:"roupa", pt:"Chapéu de Ninho de Pássaro", en:"Bird's Nest Hat",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_birdnest.png", peca:"ha-6608-1408-1408", desc:"" },
+  { slug:"alta-costura-lixeira", tipo:"roupa", pt:"Alta-Costura Lixeira", en:"Trash Can Couture",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_trashcan.png", peca:"mc-6621-0.ha-6622-0", desc:"" },
+  { slug:"talheres", tipo:"roupa", pt:"Talheres", en:"Cutlery",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_cutlery.png", peca:"mc-6593-0", desc:"" },
+  { slug:"palito-de-algodao-doce", tipo:"roupa", pt:"Palito de Algodão-Doce", en:"Cotton Candy Stick",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_cottoncandy.png", peca:"mc-6595-1408", desc:"" },
+  { slug:"rosto-esperancoso", tipo:"roupa", pt:"Rosto Esperançoso", en:"Hopeful Face",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_hopefulface.gif", peca:"hd-6592-14-14", desc:"" },
+  { slug:"rosto-determinado", tipo:"roupa", pt:"Rosto Determinado", en:"Determined Face",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_determinedface.gif", peca:"hd-6591-14-14", desc:"" },
 
   // --- Balões de chat (da aba "Add Ons" da TokenTrove) ---
   { slug:"dinheiro",         tipo:"balao", pt:"Dinheiro Vivo", ptAntigo:"Dinheiro", en:"Cash Money Speech Bubble",
@@ -5569,7 +5601,9 @@ const CATALOGO = [
   { slug:"kryptomon",        tipo:"balao", pt:"Kryptomon",        en:"Kryptomon Speech Bubble",
     img:"https://nft-tokens.habbo.com/collectibles/addons/images/chatstyle/chatstyle_pinktube.png", desc:"" },
   { slug:"bobba",            tipo:"balao", pt:"Bobba",            en:"The Bobba Bubble",
-    img:"https://nft-tokens.habbo.com/collectibles/addons/images/chatstyle/chatstyle_bobba.png", desc:"" }
+    img:"https://nft-tokens.habbo.com/collectibles/addons/images/chatstyle/chatstyle_bobba.png", desc:"" },
+  { slug:"barra-de-ouro",    tipo:"balao", pt:"Barra de Ouro",    en:"Gold Bar Speech Bubble",
+    img:"https://nft-tokens.habbo.com/collectibles/addons/images/chatstyle/chat_bubble_1028.png", desc:"" }
 ];
 
 /* ====================== FIM DA CONFIGURAÇÃO ============================== */
