@@ -10652,6 +10652,18 @@ const lerNumero = v => { const n = parseFloat(String(v).replace(/\s/g, "").repla
 const hojeISO = () => { const d = new Date(Date.now() - 3 * 3600e3); return d.toISOString().slice(0, 10); };
 let calcItens = [{ nome: "", usd: "" }];
 
+// Lista de nomes para os campos de item do admin: em português e também em inglês (escolher o
+// nome em inglês troca pelo nome do catálogo, em português).
+function opcoesNomesItens(){
+  return CATALOGO.map(it => `<option value="${esc(it.pt)}">${esc(it.en || "")}</option>` +
+    (it.en && it.en !== it.pt ? `<option value="${esc(it.en)}">${esc(it.pt)}</option>` : "")).join("");
+}
+function nomeEmPortugues(valor){
+  const t = String(valor).trim().toLowerCase();
+  const it = t && CATALOGO.find(i => i.en && i.en.toLowerCase() === t);
+  return it ? it.pt : valor;
+}
+
 function adminCalculadora(alvo){
   let cfg = lerCfgCalc();
   const salvar = () => { try { localStorage.setItem(CHAVE_CALC, JSON.stringify(cfg)); } catch (e) {} };
@@ -10676,12 +10688,16 @@ function adminCalculadora(alvo){
           </label>
         </div>
         <p class="dica" style="margin:0 0 4px">Coloque o valor de cada NFT no TokenTrove, em dólar.</p>
-        <datalist id="calcNomes">${CATALOGO.map(it => `<option value="${esc(it.pt)}">`).join("")}</datalist>
+        <datalist id="calcNomes">${opcoesNomesItens()}</datalist>
         <div id="calcItens"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
           <button type="button" class="opt" id="calcMais">+ Adicionar item</button>
           <button type="button" class="opt" id="calcLimpar">Limpar</button>
         </div>
+        <label class="admin-campo" style="margin-top:16px">Preço que você vai cobrar (R$, opcional)
+          <input class="figura" id="calcManual" inputmode="decimal" placeholder="Deixe vazio para usar o preço calculado" value="${esc(calcPrecoManual)}">
+          <span class="dica" style="display:block;margin-top:2px">Se você ajustou o preço na mão, coloque aqui: o lucro, os câmbios, o orçamento e o registro no Finanças passam a usar este valor.</span>
+        </label>
       </section>
       <section class="admin-bloco">
         <h3>Resultado</h3>
@@ -10730,7 +10746,10 @@ function adminCalculadora(alvo){
         <input class="figura" data-usd="${i}" inputmode="decimal" placeholder="US$ 0,00" value="${esc(l.usd)}">
         <button type="button" class="opt" data-tirar="${i}" title="Remover" aria-label="Remover item" style="padding:6px 0">✕</button>
       </div>`).join("");
-    lista.querySelectorAll("[data-nome]").forEach(c => c.oninput = () => { calcItens[+c.dataset.nome].nome = c.value; calcular(); });
+    lista.querySelectorAll("[data-nome]").forEach(c => c.oninput = () => {
+      const pt = nomeEmPortugues(c.value); if (pt !== c.value) c.value = pt;
+      calcItens[+c.dataset.nome].nome = c.value; calcular();
+    });
     lista.querySelectorAll("[data-usd]").forEach(c => c.oninput = () => { calcItens[+c.dataset.usd].usd = c.value; calcular(); });
     lista.querySelectorAll("[data-tirar]").forEach(b => b.onclick = () => {
       calcItens.splice(+b.dataset.tirar, 1);
@@ -10757,15 +10776,17 @@ function adminCalculadora(alvo){
     const custo = subtotal + reserva + negocio;
     const finalUsd = custo + taxa;
     const exato = finalUsd * cfg.cotacao;
-    const finalRs = cfg.arredondar ? Math.ceil(exato - 1e-9) : exato;
+    const calculado = cfg.arredondar ? Math.ceil(exato - 1e-9) : exato;
+    const manual = num(calcPrecoManual);
+    const finalRs = manual > 0 ? manual : calculado;
     const lucroRs = finalRs - custo * cfg.cotacao;           // taxa NFT-SE (+ o arredondamento)
     itens.forEach(l => { l.rs = finalRs * l.preco / finalUsd; });
     const minimos = itens.filter(l => l.minimo).length;
     calcUltimo = { descricao: itens.map((l, i) => l.nome || "Item " + (i + 1)).join(", "), valor: finalRs, custo: subtotal * cfg.cotacao };
     resultado.innerHTML = `
       <div style="display:flex;gap:24px;flex-wrap:wrap">
-        <div><p class="dica" style="margin:0">Preço final para o cliente</p><p class="calc-destaque">${rs(finalRs)}</p></div>
-        <div><p class="dica" style="margin:0">Seu lucro</p><p class="calc-destaque" style="color:#7ee2a8">${rs(lucroRs)}</p></div>
+        <div><p class="dica" style="margin:0">Preço final para o cliente${manual > 0 ? " (ajustado por você)" : ""}</p><p class="calc-destaque">${rs(finalRs)}</p>${manual > 0 ? `<p class="dica" style="margin:0">Calculado: ${rs(calculado)}</p>` : ""}</div>
+        <div><p class="dica" style="margin:0">Seu lucro</p><p class="calc-destaque" style="color:${lucroRs < 0 ? "#ff8a8a" : "#7ee2a8"}">${rs(lucroRs)}</p></div>
         <div><p class="dica" style="margin:0">Em câmbios</p><p class="calc-destaque" style="color:#ffd76a">${fmtCambios(reaisEmCambios(finalRs))}</p></div>
       </div>
       <p class="dica" style="margin:0 0 12px">${us(finalUsd)} · dólar a R$ ${cfg.cotacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · câmbio a R$ 0,21 (1000c = R$ 210)</p>
@@ -10774,8 +10795,8 @@ function adminCalculadora(alvo){
         <tr><td>Taxas da compra de ETH (${cfg.reserva.toLocaleString("pt-BR")}% + ${us(cfg.fixo)} a cada ${rs(cfg.compra)})</td><td>${us(reserva)}</td><td>${rs(reserva * cfg.cotacao)}</td></tr>
         ${cfg.negocio > 0 ? `<tr><td>Custos do negócio (${cfg.negocio}%)</td><td>${us(negocio)}</td><td>${rs(negocio * cfg.cotacao)}</td></tr>` : ""}
         <tr><td><b>Seu custo</b></td><td><b>${us(custo)}</b></td><td><b>${rs(custo * cfg.cotacao)}</b></td></tr>
-        <tr><td>Taxa NFT-SE (seu lucro)${cfg.arredondar && finalRs > exato + 0.004 ? " + arredondamento" : ""}</td><td>${us(taxa)}</td><td>${rs(lucroRs)}</td></tr>
-        <tr class="calc-total"><td>Preço final</td><td>${us(finalUsd)}</td><td>${rs(finalRs)}</td></tr>
+        <tr><td>Taxa NFT-SE (seu lucro)${manual > 0 ? " com o seu preço" : cfg.arredondar && finalRs > exato + 0.004 ? " + arredondamento" : ""}</td><td>${manual > 0 ? us(finalRs / cfg.cotacao - custo) : us(taxa)}</td><td>${rs(lucroRs)}</td></tr>
+        <tr class="calc-total"><td>Preço final</td><td>${us(manual > 0 ? finalRs / cfg.cotacao : finalUsd)}</td><td>${rs(finalRs)}</td></tr>
       </table>
       ${minimos ? `<p class="dica" style="margin:6px 0 0">${n === 1 ? "Neste item" : `Em ${minimos} ${minimos === 1 ? "item" : "itens"}`}, os ${cfg.taxa}% dariam menos de ${us(cfg.minimo)}, então entrou a taxa mínima.</p>` : ""}
       ${n > 1 ? `
@@ -10813,7 +10834,8 @@ function adminCalculadora(alvo){
   });
   document.getElementById("calcArredondar").onchange = e => { cfg.arredondar = e.target.checked; salvar(); calcular(); };
   document.getElementById("calcMais").onclick = () => { calcItens.push({ nome: "", usd: "" }); desenharItens(); lista.querySelector(`[data-nome="${calcItens.length - 1}"]`).focus(); };
-  document.getElementById("calcLimpar").onclick = () => { calcItens = [{ nome: "", usd: "" }]; desenharItens(); calcular(); };
+  document.getElementById("calcLimpar").onclick = () => { calcItens = [{ nome: "", usd: "" }]; calcPrecoManual = ""; document.getElementById("calcManual").value = ""; desenharItens(); calcular(); };
+  document.getElementById("calcManual").oninput = e => { calcPrecoManual = e.target.value; calcular(); };
   document.getElementById("calcPadrao").onclick = () => {
     cfg = { ...CALC_PADRAO, cotacao: cfg.cotacao, cotacaoAuto: cfg.cotacaoAuto, negocio: cfg.negocio }; salvar(); adminCalculadora(alvo);
   };
@@ -10836,6 +10858,7 @@ function adminCalculadora(alvo){
   calcular();
 }
 let calcUltimo = null;
+let calcPrecoManual = "";   // preço final digitado à mão na calculadora (vazio = usa o calculado)
 
 /* ----- 💰 Finanças: compras de ETH, outras despesas e vendas ----- */
 // Fica no servidor (Redis, financas:registros), então aparece em qualquer aparelho do admin.
@@ -11090,7 +11113,7 @@ async function adminEstoque(alvo){
       </section>
       <section class="admin-bloco">
         <h3>${estEditando ? "Editar item" : "Adicionar ao estoque"}</h3>
-        <datalist id="estNomes">${CATALOGO.map(it => `<option value="${esc(it.pt)}">`).join("")}</datalist>
+        <datalist id="estNomes">${opcoesNomesItens()}</datalist>
         <label class="admin-campo">Item<input id="estNome" class="figura" list="estNomes" maxlength="120" value="${esc(form.nome)}" placeholder="Digite o nome..."></label>
         <span class="dica" id="estPrecoHoje" style="display:block;margin-top:2px"></span>
         <datalist id="estContas">${contas.map(c => `<option value="${esc(c)}">`).join("")}</datalist>
@@ -11177,7 +11200,7 @@ async function adminEstoque(alvo){
       : (campoNome.value.trim() ? "Sem preço da TokenTrove para este item: coloque o valor de hoje abaixo." : "");
     document.getElementById("estManualCampo").style.display = usd ? "none" : "";
   };
-  campoNome.oninput = mostrarPreco;
+  campoNome.oninput = () => { const pt = nomeEmPortugues(campoNome.value); if (pt !== campoNome.value) campoNome.value = pt; mostrarPreco(); };
   mostrarPreco();
 
   // reais ou câmbios: mostra o campo certo e a conversão dos câmbios
