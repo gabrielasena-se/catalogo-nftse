@@ -541,7 +541,8 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .admin-excluir-visita{padding:3px 10px;font-size:12px;flex-shrink:0;opacity:.75}
 .admin-excluir-visita:hover{opacity:1}
 .admin-caminho{margin-top:4px;font-size:13px;color:var(--texto);opacity:.9;line-height:1.5}
-.calc-linha{display:grid;grid-template-columns:1fr 130px 34px;gap:6px;align-items:center;margin-top:6px}
+.calc-linha{display:grid;grid-template-columns:1fr 1fr 34px;gap:6px;align-items:center;margin-top:10px}
+.calc-linha [data-nome]{grid-column:1/-1}
 .calc-linha .figura{margin-top:0}
 .calc-tabela{width:100%;border-collapse:collapse;font-size:14px}
 .calc-tabela td{padding:6px 4px;border-bottom:1px solid var(--linha)}
@@ -10694,10 +10695,7 @@ function adminCalculadora(alvo){
           <button type="button" class="opt" id="calcMais">+ Adicionar item</button>
           <button type="button" class="opt" id="calcLimpar">Limpar</button>
         </div>
-        <label class="admin-campo" style="margin-top:16px">Preço que você vai cobrar (R$, opcional)
-          <input class="figura" id="calcManual" inputmode="decimal" placeholder="Deixe vazio para usar o preço calculado" value="${esc(calcPrecoManual)}">
-          <span class="dica" style="display:block;margin-top:2px">Se você ajustou o preço na mão, coloque aqui: o lucro, os câmbios, o orçamento e o registro no Finanças passam a usar este valor.</span>
-        </label>
+        <p class="dica" style="margin:10px 0 0">Ajustou o preço de algum item na mão? Coloque em "R$ cobrado": o lucro, os câmbios, o orçamento e o registro no Finanças passam a usar o seu valor.</p>
       </section>
       <section class="admin-bloco">
         <h3>Resultado</h3>
@@ -10743,7 +10741,8 @@ function adminCalculadora(alvo){
     lista.innerHTML = calcItens.map((l, i) => `
       <div class="calc-linha">
         <input class="figura" list="calcNomes" data-nome="${i}" placeholder="Nome (opcional)" value="${esc(l.nome)}">
-        <input class="figura" data-usd="${i}" inputmode="decimal" placeholder="US$ 0,00" value="${esc(l.usd)}">
+        <input class="figura" data-usd="${i}" inputmode="decimal" placeholder="US$ 0,00" aria-label="Valor na TokenTrove (US$)" value="${esc(l.usd)}">
+        <input class="figura" data-rs="${i}" inputmode="decimal" placeholder="R$ cobrado" aria-label="Preço cobrado por você (R$, opcional)" value="${esc(l.rs || "")}">
         <button type="button" class="opt" data-tirar="${i}" title="Remover" aria-label="Remover item" style="padding:6px 0">✕</button>
       </div>`).join("");
     lista.querySelectorAll("[data-nome]").forEach(c => c.oninput = () => {
@@ -10751,6 +10750,7 @@ function adminCalculadora(alvo){
       calcItens[+c.dataset.nome].nome = c.value; calcular();
     });
     lista.querySelectorAll("[data-usd]").forEach(c => c.oninput = () => { calcItens[+c.dataset.usd].usd = c.value; calcular(); });
+    lista.querySelectorAll("[data-rs]").forEach(c => c.oninput = () => { calcItens[+c.dataset.rs].rs = c.value; calcular(); });
     lista.querySelectorAll("[data-tirar]").forEach(b => b.onclick = () => {
       calcItens.splice(+b.dataset.tirar, 1);
       if (!calcItens.length) calcItens.push({ nome: "", usd: "" });
@@ -10759,7 +10759,7 @@ function adminCalculadora(alvo){
   }
 
   function calcular(){
-    const validos = calcItens.map(l => ({ nome: l.nome.trim(), usd: num(l.usd) })).filter(l => l.usd > 0);
+    const validos = calcItens.map(l => ({ nome: l.nome.trim(), usd: num(l.usd), manual: num(l.rs || "") })).filter(l => l.usd > 0);
     if (!validos.length) { resultado.innerHTML = `<p class="dica">Coloque o valor de pelo menos um item.</p>`; return; }
     const n = validos.length;
     // Em cada item: reserva (% do valor + parte do custo fixo) e taxa NFT-SE (% do valor ou o mínimo, o que for maior)
@@ -10777,15 +10777,17 @@ function adminCalculadora(alvo){
     const finalUsd = custo + taxa;
     const exato = finalUsd * cfg.cotacao;
     const calculado = cfg.arredondar ? Math.ceil(exato - 1e-9) : exato;
-    const manual = num(calcPrecoManual);
-    const finalRs = manual > 0 ? manual : calculado;
+    itens.forEach(l => { l.rsItem = l.manual > 0 ? l.manual : l.preco * cfg.cotacao; });
+    const ajustados = itens.filter(l => l.manual > 0).length, manual = ajustados > 0;
+    const somaItens = itens.reduce((s, l) => s + l.rsItem, 0);
+    const finalRs = manual ? (cfg.arredondar ? Math.ceil(somaItens - 1e-9) : somaItens) : calculado;
     const lucroRs = finalRs - custo * cfg.cotacao;           // taxa NFT-SE (+ o arredondamento)
-    itens.forEach(l => { l.rs = finalRs * l.preco / finalUsd; });
-    const minimos = itens.filter(l => l.minimo).length;
+    itens.forEach(l => { l.rs = finalRs * l.rsItem / somaItens; });
+    const minimos = itens.filter(l => l.minimo && !(l.manual > 0)).length;
     calcUltimo = { descricao: itens.map((l, i) => l.nome || "Item " + (i + 1)).join(", "), valor: finalRs, custo: subtotal * cfg.cotacao };
     resultado.innerHTML = `
       <div style="display:flex;gap:24px;flex-wrap:wrap">
-        <div><p class="dica" style="margin:0">Preço final para o cliente${manual > 0 ? " (ajustado por você)" : ""}</p><p class="calc-destaque">${rs(finalRs)}</p>${manual > 0 ? `<p class="dica" style="margin:0">Calculado: ${rs(calculado)}</p>` : ""}</div>
+        <div><p class="dica" style="margin:0">Preço final para o cliente${manual ? (n > 1 ? ` (${ajustados} de ${n} ajustados por você)` : " (ajustado por você)") : ""}</p><p class="calc-destaque">${rs(finalRs)}</p>${manual ? `<p class="dica" style="margin:0">Calculado: ${rs(calculado)}</p>` : ""}</div>
         <div><p class="dica" style="margin:0">Seu lucro</p><p class="calc-destaque" style="color:${lucroRs < 0 ? "#ff8a8a" : "#7ee2a8"}">${rs(lucroRs)}</p></div>
         <div><p class="dica" style="margin:0">Em câmbios</p><p class="calc-destaque" style="color:#ffd76a">${fmtCambios(reaisEmCambios(finalRs))}</p></div>
       </div>
@@ -10795,15 +10797,15 @@ function adminCalculadora(alvo){
         <tr><td>Taxas da compra de ETH (${cfg.reserva.toLocaleString("pt-BR")}% + ${us(cfg.fixo)} a cada ${rs(cfg.compra)})</td><td>${us(reserva)}</td><td>${rs(reserva * cfg.cotacao)}</td></tr>
         ${cfg.negocio > 0 ? `<tr><td>Custos do negócio (${cfg.negocio}%)</td><td>${us(negocio)}</td><td>${rs(negocio * cfg.cotacao)}</td></tr>` : ""}
         <tr><td><b>Seu custo</b></td><td><b>${us(custo)}</b></td><td><b>${rs(custo * cfg.cotacao)}</b></td></tr>
-        <tr><td>Taxa NFT-SE (seu lucro)${manual > 0 ? " com o seu preço" : cfg.arredondar && finalRs > exato + 0.004 ? " + arredondamento" : ""}</td><td>${manual > 0 ? us(finalRs / cfg.cotacao - custo) : us(taxa)}</td><td>${rs(lucroRs)}</td></tr>
-        <tr class="calc-total"><td>Preço final</td><td>${us(manual > 0 ? finalRs / cfg.cotacao : finalUsd)}</td><td>${rs(finalRs)}</td></tr>
+        <tr><td>Taxa NFT-SE (seu lucro)${manual ? " com o seu preço" : cfg.arredondar && finalRs > exato + 0.004 ? " + arredondamento" : ""}</td><td>${manual ? us(finalRs / cfg.cotacao - custo) : us(taxa)}</td><td>${rs(lucroRs)}</td></tr>
+        <tr class="calc-total"><td>Preço final</td><td>${us(manual ? finalRs / cfg.cotacao : finalUsd)}</td><td>${rs(finalRs)}</td></tr>
       </table>
       ${minimos ? `<p class="dica" style="margin:6px 0 0">${n === 1 ? "Neste item" : `Em ${minimos} ${minimos === 1 ? "item" : "itens"}`}, os ${cfg.taxa}% dariam menos de ${us(cfg.minimo)}, então entrou a taxa mínima.</p>` : ""}
       ${n > 1 ? `
         <h3 style="margin:16px 0 4px;font-size:14px">Cada item</h3>
         <table class="calc-tabela">
           <tr class="dica"><td>Item</td><td>NFT</td><td>Taxa</td><td>Preço</td><td>Câmbios</td></tr>
-          ${itens.map((l, i) => `<tr><td>${esc(l.nome || "Item " + (i + 1))}</td><td>${us(l.usd)}</td><td>${us(l.taxa)}</td><td>${rs(l.rs)}</td><td>${fmtCambios(reaisEmCambios(l.rs))}</td></tr>`).join("")}
+          ${itens.map((l, i) => `<tr><td>${esc(l.nome || "Item " + (i + 1))}${l.manual > 0 ? ' <span title="Preço ajustado por você">✎</span>' : ""}</td><td>${us(l.usd)}</td><td>${us(l.manual > 0 ? l.rs / cfg.cotacao - (l.usd + l.reserva + l.negocio) : l.taxa)}</td><td>${rs(l.rs)}</td><td>${fmtCambios(reaisEmCambios(l.rs))}</td></tr>`).join("")}
         </table>` : ""}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center">
         <button type="button" class="opt" id="calcCopiar">Copiar orçamento</button>
@@ -10834,8 +10836,7 @@ function adminCalculadora(alvo){
   });
   document.getElementById("calcArredondar").onchange = e => { cfg.arredondar = e.target.checked; salvar(); calcular(); };
   document.getElementById("calcMais").onclick = () => { calcItens.push({ nome: "", usd: "" }); desenharItens(); lista.querySelector(`[data-nome="${calcItens.length - 1}"]`).focus(); };
-  document.getElementById("calcLimpar").onclick = () => { calcItens = [{ nome: "", usd: "" }]; calcPrecoManual = ""; document.getElementById("calcManual").value = ""; desenharItens(); calcular(); };
-  document.getElementById("calcManual").oninput = e => { calcPrecoManual = e.target.value; calcular(); };
+  document.getElementById("calcLimpar").onclick = () => { calcItens = [{ nome: "", usd: "" }]; desenharItens(); calcular(); };
   document.getElementById("calcPadrao").onclick = () => {
     cfg = { ...CALC_PADRAO, cotacao: cfg.cotacao, cotacaoAuto: cfg.cotacaoAuto, negocio: cfg.negocio }; salvar(); adminCalculadora(alvo);
   };
@@ -10858,7 +10859,6 @@ function adminCalculadora(alvo){
   calcular();
 }
 let calcUltimo = null;
-let calcPrecoManual = "";   // preço final digitado à mão na calculadora (vazio = usa o calculado)
 
 /* ----- 💰 Finanças: compras de ETH, outras despesas e vendas ----- */
 // Fica no servidor (Redis, financas:registros), então aparece em qualquer aparelho do admin.
