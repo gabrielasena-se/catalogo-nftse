@@ -1657,6 +1657,19 @@ const ORDEM_LANCAMENTO = {
   "bobba":1020,"barra-de-ouro":1028
 };
 
+// Dia em que o item chegou ao catálogo (AAAAMMDD). "Mais recentes" usa primeiro esta data e,
+// no mesmo dia (ou para os itens de antes de 28/09, que não têm data), a ORDEM_LANCAMENTO.
+const DATA_ENTRADA = {
+  "pe-de-abacaxi-supercrescido":20261019,"tapete-recyccoon":20261019,"cadeira-polyfon-saltitante":20261019,"televisao-antiga-de-tela-larga":20261019,"sofa-de-cactos":20261019,"descanso-de-pes-real":20261019,"bigode-zigzag":20261019,"pente-de-cabelo":20261019,"capacete-banana":20261019,"chapeu-de-ninho-de-passaro":20261019,"alta-costura-lixeira":20261019,"talheres":20261019,"palito-de-algodao-doce":20261019,"rosto-esperancoso":20261019,"rosto-determinado":20261019,"barra-de-ouro":20261019,
+  "livro-voador":20261017,"pratica-de-transmogrificacao":20261017,"kit-de-alquimia":20261017,"suporte-de-varinhas-magicas":20261017,"chapeu-cowboy-classico":20261017,
+  "ingredientes-magicos":20261014,"prateleira-de-ingredientes-magicos":20261014,
+  "caldeirao-bronze":20261010,"caldeirao-prata":20261010,"caldeirao-dourado":20261010,"caldeirao-trippy":20261010,"suporte-para-vassouras":20261010,"capa-de-bruxa-moderna":20261010,"amigo-balao":20261010,
+  "menino-habbo":20261005,"orgao":20261005,"frank-demoniaco":20261005,"bryan-o-cavaleiro":20261005,"luz-da-lua":20261005,"pato-zumbi":20261005,"punk-rock":20261005,"boneco-mariachi":20261005,"fonte-sangrenta":20261005,"saintini":20261005,"o-terror-das-bonequinhas":20261005,"esqueleto-tatuado":20261005,"luta-livre":20261005,"boneca-catrina":20261005,"trono-espinhudo":20261005,"o-ceifador":20261005,"gabinete-mao-de-lobo":20261005,"gato-esqueleto":20261005,"chefe-do-pato-do-mal":20261005,"sam-o-querubim":20261005,"arca-maldita":20261005,"gabinete-de-curiosidades":20261005,"corvo-malefico":20261005,"caminhao-de-fazenda-retro":20261005,"salgueiro-chorao":20261005,"cavalgador-da-vida":20261005,"estampa-de-colecionaveis":20261005,
+  "pele-esmeralda-pura":20260928,"moletom-icones-habbo":20260928
+};
+// número único para ordenar: data de chegada na frente, ordem de lançamento atrás
+const chaveRecente = it => it._extra ? Infinity : (DATA_ENTRADA[it.slug] || 0) * 1e6 + (ORDEM_LANCAMENTO[it.slug] || 0);
+
 const CATALOGO = [
   // --- Visuais (aba "Clothes" da TokenTrove) ---
   // "peca" ainda vazio nestes — preciso do código de figura de cada um (ver observação no chat)
@@ -5875,7 +5888,7 @@ function ordenarLista(lista){
   if (ordem === "curtidos") return [...lista].sort((a, b) => (contagens[b.slug] || 0) - (contagens[a.slug] || 0) || porPreco(a, b));
   if (ordem === "preco-desc") return [...lista].sort((a, b) => (b.faixa || 0) - (a.faixa || 0) || pos.get(b) - pos.get(a));
   if (ordem === "recentes") {
-    const lancamento = it => it._extra ? Infinity : (ORDEM_LANCAMENTO[it.slug] || 0);
+    const lancamento = chaveRecente;
     return [...lista].sort((a, b) => lancamento(b) - lancamento(a) || porPreco(a, b));
   }
   if (ordem === "az") return [...lista].sort((a, b) => a.pt.localeCompare(b.pt, "pt-BR", { sensitivity:"base", numeric:true }));
@@ -11389,7 +11402,7 @@ let filtroTagsAdmin = "sem", tipoTagsAdmin = "todos", qtdTagsAdmin = 20, listaTa
 
 function adminTags(alvo){
   const temTag = it => (tagsManuais[it.slug] || []).length > 0;
-  const lancamento = it => it._extra ? Infinity : (ORDEM_LANCAMENTO[it.slug] || 0);
+  const lancamento = chaveRecente;
 
   alvo.innerHTML = `
     <div id="tagsProgresso"></div>

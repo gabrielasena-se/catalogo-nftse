@@ -73,6 +73,9 @@ async function paginaVisitante() {
   const io = p.indexOf("const ORDEM_LANCAMENTO = {"), fo = p.indexOf("\n};", io);
   const ordem = {};
   for (const m of p.slice(io, fo).matchAll(/"([^"]+)":(\d+)/g)) ordem[m[1]] = +m[2];
+  // dia de chegada ao catálogo vem antes da ordem de lançamento (igual a chaveRecente da página)
+  const id = p.indexOf("const DATA_ENTRADA = {"), fd = p.indexOf("\n};", id);
+  if (id >= 0) for (const m of p.slice(id, fd).matchAll(/"([^"]+)":(\d+)/g)) ordem[m[1]] = +m[2] * 1e6 + (ordem[m[1]] || 0);
   const ic = p.indexOf("const CATALOGO = ["), fc = p.indexOf("\n];", ic);
   const re = /\{\s*slug:\s*"([^"]+)",\s*tipo:\s*"(\w+)"[\s\S]*?desc:\s*"[^"]*"\s*\},?/g;
   const itens = [...p.slice(ic, fc).matchAll(re)].map(m => ({ slug: m[1], tipo: m[2], texto: m[0].replace(/,$/, "") }));
@@ -91,6 +94,7 @@ async function paginaVisitante() {
   const tagsTema = Object.fromEntries(doTema.map(i => [i.slug, tema[i.slug]]));
   p = p.slice(0, ic) + "const CATALOGO = [\n  " + amostra.map(i => i.texto).join(",\n  ") + p.slice(fc);
   p = recortarObjeto(p, "const ORDEM_LANCAMENTO = {", manter);
+  p = recortarObjeto(p, "const DATA_ENTRADA = {", manter);
   p = recortarObjeto(p, "const MEDIDAS_MOBIS = {", manter);
   p = p.replace(/const MOBIS_ANIMADOS = new Set\((\[[^\]]*\])\);/, (t, lista) =>
     `const MOBIS_ANIMADOS = new Set(${JSON.stringify(JSON.parse(lista).filter(s => manter.has(s)))});`);
