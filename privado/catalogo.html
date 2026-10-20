@@ -9455,7 +9455,7 @@ function telaEditor(){
         ${itens.map(it => `<li><img src="${CUBO_NFT_B64}" alt=""><a href="#item/${esc(it.slug)}">${esc(it.pt)}</a>${faixaHTML(it.faixa)}</li>`).join("")}
       </ul>
       ${faltam.length
-        ? `<button type="button" class="opt" id="pecasVisualSacola">🛍️ ${itens.length === 1 ? "Colocar na sacola" : "Colocar tudo na sacola"}</button>`
+        ? `<button type="button" class="opt" id="pecasVisualSacola">+ ${itens.length === 1 ? "Colocar na sacola" : "Colocar tudo na sacola"}</button>`
         : `<a href="#sacola" class="ver-sacola">✓ Tudo na sacola · Ver sacola →</a>`}`;
     const botao = document.getElementById("pecasVisualSacola");
     if (botao) botao.onclick = async () => {
