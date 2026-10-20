@@ -385,7 +385,7 @@ button.cta:disabled{opacity:.55;cursor:default;transform:none}
 .pecas-visual li a{flex:1;min-width:0}
 .provador-editor .espelho .pecas-visual img{width:13px;height:13px;margin-top:2px}
 .pecas-visual .card-faixa{position:static;margin-left:auto}
-.pecas-visual .opt{width:100%;padding:7px;font-size:12px}
+.pecas-visual .cta{display:block;width:100%;margin-top:0;padding:10px 8px;font-size:10px;background:linear-gradient(180deg,#7a3ad0,#4d1f8c);border-bottom-color:#2a0f52}
 .pecas-visual .ver-sacola{display:block;text-align:center;font-size:12px}
 .salvar-visual{display:flex;flex-direction:column;gap:6px;width:100%}
 .salvar-visual[hidden]{display:none}
@@ -9455,7 +9455,7 @@ function telaEditor(){
         ${itens.map(it => `<li><img src="${CUBO_NFT_B64}" alt=""><a href="#item/${esc(it.slug)}">${esc(it.pt)}</a>${faixaHTML(it.faixa)}</li>`).join("")}
       </ul>
       ${faltam.length
-        ? `<button type="button" class="opt" id="pecasVisualSacola">+ ${itens.length === 1 ? "Colocar na sacola" : "Colocar tudo na sacola"}</button>`
+        ? `<button type="button" class="cta" id="pecasVisualSacola">${itens.length === 1 ? "Colocar na sacola" : "Colocar tudo na sacola"}</button>`
         : `<a href="#sacola" class="ver-sacola">✓ Tudo na sacola · Ver sacola →</a>`}`;
     const botao = document.getElementById("pecasVisualSacola");
     if (botao) botao.onclick = async () => {
