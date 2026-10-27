@@ -37,11 +37,23 @@ const semAcento = t => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowe
 
 // Aba temporária do tema (ex.: Halloween): os itens com a tag dela entram na prévia também,
 // e a página recebe só essa tag desses itens (as outras tags continuam só com login).
+// O tema vem de TEMAS_DO_ANO (o que vale hoje, pelo horário de Brasília), igual à página.
+function temaDeHoje(pagina) {
+  const i = pagina.indexOf("const TEMAS_DO_ANO = ["), f = pagina.indexOf("];", i);
+  if (i < 0 || f < 0) return null;
+  const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+  return [...pagina.slice(i, f).matchAll(/\{[^{}]*\}/g)].map(x => x[0]).find(t => {
+    const desde = (t.match(/desde:\s*"([^"]+)"/) || [])[1], ate = (t.match(/ate:\s*"([^"]+)"/) || [])[1];
+    return (!desde || hoje >= desde) && (!ate || hoje <= ate);
+  }) || null;
+}
+
 async function itensDoTema(pagina) {
-  const m = pagina.match(/const ABA_TEMA = \{[^}]*tag:\s*"([^"]+)"/);
+  const temaTxt = temaDeHoje(pagina);
+  const m = temaTxt && temaTxt.match(/tag:\s*"([^"]+)"/);
   if (!m) return {};
   // todas as tags que entram na aba (ex.: halloween e fantasia); a página recebe só a principal (m[1])
-  const tagsAba = pagina.match(/const ABA_TEMA = \{[^}]*tags:\s*\[([^\]]*)\]/);
+  const tagsAba = temaTxt.match(/tags:\s*\[([^\]]*)\]/);
   const doTema = new Set((tagsAba ? [...tagsAba[1].matchAll(/"([^"]+)"/g)].map(x => x[1]) : [m[1]]).map(semAcento));
   try {
     const tags = JSON.parse((await redis("GET", "catalogo:tags")) || "{}") || {};
