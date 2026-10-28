@@ -5783,11 +5783,22 @@ const ACOES = [ {id:"std",rotulo:"Parado"}, {id:"wlk",rotulo:"Andando"},
 /* --------- montagem da figure string e das URLs do habbo-imaging -------- */
 
 // Avatar padrão do gênero escolhido, com o tom de pele do provador, vestindo a peça.
+// Item de rosto/pele (hd) com cor: veste no tom de pele escolhido (ou no do avatar carregado).
+// As peles de cor fixa (-0) ficam como são.
+function naPele(lista, pele){
+  if (!pele) return lista;
+  return lista.map(p => {
+    const [tipo, id, ...cs] = p.split("-");
+    if (tipo !== "hd" || !cs.length || cs.every(c => c === "0")) return p;
+    return [tipo, id, ...cs.map(c => c === "0" ? c : pele)].join("-");
+  });
+}
+
 function figura(estado, peca){
   const base = BASE_POR_GENERO[estado.genero] || BASE_POR_GENERO.M;
   const [tipoHd, idHd, corHd] = base.hd.split("-");
   const partes = [`${tipoHd}-${idHd}-${estado.pele || corHd}`, base.hr, base.ch, base.lg];
-  return vestirPecas(partes, peca).join(".");
+  return naPele(vestirPecas(partes, peca), estado.pele).join(".");
 }
 
 function urlAvatar(fig, o = {}){
@@ -10206,8 +10217,10 @@ function ligarProvador(it){
 
   function atualizar(){
     const peca = pecaDe(prov.genero);
-    const fig = prov.figLivre.trim()
-      ? vestirPecas(prov.figLivre.trim().split(".").filter(Boolean), peca).join(".")
+    const proprio = prov.figLivre.trim().split(".").filter(Boolean);
+    const peleProprio = ((proprio.find(p => p.startsWith("hd-")) || "").split("-")[2]) || "";
+    const fig = proprio.length
+      ? naPele(vestirPecas(proprio, peca), peleProprio).join(".")
       : figura(prov, peca);
     img.src = urlAvatar(fig, { dir:prov.dir, acao:prov.acao, size:"l", genero:prov.genero });
     // Animações: avatar padrão feminino acenando e masculino andando, com o tom de pele
