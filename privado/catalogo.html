@@ -9281,6 +9281,10 @@ function figuraComCandidatoEditor(tipo, set){
   return lista.join(".");
 }
 
+// Ordem de novidade no editor: o Habbo dá números maiores às peças mais recentes. Os poucos
+// números acima de 9000 são peças antigas de HC com numeração fora da sequência: vão para o fim.
+const idNovidade = id => { const n = Number(id) || 0; return n >= 9000 ? 0 : n; };
+
 // Botão de uma peça na grade do editor (usado na categoria aberta e nos resultados da busca)
 function botaoItemEditor(tipo, s){
   const infoItem = (INDICE_ITENS_EDITOR[tipo] || {})[s.id];
@@ -9356,9 +9360,9 @@ function telaEditor(){
           const nome = indice[s.id] && indice[s.id].nome;
           return (nome && semAcento(nome).includes(termoBusca)) || (tipo + "-" + s.id) === termoBusca;
         })
-        .sort((a, b) => (indice[a.id] ? indice[a.id].ordem : Infinity) - (indice[b.id] ? indice[b.id].ordem : Infinity))
         .forEach(s => achados.push({ tipo, s }));
     }
+    achados.sort((a, b) => idNovidade(b.s.id) - idNovidade(a.s.id));   // busca: mais novas primeiro
     const qtd = editorQtdMostrada.__busca || 48;
     grade = `
       <p class="contador-itens" style="text-align:center;margin:0 0 8px">Busca “${esc(editorBusca.trim())}”: ${achados.length} ${achados.length === 1 ? "item" : "itens"}</p>
@@ -9376,14 +9380,11 @@ function telaEditor(){
       (s.gender === "U" || s.gender === ed.genero) &&
       !(excluidos && excluidos.has(s.id))
     );
-    const indiceCategoria = INDICE_ITENS_EDITOR[editorTipoAtivo] || {};
     todos.sort((a, b) => {
       // peças que o gerador do Habbo ainda não desenha ficam no fim
       const sa = semImagemHabbo(editorTipoAtivo, a.id), sb = semImagemHabbo(editorTipoAtivo, b.id);
       if (sa !== sb) return sa ? 1 : -1;
-      const oa = indiceCategoria[a.id] ? indiceCategoria[a.id].ordem : Infinity;
-      const ob = indiceCategoria[b.id] ? indiceCategoria[b.id].ordem : Infinity;
-      return oa - ob;
+      return idNovidade(b.id) - idNovidade(a.id);   // mais novas primeiro
     });
     const qtd = editorQtdMostrada[editorTipoAtivo] || 48;
     const visiveis = todos.slice(0, qtd);
