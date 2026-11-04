@@ -9284,6 +9284,16 @@ function figuraComCandidatoEditor(tipo, set){
 // Ordem de novidade no editor: o Habbo dá números maiores às peças mais recentes. Os poucos
 // números acima de 9000 são peças antigas de HC com numeração fora da sequência: vão para o fim.
 const idNovidade = id => { const n = Number(id) || 0; return n >= 9000 ? 0 : n; };
+// Grupos do editor, nesta ordem: NFT (e parcerias), pagas (câmbio, raros, duckets, LTD...), grátis/HC e,
+// por último, peças sem cadastro. Dentro de cada grupo, as mais novas primeiro.
+function grupoEditor(tipo, id){
+  const info = (INDICE_ITENS_EDITOR[tipo] || {})[id];
+  if (!info) return 3;
+  if (info.origem === "nft" || info.origem === "parceria") return 0;
+  if (info.origem) return 1;
+  return info.nome ? 1 : 2;   // sem origem e sem nome = grátis/HC
+}
+const ordemEditor = (tipo, a, b) => (grupoEditor(tipo, a) - grupoEditor(tipo, b)) || (idNovidade(b) - idNovidade(a));
 
 // Botão de uma peça na grade do editor (usado na categoria aberta e nos resultados da busca)
 function botaoItemEditor(tipo, s){
@@ -9362,7 +9372,7 @@ function telaEditor(){
         })
         .forEach(s => achados.push({ tipo, s }));
     }
-    achados.sort((a, b) => idNovidade(b.s.id) - idNovidade(a.s.id));   // busca: mais novas primeiro
+    achados.sort((a, b) => (grupoEditor(a.tipo, a.s.id) - grupoEditor(b.tipo, b.s.id)) || (idNovidade(b.s.id) - idNovidade(a.s.id)));   // busca: mesma ordem
     const qtd = editorQtdMostrada.__busca || 48;
     grade = `
       <p class="contador-itens" style="text-align:center;margin:0 0 8px">Busca “${esc(editorBusca.trim())}”: ${achados.length} ${achados.length === 1 ? "item" : "itens"}</p>
@@ -9384,7 +9394,7 @@ function telaEditor(){
       // peças que o gerador do Habbo ainda não desenha ficam no fim
       const sa = semImagemHabbo(editorTipoAtivo, a.id), sb = semImagemHabbo(editorTipoAtivo, b.id);
       if (sa !== sb) return sa ? 1 : -1;
-      return idNovidade(b.id) - idNovidade(a.id);   // mais novas primeiro
+      return ordemEditor(editorTipoAtivo, a.id, b.id);   // NFT, pagas, grátis; mais novas primeiro em cada grupo
     });
     const qtd = editorQtdMostrada[editorTipoAtivo] || 48;
     const visiveis = todos.slice(0, qtd);
