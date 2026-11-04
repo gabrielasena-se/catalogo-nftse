@@ -720,6 +720,7 @@ const BASE_POR_GENERO = {
 // slug: [largura, profundidade, altura, usos] — usos: s = pode sentar, d = pode deitar,
 // a = pode andar em cima, p = vai na parede. Altura 0 = não informada.
 const MEDIDAS_MOBIS = {
+  "machado-bronze":[1,1,1],"machado-prata":[1,1,1],"machado-de-ouro":[1,1,1],"machado-trippy":[1,1,1],
   "bruxa-assustadora":[1,1,1],
   "estacao-de-trabalho-da-bruxa":[1,3,1.3],"cadeira-da-bruxa":[1,1,1.5,"s"],
   "pe-de-abacaxi-supercrescido":[1,1,4],"tapete-recyccoon":[3,2,0.1,"a"],"cadeira-polyfon-saltitante":[1,1,2.4,"s"],"televisao-antiga-de-tela-larga":[1,2,1],"sofa-de-cactos":[2,1,1,"s"],"descanso-de-pes-real":[1,1,0.9,"s"],
@@ -1175,6 +1176,7 @@ const MEDIDAS_MOBIS = {
 // do Habbo, que cresce conforme os itens entram no jogo (balões: número do estilo do balão).
 // Itens sem número ficam no fim; itens cadastrados pelo painel de admin contam como os mais novos.
 const ORDEM_LANCAMENTO = {
+  "pintura-de-rosto-camuflagem":19207,"colete-tatico":19209,"machado-bronze":19210,"machado-prata":19212,"machado-de-ouro":19211,"machado-trippy":19213,
   "camiseta-tag-habbo-raro":18680,"bruxa-assustadora":19158,
   "camiseta-mao-habbo":18677,"camiseta-gangue-de-pato-habbo":18683,
   "camiseta-pato-habbo":18682,"moletom-quartos-habbo":18681,"camiseta-tag-habbo-ltd":18679,"bone-pato-habbo":18676,"estacao-de-trabalho-da-bruxa":19162,"cadeira-da-bruxa":19160,
@@ -1680,6 +1682,7 @@ const ORDEM_LANCAMENTO = {
 // Dia em que o item chegou ao catálogo (AAAAMMDD). "Mais recentes" usa primeiro esta data e,
 // no mesmo dia (ou para os itens de antes de 28/09, que não têm data), a ORDEM_LANCAMENTO.
 const DATA_ENTRADA = {
+  "pintura-de-rosto-camuflagem":20261104,"colete-tatico":20261104,"machado-bronze":20261104,"machado-prata":20261104,"machado-de-ouro":20261104,"machado-trippy":20261104,
   "camiseta-tag-habbo-raro":20261028,"bruxa-assustadora":20261028,
   "camiseta-mao-habbo":20261026,"camiseta-gangue-de-pato-habbo":20261026,
   "camiseta-pato-habbo":20261022,"moletom-quartos-habbo":20261022,"camiseta-tag-habbo-ltd":20261022,"bone-pato-habbo":20261022,"estacao-de-trabalho-da-bruxa":20261022,"cadeira-da-bruxa":20261022,
@@ -5391,6 +5394,14 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_witchchair.png", desc:"" },
   { slug:"bruxa-assustadora", tipo:"furni", pt:"Bruxa Assustadora", en:"Terrifying Witch",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_scarywitch.png", desc:"" },
+  { slug:"machado-bronze", tipo:"furni", pt:"Machado Bronze", en:"Bronze Axe",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_axe_bronze.png", desc:"" },
+  { slug:"machado-prata", tipo:"furni", pt:"Machado Prata", en:"Silver Axe",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_axe_silver.png", desc:"" },
+  { slug:"machado-de-ouro", tipo:"furni", pt:"Machado de Ouro", en:"Gold Axe",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_axe_gold.png", desc:"" },
+  { slug:"machado-trippy", tipo:"furni", pt:"Machado Trippy", en:"Trippy Axe",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_axe_trippy.png", desc:"" },
   { slug:"capa-chuva-translucida-amarela", tipo:"roupa", pt:"Moletom Translúcido Amarelo", ptAntigo:"Capa de Chuva Translúcida Amarela", en:"Yellow Translucent Anorak",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/raincoats/clothing_nftyellowraincoat.png", peca:"cc-5322-1408.ha-5325-1408", desc:"" },
   { slug:"barba-roqueira-grande", tipo:"roupa", pt:"Barba de Roqueiro Grande", ptAntigo:"Barba Roqueira Grande", en:"Big Rocker Beard",
@@ -5625,6 +5636,10 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftmteeduckgang.png", peca:"ch-6432-1408", pecaF:"ch-6433-1408", desc:"" },
   { slug:"camiseta-tag-habbo-raro", tipo:"roupa", pt:"Camiseta Tag Habbo Raro", en:"Habbo Rare Tag T-Shirt",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nftmrareshirt.png", peca:"ch-6417-1408", pecaF:"ch-6416-1408", desc:"" },
+  { slug:"pintura-de-rosto-camuflagem", tipo:"roupa", pt:"Pintura de Rosto Camuflagem", en:"Camouflage Face Paint",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_camopaint.png", peca:"fa-6546-0", pecasIguais:["fa-6610-0"], desc:"" },
+  { slug:"colete-tatico", tipo:"roupa", pt:"Colete Tático", en:"Tactical Vest",
+    img:"https://nft-tokens.habbo.com/collectibles/clothes/images/clothing_nft26_tacticalvest.png", peca:"cc-6602-1408-1408", desc:"" },
 
   // --- Balões de chat (da aba "Add Ons" da TokenTrove) ---
   { slug:"dinheiro",         tipo:"balao", pt:"Dinheiro Vivo", ptAntigo:"Dinheiro", en:"Cash Money Speech Bubble",
