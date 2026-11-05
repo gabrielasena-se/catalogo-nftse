@@ -10738,8 +10738,8 @@ function telaAdmin(){
 // Taxas da compra de ETH: a cada compra (ex.: R$ 100) paga-se um % (reserva) e taxas fixas em dólar (fixo: Coinbase +
 // LayerSwap). Cada item paga o % sobre o seu valor e a parte das taxas fixas proporcional ao seu valor em reais.
 // A variação do ETH fica de fora. Os números ficam salvos neste navegador.
-const CHAVE_CALC = "nftse_calc_v4";
-const CALC_PADRAO = { cotacao: 5.20, cotacaoAuto: true, negocio: 0, reserva: 2, fixo: 0.09, compra: 100, taxa: 20, minimo: 1.00, arredondar: false };
+const CHAVE_CALC = "nftse_calc_v5";
+const CALC_PADRAO = { cotacao: 5.20, cotacaoAuto: true, negocio: 0, reserva: 2, fixo: 0.09, compra: 100, taxa: 15, minimo: 0.80, arredondar: false };
 // Dólar de agora (venda), da AwesomeAPI. Devolve null se não der para buscar.
 async function cotacaoDeAgora(){
   try {
@@ -10754,10 +10754,9 @@ function lerCfgCalc(){
   try {
     const salvo = localStorage.getItem(CHAVE_CALC);
     if (salvo) Object.assign(cfg, JSON.parse(salvo));
-    else {   // versões anteriores: mantém tudo, menos a reserva antiga (v2) e a taxa (agora sugerida em 20%)
-      const v3 = JSON.parse(localStorage.getItem("nftse_calc_v3") || "null");
-      if (v3) { const { taxa, ...resto } = v3; Object.assign(cfg, resto); }
-      else { const { reserva, fixo, taxa, ...resto } = JSON.parse(localStorage.getItem("nftse_calc_v2") || "{}"); Object.assign(cfg, resto); }
+    else {   // versão anterior: mantém o resto, mas a taxa, o mínimo e os custos do negócio passam para o novo padrão
+      const { taxa, minimo, negocio, ...resto } = JSON.parse(localStorage.getItem("nftse_calc_v4") || "{}");
+      Object.assign(cfg, resto);
     }
   } catch (e) {}
   return cfg;
