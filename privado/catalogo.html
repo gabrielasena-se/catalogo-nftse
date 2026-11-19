@@ -720,6 +720,7 @@ const BASE_POR_GENERO = {
 // slug: [largura, profundidade, altura, usos] — usos: s = pode sentar, d = pode deitar,
 // a = pode andar em cima, p = vai na parede. Altura 0 = não informada.
 const MEDIDAS_MOBIS = {
+  "trincheira-de-sobrevivencia":[2,2,0.03,"a"],
   "mostrador-de-arte-de-rua":[2,1,0],"caracois-franceses":[1,1,1],"gato-maneki-neko":[1,1,0],"bicicleta-azul":[1,2,1],"snooker-bling":[2,1,0],"bonequinho-bruxa":[1,1,1],"habbo-gothic":[0,0,0,"p"],"nascimento-de-dragoes":[0,0,0,"p"],"um-bar-em-folies-habberge":[0,0,0,"p"],"os-piratas-refens":[0,0,0,"p"],"garca-real":[1,1,0],"cardeal-de-topete-vermelho":[1,1,0,"a"],"fonte-de-chiclete":[2,2,1],"bexiga-de-unicornio":[1,1,0],"quetzal":[1,1,1],"o-lago-dos-patos":[0,0,0,"p"],"fogueira-bem-construida":[1,1,1],"homem-frankuviano":[0,0,0,"p"],"cartaz-fotografico":[3,1,0.95,"s"],"a-persistencia-das-atividades":[0,0,0,"p"],"auto-retrato-de-frank":[0,0,0,"p"],"o-pato-deslocado":[0,0,0,"p"],
   "machado-bronze":[1,1,1],"machado-prata":[1,1,1],"machado-de-ouro":[1,1,1],"machado-trippy":[1,1,1],
   "bruxa-assustadora":[1,1,1],
@@ -1177,6 +1178,7 @@ const MEDIDAS_MOBIS = {
 // do Habbo, que cresce conforme os itens entram no jogo (balões: número do estilo do balão).
 // Itens sem número ficam no fim; itens cadastrados pelo painel de admin contam como os mais novos.
 const ORDEM_LANCAMENTO = {
+  "trincheira-de-sobrevivencia":19215,
   "mostrador-de-arte-de-rua":19508,"caracois-franceses":19507,"gato-maneki-neko":19505,"bicicleta-azul":19506,"snooker-bling":19503,"bonequinho-bruxa":19161,"habbo-gothic":4944,"nascimento-de-dragoes":4943,"um-bar-em-folies-habberge":4949,"os-piratas-refens":4950,"garca-real":19501,"cardeal-de-topete-vermelho":19500,"fonte-de-chiclete":19504,"bexiga-de-unicornio":19510,"quetzal":19502,"o-lago-dos-patos":4945,"fogueira-bem-construida":19214,"homem-frankuviano":4942,"cartaz-fotografico":19509,"a-persistencia-das-atividades":4947,"auto-retrato-de-frank":4946,"o-pato-deslocado":4948,
   "pintura-de-rosto-camuflagem":19207,"colete-tatico":19209,"machado-bronze":19210,"machado-prata":19212,"machado-de-ouro":19211,"machado-trippy":19213,
   "camiseta-tag-habbo-raro":18680,"bruxa-assustadora":19158,
@@ -1684,6 +1686,7 @@ const ORDEM_LANCAMENTO = {
 // Dia em que o item chegou ao catálogo (AAAAMMDD). "Mais recentes" usa primeiro esta data e,
 // no mesmo dia (ou para os itens de antes de 28/09, que não têm data), a ORDEM_LANCAMENTO.
 const DATA_ENTRADA = {
+  "trincheira-de-sobrevivencia":20261119,
   "mostrador-de-arte-de-rua":20261114,"caracois-franceses":20261114,"gato-maneki-neko":20261114,"bicicleta-azul":20261114,"snooker-bling":20261114,"bonequinho-bruxa":20261114,"habbo-gothic":20261114,"nascimento-de-dragoes":20261114,"um-bar-em-folies-habberge":20261114,"os-piratas-refens":20261114,"garca-real":20261114,"cardeal-de-topete-vermelho":20261114,"fonte-de-chiclete":20261114,"bexiga-de-unicornio":20261114,"quetzal":20261114,"o-lago-dos-patos":20261114,"fogueira-bem-construida":20261114,"homem-frankuviano":20261114,"cartaz-fotografico":20261114,"a-persistencia-das-atividades":20261114,"auto-retrato-de-frank":20261114,"o-pato-deslocado":20261114,
   "pintura-de-rosto-camuflagem":20261104,"colete-tatico":20261104,"machado-bronze":20261104,"machado-prata":20261104,"machado-de-ouro":20261104,"machado-trippy":20261104,
   "camiseta-tag-habbo-raro":20261028,"bruxa-assustadora":20261028,
@@ -5449,6 +5452,8 @@ const CATALOGO = [
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_diamond_painting23.png", desc:"" },
   { slug:"o-pato-deslocado", tipo:"furni", pt:"O Pato Deslocado", en:"Misplaced Duck",
     img:"https://nft-tokens.habbo.com/collectibles/furni/images/crafted/nft_diamond_painting29.png", desc:"" },
+  { slug:"trincheira-de-sobrevivencia", tipo:"furni", pt:"Trincheira de Sobrevivência", en:"Survivalist Emplacement",
+    img:"https://nft-tokens.habbo.com/collectibles/furni/images/nft_h26_emplacement.png", desc:"" },
   { slug:"capa-chuva-translucida-amarela", tipo:"roupa", pt:"Moletom Translúcido Amarelo", ptAntigo:"Capa de Chuva Translúcida Amarela", en:"Yellow Translucent Anorak",
     img:"https://nft-tokens.habbo.com/collectibles/clothes/images/raincoats/clothing_nftyellowraincoat.png", peca:"cc-5322-1408.ha-5325-1408", desc:"" },
   { slug:"barba-roqueira-grande", tipo:"roupa", pt:"Barba de Roqueiro Grande", ptAntigo:"Barba Roqueira Grande", en:"Big Rocker Beard",
